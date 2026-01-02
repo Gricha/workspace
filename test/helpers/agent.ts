@@ -3,6 +3,10 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { AddressInfo, createServer } from 'net';
+import { createORPCClient } from '@orpc/client';
+import { RPCLink } from '@orpc/client/fetch';
+import type { RouterClient } from '@orpc/server';
+import type { AppRouter } from '../../src/agent/router';
 import type {
   AgentConfig,
   HealthResponse,
@@ -25,7 +29,7 @@ interface ApiResponse<T> {
 
 interface ApiClient {
   health(): Promise<HealthResponse>;
-  info(): Promise<InfoResponse>;
+  info(): Promise<InfoResponse & { terminalConnections?: number }>;
   listWorkspaces(): Promise<WorkspaceInfo[]>;
   createWorkspace(data: CreateWorkspaceRequest): Promise<ApiResponse<WorkspaceInfo | ApiError>>;
   getWorkspace(name: string): Promise<WorkspaceInfo | null>;
@@ -96,7 +100,11 @@ export async function waitForHealthy(baseUrl: string, timeout = 10000): Promise<
 }
 
 export function createApiClient(baseUrl: string): ApiClient {
-  const apiBase = `${baseUrl}/api/v1`;
+  type Client = RouterClient<AppRouter>;
+  const link = new RPCLink({
+    url: `${baseUrl}/rpc`,
+  });
+  const client = createORPCClient<Client>(link);
 
   return {
     async health(): Promise<HealthResponse> {
@@ -104,52 +112,76 @@ export function createApiClient(baseUrl: string): ApiClient {
       return res.json() as Promise<HealthResponse>;
     },
 
-    async info(): Promise<InfoResponse> {
-      const res = await fetch(`${apiBase}/info`);
-      return res.json() as Promise<InfoResponse>;
+    async info(): Promise<InfoResponse & { terminalConnections?: number }> {
+      return client.info();
     },
 
     async listWorkspaces(): Promise<WorkspaceInfo[]> {
-      const res = await fetch(`${apiBase}/workspaces`);
-      return res.json() as Promise<WorkspaceInfo[]>;
+      return client.workspaces.list();
     },
 
     async createWorkspace(
       data: CreateWorkspaceRequest
     ): Promise<ApiResponse<WorkspaceInfo | ApiError>> {
-      const res = await fetch(`${apiBase}/workspaces`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      return { status: res.status, data: (await res.json()) as WorkspaceInfo | ApiError };
+      try {
+        const workspace = await client.workspaces.create(data);
+        return { status: 201, data: workspace };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        const orpcErr = err as { code?: string; status?: number };
+        return {
+          status: orpcErr.status || 500,
+          data: { error: message, code: orpcErr.code } as ApiError,
+        };
+      }
     },
 
     async getWorkspace(name: string): Promise<WorkspaceInfo | null> {
-      const res = await fetch(`${apiBase}/workspaces/${name}`);
-      if (res.status === 404) return null;
-      return res.json() as Promise<WorkspaceInfo>;
+      try {
+        return await client.workspaces.get({ name });
+      } catch (err) {
+        const orpcErr = err as { code?: string };
+        if (orpcErr.code === 'NOT_FOUND') return null;
+        throw err;
+      }
     },
 
     async deleteWorkspace(name: string): Promise<{ status: number }> {
-      const res = await fetch(`${apiBase}/workspaces/${name}`, {
-        method: 'DELETE',
-      });
-      return { status: res.status };
+      try {
+        await client.workspaces.delete({ name });
+        return { status: 200 };
+      } catch (err) {
+        const orpcErr = err as { status?: number };
+        return { status: orpcErr.status || 500 };
+      }
     },
 
     async startWorkspace(name: string): Promise<ApiResponse<WorkspaceInfo | ApiError>> {
-      const res = await fetch(`${apiBase}/workspaces/${name}/start`, {
-        method: 'POST',
-      });
-      return { status: res.status, data: (await res.json()) as WorkspaceInfo | ApiError };
+      try {
+        const workspace = await client.workspaces.start({ name });
+        return { status: 200, data: workspace };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        const orpcErr = err as { code?: string; status?: number };
+        return {
+          status: orpcErr.status || 500,
+          data: { error: message, code: orpcErr.code } as ApiError,
+        };
+      }
     },
 
     async stopWorkspace(name: string): Promise<ApiResponse<WorkspaceInfo | ApiError>> {
-      const res = await fetch(`${apiBase}/workspaces/${name}/stop`, {
-        method: 'POST',
-      });
-      return { status: res.status, data: (await res.json()) as WorkspaceInfo | ApiError };
+      try {
+        const workspace = await client.workspaces.stop({ name });
+        return { status: 200, data: workspace };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        const orpcErr = err as { code?: string; status?: number };
+        return {
+          status: orpcErr.status || 500,
+          data: { error: message, code: orpcErr.code } as ApiError,
+        };
+      }
     },
   };
 }

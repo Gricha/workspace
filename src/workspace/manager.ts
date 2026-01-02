@@ -42,6 +42,10 @@ export class WorkspaceManager {
     this.configDir = configDir;
   }
 
+  updateConfig(config: AgentConfig): void {
+    this.config = config;
+  }
+
   private async copyCredentialFiles(containerName: string): Promise<void> {
     const files = this.config.credentials.files;
     if (!files || Object.keys(files).length === 0) {

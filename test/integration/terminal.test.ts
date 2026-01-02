@@ -84,7 +84,7 @@ describe('Terminal WebSocket', () => {
   });
 
   it('returns 404 for non-existent workspace terminal', async () => {
-    const ws = new WebSocket(`ws://127.0.0.1:${agent.port}/api/v1/workspaces/nonexistent/terminal`);
+    const ws = new WebSocket(`ws://127.0.0.1:${agent.port}/rpc/terminal/nonexistent`);
 
     const error = await new Promise<{ code: number; reason: string }>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Timeout')), 5000);
@@ -115,9 +115,7 @@ describe('Terminal WebSocket', () => {
       return;
     }
 
-    const ws = new WebSocket(
-      `ws://127.0.0.1:${agent.port}/api/v1/workspaces/${workspaceName}/terminal`
-    );
+    const ws = new WebSocket(`ws://127.0.0.1:${agent.port}/rpc/terminal/${workspaceName}`);
 
     await waitForOpen(ws);
     expect(ws.readyState).toBe(WebSocket.OPEN);
@@ -131,9 +129,7 @@ describe('Terminal WebSocket', () => {
       return;
     }
 
-    const ws = new WebSocket(
-      `ws://127.0.0.1:${agent.port}/api/v1/workspaces/${workspaceName}/terminal`
-    );
+    const ws = new WebSocket(`ws://127.0.0.1:${agent.port}/rpc/terminal/${workspaceName}`);
 
     await waitForOpen(ws);
 
@@ -152,9 +148,7 @@ describe('Terminal WebSocket', () => {
       return;
     }
 
-    const ws = new WebSocket(
-      `ws://127.0.0.1:${agent.port}/api/v1/workspaces/${workspaceName}/terminal`
-    );
+    const ws = new WebSocket(`ws://127.0.0.1:${agent.port}/rpc/terminal/${workspaceName}`);
 
     await waitForOpen(ws);
 
@@ -185,12 +179,8 @@ describe('Terminal WebSocket', () => {
       return;
     }
 
-    const ws1 = new WebSocket(
-      `ws://127.0.0.1:${agent.port}/api/v1/workspaces/${workspaceName}/terminal`
-    );
-    const ws2 = new WebSocket(
-      `ws://127.0.0.1:${agent.port}/api/v1/workspaces/${workspaceName}/terminal`
-    );
+    const ws1 = new WebSocket(`ws://127.0.0.1:${agent.port}/rpc/terminal/${workspaceName}`);
+    const ws2 = new WebSocket(`ws://127.0.0.1:${agent.port}/rpc/terminal/${workspaceName}`);
 
     await Promise.all([waitForOpen(ws1), waitForOpen(ws2)]);
 
@@ -215,9 +205,7 @@ describe('Terminal WebSocket', () => {
     const infoBefore = await agent.api.info();
     const connectionsBefore = infoBefore.terminalConnections;
 
-    const ws = new WebSocket(
-      `ws://127.0.0.1:${agent.port}/api/v1/workspaces/${workspaceName}/terminal`
-    );
+    const ws = new WebSocket(`ws://127.0.0.1:${agent.port}/rpc/terminal/${workspaceName}`);
 
     await waitForOpen(ws);
 
@@ -244,9 +232,7 @@ describe('Terminal WebSocket', () => {
       return;
     }
 
-    const ws = new WebSocket(
-      `ws://127.0.0.1:${agent.port}/api/v1/workspaces/${workspaceName}/terminal`
-    );
+    const ws = new WebSocket(`ws://127.0.0.1:${agent.port}/rpc/terminal/${workspaceName}`);
 
     await waitForOpen(ws);
 

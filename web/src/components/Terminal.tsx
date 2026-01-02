@@ -1,0 +1,106 @@
+import { useEffect, useRef, useCallback } from 'react'
+import { Terminal as XTerm } from '@xterm/xterm'
+import { FitAddon } from '@xterm/addon-fit'
+import '@xterm/xterm/css/xterm.css'
+import { getTerminalUrl } from '@/lib/api'
+
+interface TerminalProps {
+  workspaceName: string
+}
+
+export function Terminal({ workspaceName }: TerminalProps) {
+  const terminalRef = useRef<HTMLDivElement>(null)
+  const xtermRef = useRef<XTerm | null>(null)
+  const fitAddonRef = useRef<FitAddon | null>(null)
+  const wsRef = useRef<WebSocket | null>(null)
+
+  const connect = useCallback(() => {
+    if (!terminalRef.current) return
+
+    const xterm = new XTerm({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      theme: {
+        background: '#1e1e1e',
+        foreground: '#d4d4d4',
+        cursor: '#aeafad',
+        selectionBackground: '#264f78',
+      },
+    })
+    xtermRef.current = xterm
+
+    const fitAddon = new FitAddon()
+    fitAddonRef.current = fitAddon
+    xterm.loadAddon(fitAddon)
+
+    xterm.open(terminalRef.current)
+    fitAddon.fit()
+
+    const wsUrl = getTerminalUrl(workspaceName)
+
+    const ws = new WebSocket(wsUrl)
+    wsRef.current = ws
+
+    ws.onopen = () => {
+      xterm.writeln('\x1b[32mConnected to terminal\x1b[0m')
+      xterm.writeln('')
+      const { cols, rows } = xterm
+      ws.send(JSON.stringify({ type: 'resize', cols, rows }))
+    }
+
+    ws.onmessage = (event) => {
+      xterm.write(event.data)
+    }
+
+    ws.onclose = () => {
+      xterm.writeln('')
+      xterm.writeln('\x1b[31mDisconnected from terminal\x1b[0m')
+    }
+
+    ws.onerror = () => {
+      xterm.writeln('\x1b[31mConnection error\x1b[0m')
+    }
+
+    xterm.onData((data) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(data)
+      }
+    })
+
+    xterm.onResize(({ cols, rows }) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'resize', cols, rows }))
+      }
+    })
+  }, [workspaceName])
+
+  useEffect(() => {
+    connect()
+
+    const handleResize = () => {
+      if (fitAddonRef.current) {
+        fitAddonRef.current.fit()
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      if (wsRef.current) {
+        wsRef.current.close()
+      }
+      if (xtermRef.current) {
+        xtermRef.current.dispose()
+      }
+    }
+  }, [connect])
+
+  return (
+    <div
+      ref={terminalRef}
+      className="h-full w-full min-h-[400px] bg-[#1e1e1e] rounded-lg overflow-hidden"
+    />
+  )
+}

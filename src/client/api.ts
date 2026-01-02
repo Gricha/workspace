@@ -1,10 +1,8 @@
-import type {
-  WorkspaceInfo,
-  CreateWorkspaceRequest,
-  HealthResponse,
-  InfoResponse,
-  ApiError,
-} from '../shared/types';
+import { createORPCClient } from '@orpc/client';
+import { RPCLink } from '@orpc/client/fetch';
+import type { RouterClient } from '@orpc/server';
+import type { AppRouter } from '../agent/router';
+import type { WorkspaceInfo, CreateWorkspaceRequest, InfoResponse } from '../shared/types';
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -22,129 +20,124 @@ export class ApiClientError extends Error {
   }
 }
 
+type Client = RouterClient<AppRouter>;
+
 export class ApiClient {
   private baseUrl: string;
-  private timeout: number;
+  private client: Client;
 
   constructor(options: ApiClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, '');
-    this.timeout = options.timeout || 30000;
+
+    const link = new RPCLink({
+      url: `${this.baseUrl}/rpc`,
+      fetch: (url, init) =>
+        fetch(url, { ...init, signal: AbortSignal.timeout(options.timeout || 30000) }),
+    });
+
+    this.client = createORPCClient<Client>(link);
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const url = `${this.baseUrl}${path}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
-    try {
-      const response = await fetch(url, {
-        method,
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
-        body: body ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        let errorData: ApiError | null = null;
-        try {
-          errorData = (await response.json()) as ApiError;
-        } catch {
-          // Response wasn't JSON
-        }
-
-        throw new ApiClientError(
-          errorData?.error || `Request failed with status ${response.status}`,
-          response.status,
-          errorData?.code
-        );
-      }
-
-      if (response.status === 204) {
-        return undefined as T;
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType?.includes('application/json')) {
-        return (await response.json()) as T;
-      }
-
-      return (await response.text()) as T;
-    } catch (err) {
-      clearTimeout(timeoutId);
-
-      if (err instanceof ApiClientError) {
-        throw err;
-      }
-
-      if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          throw new ApiClientError('Request timed out', 0, 'TIMEOUT');
-        }
-        if (err.message.includes('fetch failed') || err.message.includes('ECONNREFUSED')) {
-          throw new ApiClientError(
-            `Cannot connect to agent at ${this.baseUrl}`,
-            0,
-            'CONNECTION_FAILED'
-          );
-        }
-        throw new ApiClientError(err.message, 0, 'UNKNOWN');
-      }
-
-      throw err;
-    }
-  }
-
-  async health(): Promise<HealthResponse> {
-    return this.request<HealthResponse>('GET', '/health');
+  async health(): Promise<{ status: string; version: string }> {
+    const response = await fetch(`${this.baseUrl}/health`);
+    return response.json();
   }
 
   async info(): Promise<InfoResponse> {
-    return this.request<InfoResponse>('GET', '/api/v1/info');
+    try {
+      return await this.client.info();
+    } catch (err) {
+      throw this.wrapError(err);
+    }
   }
 
   async listWorkspaces(): Promise<WorkspaceInfo[]> {
-    return this.request<WorkspaceInfo[]>('GET', '/api/v1/workspaces');
+    try {
+      return await this.client.workspaces.list();
+    } catch (err) {
+      throw this.wrapError(err);
+    }
   }
 
   async getWorkspace(name: string): Promise<WorkspaceInfo> {
-    return this.request<WorkspaceInfo>('GET', `/api/v1/workspaces/${encodeURIComponent(name)}`);
+    try {
+      return await this.client.workspaces.get({ name });
+    } catch (err) {
+      throw this.wrapError(err);
+    }
   }
 
   async createWorkspace(request: CreateWorkspaceRequest): Promise<WorkspaceInfo> {
-    return this.request<WorkspaceInfo>('POST', '/api/v1/workspaces', request);
+    try {
+      return await this.client.workspaces.create(request);
+    } catch (err) {
+      throw this.wrapError(err);
+    }
   }
 
   async deleteWorkspace(name: string): Promise<void> {
-    return this.request<void>('DELETE', `/api/v1/workspaces/${encodeURIComponent(name)}`);
+    try {
+      await this.client.workspaces.delete({ name });
+    } catch (err) {
+      throw this.wrapError(err);
+    }
   }
 
   async startWorkspace(name: string): Promise<WorkspaceInfo> {
-    return this.request<WorkspaceInfo>(
-      'POST',
-      `/api/v1/workspaces/${encodeURIComponent(name)}/start`
-    );
+    try {
+      return await this.client.workspaces.start({ name });
+    } catch (err) {
+      throw this.wrapError(err);
+    }
   }
 
   async stopWorkspace(name: string): Promise<WorkspaceInfo> {
-    return this.request<WorkspaceInfo>(
-      'POST',
-      `/api/v1/workspaces/${encodeURIComponent(name)}/stop`
-    );
+    try {
+      return await this.client.workspaces.stop({ name });
+    } catch (err) {
+      throw this.wrapError(err);
+    }
   }
 
   async getLogs(name: string, tail?: number): Promise<string> {
-    const query = tail ? `?tail=${tail}` : '';
-    return this.request<string>(
-      'GET',
-      `/api/v1/workspaces/${encodeURIComponent(name)}/logs${query}`
-    );
+    try {
+      return await this.client.workspaces.logs({ name, tail });
+    } catch (err) {
+      throw this.wrapError(err);
+    }
   }
 
   getTerminalUrl(name: string): string {
     const wsUrl = this.baseUrl.replace(/^http/, 'ws');
-    return `${wsUrl}/api/v1/workspaces/${encodeURIComponent(name)}/terminal`;
+    return `${wsUrl}/rpc/terminal/${encodeURIComponent(name)}`;
+  }
+
+  private wrapError(err: unknown): ApiClientError {
+    if (err instanceof ApiClientError) {
+      return err;
+    }
+
+    if (err instanceof Error) {
+      if (err.message.includes('fetch failed') || err.message.includes('ECONNREFUSED')) {
+        return new ApiClientError(
+          `Cannot connect to agent at ${this.baseUrl}`,
+          0,
+          'CONNECTION_FAILED'
+        );
+      }
+      if (err.name === 'TimeoutError' || err.message.includes('timeout')) {
+        return new ApiClientError('Request timed out', 0, 'TIMEOUT');
+      }
+
+      const orpcError = err as { code?: string; status?: number };
+      if (orpcError.code) {
+        return new ApiClientError(err.message, orpcError.status || 500, orpcError.code);
+      }
+
+      return new ApiClientError(err.message, 0, 'UNKNOWN');
+    }
+
+    return new ApiClientError('Unknown error', 0, 'UNKNOWN');
   }
 }
 

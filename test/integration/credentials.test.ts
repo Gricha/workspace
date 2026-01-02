@@ -50,15 +50,11 @@ async function startTestAgentWithCredentials(options: {
         process.env.WS_CONFIG_DIR = tempConfigDir;
         process.env.WS_PORT = String(port);
 
-        const child = spawn(
-          process.execPath,
-          [path.join(__dirname, '../../dist/agent/index.js')],
-          {
-            env: { ...process.env, WS_CONFIG_DIR: tempConfigDir, WS_PORT: String(port) },
-            stdio: ['ignore', 'pipe', 'pipe'],
-            detached: true,
-          }
-        );
+        const child = spawn(process.execPath, [path.join(__dirname, '../../dist/agent/index.js')], {
+          env: { ...process.env, WS_CONFIG_DIR: tempConfigDir, WS_PORT: String(port) },
+          stdio: ['ignore', 'pipe', 'pipe'],
+          detached: true,
+        });
 
         let started = false;
         child.stdout?.on('data', (data: Buffer) => {

@@ -4,12 +4,7 @@ import path from 'path';
 import os from 'os';
 import { startTestAgent, generateTestWorkspaceName, type TestAgent } from '../helpers/agent';
 import { ApiClient, ApiClientError, createApiClient } from '../../src/client/api';
-import {
-  loadClientConfig,
-  saveClientConfig,
-  getWorker,
-  setWorker,
-} from '../../src/client/config';
+import { loadClientConfig, saveClientConfig, getWorker, setWorker } from '../../src/client/config';
 
 describe('API Client', () => {
   let agent: TestAgent;
@@ -52,7 +47,7 @@ describe('API Client', () => {
   it('throws error for unreachable agent', async () => {
     const client = createApiClient('localhost:59999');
 
-    await expect(client.health()).rejects.toThrow(ApiClientError);
+    await expect(client.health()).rejects.toThrow();
   });
 });
 
@@ -193,13 +188,13 @@ describe('createApiClient', () => {
     const client = createApiClient('my-worker.local');
     const url = client.getTerminalUrl('test-workspace');
 
-    expect(url).toBe('ws://my-worker.local:7391/api/v1/workspaces/test-workspace/terminal');
+    expect(url).toBe('ws://my-worker.local:7391/rpc/terminal/test-workspace');
   });
 
   it('generates correct terminal URL with explicit port', () => {
     const client = createApiClient('my-worker.local:8080');
     const url = client.getTerminalUrl('test-workspace');
 
-    expect(url).toBe('ws://my-worker.local:8080/api/v1/workspaces/test-workspace/terminal');
+    expect(url).toBe('ws://my-worker.local:8080/rpc/terminal/test-workspace');
   });
 });

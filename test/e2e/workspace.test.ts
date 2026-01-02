@@ -130,9 +130,7 @@ describe('E2E - Workspace Creation', () => {
   it('can execute commands via terminal WebSocket', async () => {
     const WebSocket = (await import('ws')).default;
 
-    const ws = new WebSocket(
-      `ws://127.0.0.1:${agent.port}/api/v1/workspaces/${workspaceName}/terminal`
-    );
+    const ws = new WebSocket(`ws://127.0.0.1:${agent.port}/rpc/terminal/${workspaceName}`);
 
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('WebSocket timeout')), 10000);
@@ -190,4 +188,3 @@ describe('E2E - Workspace Creation', () => {
     expect(getResult).toBeNull();
   }, 60000);
 });
-

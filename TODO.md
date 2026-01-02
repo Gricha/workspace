@@ -2,30 +2,26 @@
 
 > **Important**: Remove tasks from this list when completed. Do not add new tasks without discussing with the project owner first - add them to "Considerations" section instead.
 
-## Priority: Remote Access
+## Testing
 
-- [ ] Remote shell (`ws shell <name>`) - connect to workspace terminal from client machine
-- [ ] Port forwarding/proxy - forward workspace ports to client machine
+(Completed)
 
 ## Phase 5: TUI
 
-- [ ] Set up OpenTUI
-- [ ] Workspace list view
-- [ ] Create workspace form (name, optional repo)
-- [ ] Workspace actions (start/stop/delete)
-- [ ] Integrated terminal view
-- [ ] Settings/config view (add credentials)
+- [ ] Implement TUI dashboard that launches when running `workspace` with no arguments
+  - OpenTUI-based interactive terminal UI
+  - Workspace list view with status indicators
+  - Create/start/stop/delete workspace actions
+  - Integrated terminal (select workspace, open shell)
+  - Settings/config management view
+- [ ] First-run UX: prompt user for worker hostname if not configured
+  - When running any command without worker set, interactively ask for hostname
+  - Save to client config after successful connection test
+  - Example: `? No worker configured. Enter worker hostname: my-desktop.tail1234.ts.net`
 
 ## Phase 6: Web UI
 
-- [ ] Set up React + react-router + shadcn/ui project in `web/`
-- [ ] Workspace list page
-- [ ] Workspace detail page
-- [ ] Create workspace form
-- [ ] xterm.js terminal integration
-- [ ] Settings page (credentials management)
-- [ ] Build pipeline (bundle into agent)
-- [ ] Agent serves static files from `web/dist/`
+(Completed)
 
 ## Phase 7: Polish (Future)
 

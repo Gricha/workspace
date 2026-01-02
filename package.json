@@ -6,8 +6,10 @@
     "workspace": "./dist/index.js"
   },
   "scripts": {
-    "build": "rm -rf ./dist && tsc && chmod +x dist/index.js",
+    "build": "rm -rf ./dist && tsc && chmod +x dist/index.js && npm run build:web",
+    "build:web": "cd web && npm run build && cp -r dist ../dist/agent/web",
     "test": "vitest run",
+    "test:web": "playwright test",
     "test:watch": "vitest",
     "lint": "oxlint src/",
     "lint:fix": "oxlint --fix src/",
@@ -19,15 +21,19 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@opentui/core": "^0.1.67",
+    "@orpc/server": "^1.13.2",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
     "ora": "^5.4.1",
     "proper-lockfile": "^4.1.2",
     "update-notifier": "^7.3.1",
     "ws": "^8.18.3",
-    "yaml": "^2.3.4"
+    "yaml": "^2.3.4",
+    "zod": "^4.3.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.8.1",
     "@types/proper-lockfile": "^4.1.4",

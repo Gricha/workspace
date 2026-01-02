@@ -45,7 +45,7 @@ describe('Agent', () => {
     it('validates workspace name is required', async () => {
       const result = await agent.api.createWorkspace({} as { name: string });
       expect(result.status).toBe(400);
-      expect((result.data as { code: string }).code).toBe('MISSING_NAME');
+      expect((result.data as { code: string }).code).toBe('BAD_REQUEST');
     });
   });
 });
@@ -90,11 +90,11 @@ describe('Agent - Name Collision', () => {
     if (result1.status === 201) {
       const result2 = await agent.api.createWorkspace({ name: testWorkspaceName });
       expect(result2.status).toBe(409);
-      expect((result2.data as { code: string }).code).toBe('ALREADY_EXISTS');
+      expect((result2.data as { code: string }).code).toBe('CONFLICT');
 
       await agent.api.deleteWorkspace(testWorkspaceName);
     } else if (result1.status === 400) {
-      expect((result1.data as { code: string }).code).toBe('IMAGE_NOT_FOUND');
+      expect((result1.data as { code: string }).code).toBe('BAD_REQUEST');
     } else {
       expect(result1.status).toBe(201);
     }

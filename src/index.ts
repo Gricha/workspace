@@ -6,6 +6,8 @@ import { startAgent } from './agent/run';
 import { installService, uninstallService, showStatus } from './agent/systemd';
 import { createApiClient, ApiClientError } from './client/api';
 import { loadClientConfig, getWorker, setWorker } from './client/config';
+import { openShell } from './client/shell';
+import { startProxy, parsePortForward, formatPortForwards } from './client/proxy';
 import { loadAgentConfig, getConfigDir, ensureConfigDir } from './config/loader';
 import { buildImage } from './docker';
 
@@ -215,10 +217,88 @@ program
 program
   .command('shell <name>')
   .description('Open interactive terminal to workspace')
-  .action(async (_name) => {
-    console.error('Remote shell not yet implemented. See TODO.md');
-    console.error('For now, SSH directly: ssh -p <port> workspace@<agent-host>');
-    process.exit(1);
+  .action(async (name) => {
+    try {
+      const client = await getClient();
+
+      const workspace = await client.getWorkspace(name);
+      if (workspace.status !== 'running') {
+        console.error(`Workspace '${name}' is not running (status: ${workspace.status})`);
+        process.exit(1);
+      }
+
+      const terminalUrl = client.getTerminalUrl(name);
+
+      await openShell({
+        terminalUrl,
+        onError: (err) => {
+          console.error(`\nConnection error: ${err.message}`);
+        },
+      });
+    } catch (err) {
+      handleError(err);
+    }
+  });
+
+program
+  .command('proxy <name> [ports...]')
+  .description('Forward ports from workspace to local machine')
+  .action(async (name, ports: string[]) => {
+    try {
+      const worker = await getWorker();
+      if (!worker) {
+        console.error('No worker configured. Run: workspace config worker <hostname>');
+        process.exit(1);
+      }
+
+      const client = await getClient();
+
+      const workspace = await client.getWorkspace(name);
+      if (workspace.status !== 'running') {
+        console.error(`Workspace '${name}' is not running (status: ${workspace.status})`);
+        process.exit(1);
+      }
+
+      if (ports.length === 0) {
+        console.log(`Workspace '${name}' is running.`);
+        console.log(`  SSH Port: ${workspace.ports.ssh}`);
+        console.log('');
+        console.log('To forward ports manually, run:');
+        console.log(
+          `  ssh -N -L <local>:<remote> -p ${workspace.ports.ssh} workspace@${worker.split(':')[0]}`
+        );
+        console.log('');
+        console.log('Or use: workspace proxy <name> <port> [<port>...]');
+        console.log('  Examples:');
+        console.log('    workspace proxy alpha 3000         # Forward port 3000');
+        console.log('    workspace proxy alpha 8080:3000    # Forward local 8080 to remote 3000');
+        console.log('    workspace proxy alpha 3000 5173    # Forward multiple ports');
+        return;
+      }
+
+      const forwards = ports.map(parsePortForward);
+
+      console.log(`Forwarding ports: ${formatPortForwards(forwards)}`);
+      console.log('Press Ctrl+C to stop.');
+      console.log('');
+
+      await startProxy({
+        worker,
+        sshPort: workspace.ports.ssh,
+        forwards,
+        onConnect: () => {
+          console.log('Connected. Ports are now forwarded.');
+        },
+        onDisconnect: (code) => {
+          console.log(`\nDisconnected (exit code: ${code})`);
+        },
+        onError: (err) => {
+          console.error(`\nConnection error: ${err.message}`);
+        },
+      });
+    } catch (err) {
+      handleError(err);
+    }
   });
 
 const configCmd = program.command('config').description('Manage configuration');
@@ -286,7 +366,9 @@ program
     console.log(`Building workspace image ${imageTag}...`);
 
     try {
-      await buildImage(imageTag, buildContext, { noCache: options.noCache === false ? false : !options.cache });
+      await buildImage(imageTag, buildContext, {
+        noCache: options.noCache === false ? false : !options.cache,
+      });
       console.log('Build complete.');
     } catch (err) {
       console.error('Build failed:', err instanceof Error ? err.message : err);
