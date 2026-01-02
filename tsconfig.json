@@ -7,7 +7,7 @@
     "rootDir": "./src",
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "types": ["node"],
+    "types": ["node", "bun"],
     "declaration": false,
     "sourceMap": false,
     "noEmitOnError": true,

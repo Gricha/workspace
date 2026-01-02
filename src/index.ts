@@ -10,13 +10,17 @@ import { openShell } from './client/shell';
 import { startProxy, parsePortForward, formatPortForwards } from './client/proxy';
 import { loadAgentConfig, getConfigDir, ensureConfigDir } from './config/loader';
 import { buildImage } from './docker';
+import { startTui } from './tui';
 
 const program = new Command();
 
 program
   .name('workspace')
   .description('Distributed development environment orchestrator')
-  .version(pkg.version);
+  .version(pkg.version)
+  .action(async () => {
+    await startTui();
+  });
 
 const agentCmd = program.command('agent').description('Manage the workspace agent daemon');
 
