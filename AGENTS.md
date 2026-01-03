@@ -128,6 +128,7 @@ Without e2e tests, there is a very high chance that UI features will be non-func
 - Don't break backward compatibility
 - Don't use `docker exec` for user interaction (use SSH via `workspace shell`)
 - Don't skip failing tests
+- Don't write complex bash scripts that run via docker exec - escaping issues make them fragile. Use TypeScript with multiple simple docker exec calls instead
 
 ## Do
 

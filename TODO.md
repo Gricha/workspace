@@ -20,9 +20,9 @@
 
 When using TUI or CLI for terminal access, use SSH command instead of the bun WebSocket terminal. SSH provides a better terminal experience with proper PTY handling, scrollback, etc.
 
-### Optimize Sessions Listing
+### Web Terminal Should Use xterm.js
 
-The sessions API makes N*4 sequential docker exec calls (list dirs, stat files, count lines, get first prompt). This is extremely slow. Should batch into a single script that runs inside the container and returns all session data as JSON.
+The web UI terminal should use xterm.js for a proper terminal experience with full PTY support, ANSI colors, scrollback, and proper keyboard handling.
 
 ---
 

@@ -32,7 +32,7 @@ interface StreamMessage {
   event?: {
     type: string;
     delta?: {
-      type?: string;
+      type: string;
       text?: string;
     };
   };
@@ -40,7 +40,7 @@ interface StreamMessage {
 }
 
 export class ChatSession {
-  private process: Subprocess<'pipe', 'pipe', 'pipe'> | null = null;
+  private process: Subprocess<'ignore', 'pipe', 'pipe'> | null = null;
   private containerName: string;
   private workDir: string;
   private sessionId?: string;
@@ -59,7 +59,6 @@ export class ChatSession {
   async sendMessage(userMessage: string): Promise<void> {
     const args = [
       'exec',
-      '-i',
       '-u',
       'workspace',
       '-w',
@@ -93,7 +92,7 @@ export class ChatSession {
 
     try {
       const proc = Bun.spawn(['docker', ...args], {
-        stdin: 'pipe',
+        stdin: 'ignore',
         stdout: 'pipe',
         stderr: 'pipe',
       });
@@ -193,13 +192,7 @@ export class ChatSession {
 
     if (msg.type === 'assistant' && msg.message?.content) {
       for (const block of msg.message.content) {
-        if (block.type === 'text' && block.text) {
-          this.onMessage({
-            type: 'assistant',
-            content: block.text,
-            timestamp,
-          });
-        } else if (block.type === 'tool_use') {
+        if (block.type === 'tool_use') {
           this.onMessage({
             type: 'tool_use',
             content: JSON.stringify(block.input, null, 2),
@@ -212,23 +205,12 @@ export class ChatSession {
       return;
     }
 
-    if (msg.type === 'content_block_delta' || msg.event?.type === 'content_block_delta') {
+    if (msg.type === 'stream_event' && msg.event?.type === 'content_block_delta') {
       const delta = msg.event?.delta;
-      if (delta?.text) {
+      if (delta?.type === 'text_delta' && delta?.text) {
         this.onMessage({
           type: 'assistant',
           content: delta.text,
-          timestamp,
-        });
-      }
-      return;
-    }
-
-    if (msg.type === 'result') {
-      if (msg.subtype === 'success' && msg.result) {
-        this.onMessage({
-          type: 'assistant',
-          content: msg.result,
           timestamp,
         });
       }
