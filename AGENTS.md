@@ -68,12 +68,35 @@ Workspace CLI creates isolated Docker-in-Docker development environments. Distri
 
 ## Testing
 
-All tests must pass. Run `bun run validate` before completing any task.
+**CRITICAL**: You must actually test your changes before claiming they work. Passing `bun run validate` is necessary but NOT sufficient. Automated tests cannot catch everything.
 
+**Testing Protocol:**
+
+1. Run `bun run validate` - all tests must pass
+2. **Manually verify** the feature works by:
+   - For CLI: Run the actual command and verify output
+   - For Web UI: Open browser, perform the action, verify behavior
+   - For API: Use curl/test scripts to hit the endpoint
+   - For WebSocket endpoints: Write and run a test client script
+3. Only then mark the task as complete
+
+**Example verification for WebSocket terminal:**
+```bash
+# Backend test - verify WebSocket actually works
+cat > /tmp/test-ws.ts << 'EOF'
+import WebSocket from 'ws';
+const ws = new WebSocket('ws://localhost:7391/rpc/terminal/myworkspace');
+ws.on('open', () => { console.log('OK: connected'); ws.close(); });
+ws.on('error', (e) => { console.log('FAIL:', e.message); });
+EOF
+bun /tmp/test-ws.ts
+```
+
+**Test Infrastructure:**
 - Tests use real Docker containers
 - E2E tests in `test/e2e/`
 - Integration tests in `test/integration/`
-- Web UI tests via Playwright in `test/web/`
+- Web UI tests via Playwright in `web/e2e/`
 - TUI tests via harness in `test/tui/`
 
 If you modify Dockerfile or init scripts, run `workspace build` before testing.

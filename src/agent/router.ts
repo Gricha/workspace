@@ -226,266 +226,128 @@ export function createRouter(ctx: RouterContext) {
       }
 
       const containerName = `workspace-${input.workspaceName}`;
-      const sessions: Array<{
+
+      const script = `
+set -e
+echo '['
+first=true
+
+# Claude Code sessions
+if [ -d "/home/workspace/.claude/projects" ]; then
+  for projdir in /home/workspace/.claude/projects/*/; do
+    [ -d "$projdir" ] || continue
+    projname=$(basename "$projdir")
+    for f in "$projdir"*.jsonl 2>/dev/null; do
+      [ -f "$f" ] || continue
+      id=$(basename "$f" .jsonl)
+      mtime=$(stat -c %Y "$f" 2>/dev/null || echo 0)
+      count=$(wc -l < "$f" 2>/dev/null || echo 0)
+      prompt=$(head -20 "$f" 2>/dev/null | grep -m1 '"role":"user"' | head -c 500 || echo "")
+      [ "$first" = true ] && first=false || echo ','
+      printf '{"id":"%s","agentType":"claude-code","projectPath":"%s","messageCount":%d,"mtime":%d,"prompt":%s}' \\
+        "$id" "$(echo "$projname" | sed 's/-/\\//g')" "$count" "$mtime" "$(echo "$prompt" | jq -Rs '.' 2>/dev/null || echo '""')"
+    done
+  done
+fi
+
+# OpenCode sessions
+if [ -d "/home/workspace/.local/share/opencode/storage/session" ]; then
+  for projdir in /home/workspace/.local/share/opencode/storage/session/*/; do
+    [ -d "$projdir" ] || continue
+    for f in "$projdir"ses_*.json 2>/dev/null; do
+      [ -f "$f" ] || continue
+      id=$(basename "$f" .json)
+      data=$(cat "$f" 2>/dev/null || echo '{}')
+      sesid=$(echo "$data" | jq -r '.id // empty' 2>/dev/null || echo "")
+      title=$(echo "$data" | jq -r '.title // empty' 2>/dev/null || echo "")
+      dir=$(echo "$data" | jq -r '.directory // empty' 2>/dev/null || echo "")
+      updated=$(echo "$data" | jq -r '.time.updated // 0' 2>/dev/null || echo "0")
+      msgdir="/home/workspace/.local/share/opencode/storage/message/$sesid"
+      count=$(ls -1 "$msgdir" 2>/dev/null | wc -l || echo 0)
+      [ "$first" = true ] && first=false || echo ','
+      printf '{"id":"%s","agentType":"opencode","projectPath":"%s","messageCount":%d,"mtime":%d,"name":%s}' \\
+        "$id" "$dir" "$count" "$((updated/1000))" "$(echo "$title" | jq -Rs '.' 2>/dev/null || echo '""')"
+    done
+  done
+fi
+
+# Codex sessions
+if [ -d "/home/workspace/.codex/sessions" ]; then
+  find /home/workspace/.codex/sessions -name "rollout-*.jsonl" -type f 2>/dev/null | while read f; do
+    [ -f "$f" ] || continue
+    id=$(basename "$f" .jsonl)
+    mtime=$(stat -c %Y "$f" 2>/dev/null || echo 0)
+    count=$(wc -l < "$f" 2>/dev/null || echo 0)
+    projpath=$(dirname "$f" | sed 's|/home/workspace/.codex/sessions/||')
+    [ "$first" = true ] && first=false || echo ','
+    printf '{"id":"%s","agentType":"codex","projectPath":"%s","messageCount":%d,"mtime":%d}' \\
+      "$id" "$projpath" "$count" "$mtime"
+  done
+fi
+
+echo ']'
+`;
+
+      const result = await execInContainer(containerName, ['bash', '-c', script], {
+        user: 'workspace',
+      });
+
+      type RawSession = {
         id: string;
-        name: string | null;
         agentType: string;
         projectPath: string;
         messageCount: number;
-        lastActivity: string;
-        firstPrompt: string | null;
-      }> = [];
+        mtime: number;
+        prompt?: string;
+        name?: string;
+      };
 
-      const shouldListClaudeCode = !input.agentType || input.agentType === 'claude-code';
-      const shouldListOpenCode = !input.agentType || input.agentType === 'opencode';
-      const shouldListCodex = !input.agentType || input.agentType === 'codex';
-
-      if (shouldListClaudeCode) {
-        const listDirsResult = await execInContainer(
-          containerName,
-          ['bash', '-c', 'ls -1 /home/workspace/.claude/projects/ 2>/dev/null || echo ""'],
-          { user: 'workspace' }
-        );
-
-        if (listDirsResult.exitCode === 0 && listDirsResult.stdout.trim()) {
-          const projectDirs = listDirsResult.stdout.trim().split('\n').filter(Boolean);
-
-          for (const projectDir of projectDirs) {
-            const listFilesResult = await execInContainer(
-              containerName,
-              [
-                'bash',
-                '-c',
-                `ls -1t /home/workspace/.claude/projects/${projectDir}/*.jsonl 2>/dev/null || echo ""`,
-              ],
-              { user: 'workspace' }
-            );
-
-            if (listFilesResult.exitCode !== 0 || !listFilesResult.stdout.trim()) {
-              continue;
-            }
-
-            const files = listFilesResult.stdout.trim().split('\n').filter(Boolean);
-
-            for (const filePath of files) {
-              const fileName = filePath.split('/').pop()?.replace('.jsonl', '') || '';
-
-              const statResult = await execInContainer(
-                containerName,
-                ['stat', '-c', '%Y', filePath],
-                { user: 'workspace' }
-              );
-
-              const mtime =
-                statResult.exitCode === 0
-                  ? parseInt(statResult.stdout.trim(), 10) * 1000
-                  : Date.now();
-
-              const countResult = await execInContainer(
-                containerName,
-                ['bash', '-c', `wc -l < "${filePath}"`],
-                { user: 'workspace' }
-              );
-
-              const messageCount =
-                countResult.exitCode === 0 ? parseInt(countResult.stdout.trim(), 10) : 0;
-
-              const headResult = await execInContainer(
-                containerName,
-                ['bash', '-c', `head -20 "${filePath}" | grep -m1 '"role":"user"' | head -1`],
-                { user: 'workspace' }
-              );
-
-              let firstPrompt: string | null = null;
-              if (headResult.exitCode === 0 && headResult.stdout.trim()) {
-                try {
-                  const line = JSON.parse(headResult.stdout.trim());
-                  if (line.content) {
-                    const content = Array.isArray(line.content)
-                      ? line.content.find((c: { type: string; text?: string }) => c.type === 'text')
-                          ?.text
-                      : line.content;
-                    firstPrompt = typeof content === 'string' ? content.slice(0, 200) : null;
-                  }
-                } catch {
-                  firstPrompt = null;
-                }
-              }
-
-              sessions.push({
-                id: fileName,
-                name: null,
-                agentType: 'claude-code',
-                projectPath: projectDir.replace(/-/g, '/'),
-                messageCount,
-                lastActivity: new Date(mtime).toISOString(),
-                firstPrompt,
-              });
-            }
-          }
+      let rawSessions: RawSession[] = [];
+      if (result.exitCode === 0 && result.stdout.trim()) {
+        try {
+          rawSessions = JSON.parse(result.stdout) as RawSession[];
+        } catch {
+          rawSessions = [];
         }
       }
 
-      if (shouldListOpenCode) {
-        const listDirsResult = await execInContainer(
-          containerName,
-          [
-            'bash',
-            '-c',
-            'ls -1 /home/workspace/.local/share/opencode/storage/session/ 2>/dev/null || echo ""',
-          ],
-          { user: 'workspace' }
-        );
-
-        if (listDirsResult.exitCode === 0 && listDirsResult.stdout.trim()) {
-          const projectDirs = listDirsResult.stdout.trim().split('\n').filter(Boolean);
-
-          for (const projectDir of projectDirs) {
-            const listFilesResult = await execInContainer(
-              containerName,
-              [
-                'bash',
-                '-c',
-                `ls -1t /home/workspace/.local/share/opencode/storage/session/${projectDir}/ses_*.json 2>/dev/null || echo ""`,
-              ],
-              { user: 'workspace' }
-            );
-
-            if (listFilesResult.exitCode !== 0 || !listFilesResult.stdout.trim()) {
-              continue;
-            }
-
-            const files = listFilesResult.stdout.trim().split('\n').filter(Boolean);
-
-            for (const filePath of files) {
-              const fileName = filePath.split('/').pop()?.replace('.json', '') || '';
-
-              const catResult = await execInContainer(containerName, ['cat', filePath], {
-                user: 'workspace',
-              });
-
-              if (catResult.exitCode !== 0) continue;
-
-              try {
-                const session = JSON.parse(catResult.stdout) as {
-                  id: string;
-                  title?: string;
-                  directory?: string;
-                  time?: { updated?: number };
-                };
-
-                const msgDir = `/home/workspace/.local/share/opencode/storage/message/${session.id}`;
-                const countResult = await execInContainer(
-                  containerName,
-                  ['bash', '-c', `ls -1 "${msgDir}" 2>/dev/null | wc -l`],
-                  { user: 'workspace' }
-                );
-
-                const messageCount =
-                  countResult.exitCode === 0 ? parseInt(countResult.stdout.trim(), 10) : 0;
-
-                sessions.push({
-                  id: fileName,
-                  name: session.title || null,
-                  agentType: 'opencode',
-                  projectPath: session.directory || projectDir,
-                  messageCount,
-                  lastActivity: session.time?.updated
-                    ? new Date(session.time.updated).toISOString()
-                    : new Date().toISOString(),
-                  firstPrompt: null,
-                });
-              } catch {
-                continue;
+      const sessions = rawSessions
+        .filter((s) => !input.agentType || s.agentType === input.agentType)
+        .filter((s) => s.messageCount > 0)
+        .map((s) => {
+          let firstPrompt: string | null = null;
+          if (s.prompt) {
+            try {
+              const line = JSON.parse(s.prompt);
+              if (line.content) {
+                const content = Array.isArray(line.content)
+                  ? line.content.find((c: { type: string; text?: string }) => c.type === 'text')
+                      ?.text
+                  : line.content;
+                firstPrompt = typeof content === 'string' ? content.slice(0, 200) : null;
               }
+            } catch {
+              firstPrompt = null;
             }
           }
-        }
-      }
+          return {
+            id: s.id,
+            name: s.name || null,
+            agentType: s.agentType,
+            projectPath: s.projectPath,
+            messageCount: s.messageCount,
+            lastActivity: new Date(s.mtime * 1000).toISOString(),
+            firstPrompt,
+          };
+        })
+        .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());
 
-      if (shouldListCodex) {
-        const findResult = await execInContainer(
-          containerName,
-          [
-            'bash',
-            '-c',
-            'find /home/workspace/.codex/sessions -name "rollout-*.jsonl" -type f 2>/dev/null || echo ""',
-          ],
-          { user: 'workspace' }
-        );
-
-        if (findResult.exitCode === 0 && findResult.stdout.trim()) {
-          const files = findResult.stdout.trim().split('\n').filter(Boolean);
-
-          for (const filePath of files) {
-            const fileName = filePath.split('/').pop()?.replace('.jsonl', '') || '';
-
-            const statResult = await execInContainer(
-              containerName,
-              ['stat', '-c', '%Y', filePath],
-              { user: 'workspace' }
-            );
-
-            const mtime =
-              statResult.exitCode === 0
-                ? parseInt(statResult.stdout.trim(), 10) * 1000
-                : Date.now();
-
-            const countResult = await execInContainer(
-              containerName,
-              ['bash', '-c', `wc -l < "${filePath}"`],
-              { user: 'workspace' }
-            );
-
-            const messageCount =
-              countResult.exitCode === 0 ? parseInt(countResult.stdout.trim(), 10) : 0;
-
-            const headResult = await execInContainer(
-              containerName,
-              ['bash', '-c', `head -1 "${filePath}"`],
-              { user: 'workspace' }
-            );
-
-            let sessionId = fileName;
-            if (headResult.exitCode === 0 && headResult.stdout.trim()) {
-              try {
-                const meta = JSON.parse(headResult.stdout.trim());
-                if (meta.session_id) sessionId = meta.session_id;
-              } catch {
-                // Use filename as fallback
-              }
-            }
-
-            const codexDir = '/home/workspace/.codex/sessions';
-            const projectPath =
-              filePath.replace(codexDir, '').replace(/^\//, '').split('/').slice(0, -1).join('/') ||
-              'unknown';
-
-            sessions.push({
-              id: sessionId,
-              name: null,
-              agentType: 'codex',
-              projectPath,
-              messageCount,
-              lastActivity: new Date(mtime).toISOString(),
-              firstPrompt: null,
-            });
-          }
-        }
-      }
-
-      sessions.sort(
-        (a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
-      );
-
-      const filteredSessions = sessions.filter((s) => s.messageCount > 0);
-
-      const paginatedSessions = filteredSessions.slice(input.offset, input.offset + input.limit);
+      const paginatedSessions = sessions.slice(input.offset, input.offset + input.limit);
 
       return {
         sessions: paginatedSessions,
-        total: filteredSessions.length,
-        hasMore: input.offset + input.limit < filteredSessions.length,
+        total: sessions.length,
+        hasMore: input.offset + input.limit < sessions.length,
       };
     });
 

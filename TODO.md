@@ -16,16 +16,13 @@
 
 ## Tasks
 
-### Interactive Chat with Agent SDK Streaming
+### TUI/CLI Terminal Should Use SSH
 
-The Sessions page currently only displays historical messages. Implement real-time interaction:
+When using TUI or CLI for terminal access, use SSH command instead of the bun WebSocket terminal. SSH provides a better terminal experience with proper PTY handling, scrollback, etc.
 
-- Integrate with Claude Agent SDK for streaming responses
-- Add input box for sending new messages to running agents
-- Show typing indicators during streaming
-- Support interrupting/canceling in-progress responses
+### Optimize Sessions Listing
 
-This enables the "remote control" use case - checking on agents and sending commands from web/mobile.
+The sessions API makes N*4 sequential docker exec calls (list dirs, stat files, count lines, get first prompt). This is extremely slow. Should batch into a single script that runs inside the container and returns all session data as JSON.
 
 ---
 

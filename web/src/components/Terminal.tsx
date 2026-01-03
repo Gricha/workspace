@@ -45,9 +45,11 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
     wsRef.current = ws
 
     ws.onopen = () => {
+      console.log('[terminal] WebSocket opened to:', wsUrl)
       xterm.writeln('\x1b[32mConnected to workspace terminal\x1b[0m')
       xterm.writeln('')
       const { cols, rows } = xterm
+      console.log('[terminal] sending resize:', cols, rows)
       ws.send(JSON.stringify({ type: 'resize', cols, rows }))
 
       if (initialCommand && !initialCommandSent.current) {
@@ -59,7 +61,16 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
     }
 
     ws.onmessage = (event) => {
-      xterm.write(event.data)
+      console.log('[terminal] received:', typeof event.data, event.data.length || event.data.byteLength)
+      if (event.data instanceof Blob) {
+        event.data.text().then((text) => {
+          xterm.write(text)
+        })
+      } else if (event.data instanceof ArrayBuffer) {
+        xterm.write(new Uint8Array(event.data))
+      } else {
+        xterm.write(event.data)
+      }
     }
 
     ws.onclose = (event) => {
