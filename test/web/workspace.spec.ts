@@ -101,6 +101,42 @@ test.describe('Web UI - Settings Pages', () => {
   });
 });
 
+test.describe('Web UI - Terminal', () => {
+  let workspaceName: string;
+
+  test.beforeEach(() => {
+    workspaceName = generateTestWorkspaceName();
+  });
+
+  test.afterEach(async () => {
+    try {
+      await agent.api.deleteWorkspace(workspaceName);
+    } catch {}
+  });
+
+  test('can open terminal and type commands', async ({ page }) => {
+    await agent.api.createWorkspace({ name: workspaceName });
+
+    await page.goto(`http://127.0.0.1:${agent.port}/workspaces/${workspaceName}`);
+    await expect(page.locator('h1')).toContainText(workspaceName, { timeout: 30000 });
+
+    const terminalButton = page.getByRole('button', { name: /terminal/i });
+    await terminalButton.click();
+
+    await expect(page.getByText('Connected to terminal')).toBeVisible({ timeout: 10000 });
+
+    const terminalElement = page.locator('.xterm-helper-textarea');
+    await terminalElement.focus();
+
+    await page.keyboard.type('echo hello-from-test');
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('.xterm').getByText('hello-from-test')).toBeVisible({
+      timeout: 10000,
+    });
+  }, 120000);
+});
+
 test.describe('Web UI - Sessions', () => {
   let workspaceName: string;
 

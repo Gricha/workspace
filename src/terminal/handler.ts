@@ -44,9 +44,6 @@ export class TerminalSession {
           }
         },
       },
-      stdin: 'ignore',
-      stdout: 'ignore',
-      stderr: 'ignore',
     });
 
     this.terminal = this.process.terminal!;

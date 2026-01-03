@@ -212,6 +212,8 @@ export function createRouter(ctx: RouterContext) {
       z.object({
         workspaceName: z.string(),
         agentType: z.enum(['claude-code', 'opencode', 'codex']).optional(),
+        limit: z.number().optional().default(50),
+        offset: z.number().optional().default(0),
       })
     )
     .handler(async ({ input }) => {
@@ -476,7 +478,15 @@ export function createRouter(ctx: RouterContext) {
         (a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
       );
 
-      return { sessions };
+      const filteredSessions = sessions.filter((s) => s.messageCount > 0);
+
+      const paginatedSessions = filteredSessions.slice(input.offset, input.offset + input.limit);
+
+      return {
+        sessions: paginatedSessions,
+        total: filteredSessions.length,
+        hasMore: input.offset + input.limit < filteredSessions.length,
+      };
     });
 
   const getSession = os

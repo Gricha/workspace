@@ -14,45 +14,26 @@
 
 ---
 
-### P1: Agent Chat UI Improvements
+## Tasks
 
-**Vision**: Remote chat interface for controlling agents in workspaces when away from terminal.
+### Codex CLI for ChatGPT Subscription Users
 
-- **Not a replacement** for terminal — Claude Code's terminal UX is superior for desktop work
-- **Remote access use case** — check on agents, send commands, review progress from web/mobile
-- **Requires running workspace** — agents execute inside the workspace container
-- **Future**: Same interface powers mobile app
+Per [RESEARCH_OPENAI_OAUTH.md](./RESEARCH_OPENAI_OAUTH.md), Codex CLI supports device code auth for ChatGPT subscribers, but this requires interactive browser flow. Research if there's a way to support subscription users in headless Docker containers - possibly by copying `~/.codex/auth.json` from host, or implementing device code flow in our web UI. Note: OpenCode only needs Zen provider working for now (lower priority).
 
-**Problem**: Current Sessions page uses terminal fallback. Need proper chat interface for remote UX.
+### Mobile App E2E Tests
 
-**Phase 3: Interactive Chat (Streaming)**
+Set up e2e testing for the React Native mobile app in `mobile/`. Use Detox or Maestro for cross-platform testing. Cover core flows: workspace listing, workspace start/stop, settings configuration. Requires simulator/emulator setup.
 
-- [ ] Integrate with Agent SDK for real-time streaming
-- [ ] Add input box for sending new messages
-- [ ] Handle streaming responses with typing indicators
-- [ ] Support for interrupting/canceling responses
+### Interactive Chat with Agent SDK Streaming
 
-**Frontend Polish** (use `frontend-design` skill):
+The Sessions page currently only displays historical messages. Implement real-time interaction:
 
-- [ ] Redesign Sessions page with better visual hierarchy
-- [ ] Improve session list with better cards/previews
-- [ ] Add empty states and loading skeletons
-- [ ] Mobile-responsive chat layout
+- Integrate with Claude Agent SDK for streaming responses
+- Add input box for sending new messages to running agents
+- Show typing indicators during streaming
+- Support interrupting/canceling in-progress responses
 
-**Files**:
-
-- `web/src/pages/Sessions.tsx`
-- `web/src/components/ChatView.tsx` (new)
-- `web/src/components/MessageBubble.tsx` (new)
-- `web/src/components/SessionCard.tsx` (new)
-
----
-
-## Phase 13: Polish (Future)
-
-- [ ] User documentation
-- [ ] Docker image publishing to registry
-- [ ] `ws agent logs` command for debugging
+This enables the "remote control" use case - checking on agents and sending commands from web/mobile.
 
 ---
 
@@ -76,8 +57,3 @@ Track API token usage across workspaces to monitor costs. Approaches researched:
 - SQLite storage on agent
 - Per-agent and per-workspace breakdown
 - Cost estimation based on model pricing
-
-### Other
-
-- Add unit test directory structure (`test/unit/`)
-- Consider consolidating all types to `src/shared/types.ts`

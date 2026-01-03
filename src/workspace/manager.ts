@@ -119,6 +119,23 @@ export class WorkspaceManager {
     }
   }
 
+  private async setupClaudeCodeConfig(containerName: string): Promise<void> {
+    const oauthToken = this.config.agents?.claude_code?.oauth_token;
+    if (!oauthToken) {
+      return;
+    }
+
+    const configContent = JSON.stringify({ hasCompletedOnboarding: true });
+    await docker.execInContainer(
+      containerName,
+      ['bash', '-c', `echo '${configContent}' > /home/workspace/.claude.json`],
+      { user: 'workspace' }
+    );
+    await docker.execInContainer(containerName, ['chmod', '644', '/home/workspace/.claude.json'], {
+      user: 'workspace',
+    });
+  }
+
   private async copyClaudeCredentials(containerName: string): Promise<void> {
     const credentialsPath = this.config.agents?.claude_code?.credentials_path;
     if (!credentialsPath) {
@@ -332,6 +349,7 @@ export class WorkspaceManager {
 
       await this.copyCredentialFiles(containerName);
       await this.copyClaudeCredentials(containerName);
+      await this.setupClaudeCodeConfig(containerName);
 
       workspace.status = 'running';
       await this.state.setWorkspace(workspace);
@@ -367,6 +385,7 @@ export class WorkspaceManager {
 
     await this.copyCredentialFiles(containerName);
     await this.copyClaudeCredentials(containerName);
+    await this.setupClaudeCodeConfig(containerName);
 
     workspace.status = 'running';
     await this.state.setWorkspace(workspace);

@@ -1,11 +1,28 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, MessageSquare, Clock, Hash, Play, ChevronRight, Bot, User, Sparkles, Calendar, FolderOpen, Wrench, ChevronDown, CheckCircle2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  MessageSquare,
+  Clock,
+  Hash,
+  Play,
+  ChevronRight,
+  Bot,
+  User,
+  Sparkles,
+  Calendar,
+  FolderOpen,
+  Wrench,
+  ChevronDown,
+  CheckCircle2,
+  ChevronLeft,
+  Loader2,
+} from 'lucide-react'
 import Markdown from 'react-markdown'
 import { api, type SessionInfo, type SessionMessage, type AgentType } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Terminal } from '@/components/Terminal'
 import { cn } from '@/lib/utils'
@@ -89,7 +106,10 @@ function SessionListItem({
           </div>
         </div>
         <ChevronRight
-          className={cn('h-4 w-4 text-muted-foreground flex-shrink-0 mt-1', isSelected && 'text-primary')}
+          className={cn(
+            'h-4 w-4 text-muted-foreground flex-shrink-0 mt-1',
+            isSelected && 'text-primary'
+          )}
         />
       </div>
     </button>
@@ -191,10 +211,7 @@ function MessageBubble({ message }: { message: SessionMessage }) {
         )}
         {message.timestamp && (
           <p
-            className={cn(
-              'text-[10px] mt-2 opacity-60',
-              isUser ? 'text-right' : 'text-left'
-            )}
+            className={cn('text-[10px] mt-2 opacity-60', isUser ? 'text-right' : 'text-left')}
           >
             {new Date(message.timestamp).toLocaleTimeString([], {
               hour: '2-digit',
@@ -220,28 +237,85 @@ function SessionMetadataHeader({ session }: { session: SessionInfo }) {
   })
 
   return (
-    <div className="flex flex-col gap-3 p-3 bg-muted/30 rounded-lg border border-border/50 mb-4">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Badge
-          variant="outline"
-          className={cn('text-xs font-medium', AGENT_COLORS[session.agentType])}
-        >
-          {AGENT_LABELS[session.agentType]}
-        </Badge>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Hash className="h-3 w-3" />
-          <span>{session.messageCount} messages</span>
-        </div>
+    <div className="flex items-center gap-4 flex-wrap text-sm">
+      <Badge
+        variant="outline"
+        className={cn('text-xs font-medium', AGENT_COLORS[session.agentType])}
+      >
+        {AGENT_LABELS[session.agentType]}
+      </Badge>
+      <div className="flex items-center gap-1 text-muted-foreground">
+        <Hash className="h-3.5 w-3.5" />
+        <span>{session.messageCount} messages</span>
       </div>
-      <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <FolderOpen className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate font-mono">{session.projectPath}</span>
+      <div className="flex items-center gap-1 text-muted-foreground">
+        <FolderOpen className="h-3.5 w-3.5" />
+        <span className="font-mono text-xs">{session.projectPath}</span>
+      </div>
+      <div className="flex items-center gap-1 text-muted-foreground">
+        <Calendar className="h-3.5 w-3.5" />
+        <span>
+          {formattedDate} at {formattedTime}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function SessionDetailView({
+  workspaceName,
+  session,
+  onBack,
+  onResume,
+}: {
+  workspaceName: string
+  session: SessionInfo
+  onBack: () => void
+  onResume: (sessionId: string, agentType: AgentType) => void
+}) {
+  const { data: sessionDetail, isLoading } = useQuery({
+    queryKey: ['session', workspaceName, session.id],
+    queryFn: () => api.getSession(workspaceName, session.id),
+  })
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between gap-4 pb-4 border-b">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h2 className="font-semibold">
+              {session.firstPrompt?.slice(0, 60) || 'Session'}
+              {(session.firstPrompt?.length || 0) > 60 && '...'}
+            </h2>
+            <SessionMetadataHeader session={session} />
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Calendar className="h-3 w-3 flex-shrink-0" />
-          <span>{formattedDate} at {formattedTime}</span>
-        </div>
+        <Button size="sm" onClick={() => onResume(session.id, session.agentType)}>
+          <Play className="mr-2 h-3 w-3" />
+          Resume
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto py-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
+          <div className="space-y-4">
+            {sessionDetail.messages.map((msg, idx) => (
+              <MessageBubble key={idx} message={msg} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <MessageSquare className="h-8 w-8 mb-2" />
+            <p>No messages in this session</p>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -250,7 +324,7 @@ function SessionMetadataHeader({ session }: { session: SessionInfo }) {
 export function Sessions() {
   const { name: workspaceName } = useParams<{ name: string }>()
   const navigate = useNavigate()
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+  const [selectedSession, setSelectedSession] = useState<SessionInfo | null>(null)
   const [showTerminal, setShowTerminal] = useState(false)
   const [terminalCommand, setTerminalCommand] = useState<string | null>(null)
   const [agentFilter, setAgentFilter] = useState<AgentType | 'all'>('all')
@@ -267,17 +341,13 @@ export function Sessions() {
     error,
   } = useQuery({
     queryKey: ['sessions', workspaceName, agentFilter],
-    queryFn: () => api.listSessions(workspaceName!, agentFilter === 'all' ? undefined : agentFilter),
+    queryFn: () =>
+      api.listSessions(workspaceName!, agentFilter === 'all' ? undefined : agentFilter, 50, 0),
     enabled: !!workspaceName && workspace?.status === 'running',
   })
 
-  const { data: sessionDetail, isLoading: isLoadingDetail } = useQuery({
-    queryKey: ['session', workspaceName, selectedSessionId],
-    queryFn: () => api.getSession(workspaceName!, selectedSessionId!),
-    enabled: !!workspaceName && !!selectedSessionId,
-  })
-
   const sessions = sessionsData?.sessions || []
+  const totalSessions = sessionsData?.total || 0
 
   const handleResume = (sessionId: string, agentType: AgentType) => {
     const commands: Record<AgentType, string> = {
@@ -305,7 +375,7 @@ export function Sessions() {
 
   if (workspace?.status !== 'running') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate(`/workspaces/${workspaceName}`)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -317,7 +387,9 @@ export function Sessions() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-4">Workspace is not running</p>
-            <Button onClick={() => navigate(`/workspaces/${workspaceName}`)}>Go to Workspace</Button>
+            <Button onClick={() => navigate(`/workspaces/${workspaceName}`)}>
+              Go to Workspace
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -326,7 +398,7 @@ export function Sessions() {
 
   if (showTerminal) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => setShowTerminal(false)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -343,8 +415,21 @@ export function Sessions() {
     )
   }
 
+  if (selectedSession) {
+    return (
+      <div className="h-[calc(100vh-8rem)]">
+        <SessionDetailView
+          workspaceName={workspaceName}
+          session={selectedSession}
+          onBack={() => setSelectedSession(null)}
+          onResume={handleResume}
+        />
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate(`/workspaces/${workspaceName}`)}>
@@ -366,7 +451,7 @@ export function Sessions() {
                 value={agentFilter}
                 onValueChange={(value) => {
                   setAgentFilter(value as AgentType | 'all')
-                  setSelectedSessionId(null)
+                  setSelectedSession(null)
                 }}
               >
                 <DropdownMenuRadioItem value="all">All Agents</DropdownMenuRadioItem>
@@ -402,10 +487,8 @@ export function Sessions() {
       </div>
 
       {isLoading ? (
-        <div className="animate-pulse space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-muted rounded-lg" />
-          ))}
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : error ? (
         <Card>
@@ -443,73 +526,20 @@ export function Sessions() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="space-y-2">
-            <h2 className="text-sm font-medium text-muted-foreground mb-3">
-              {sessions.length} session{sessions.length !== 1 && 's'}
-            </h2>
+        <div>
+          <p className="text-sm text-muted-foreground mb-3">
+            {totalSessions} session{totalSessions !== 1 && 's'}
+            {sessions.length < totalSessions && ` (showing ${sessions.length})`}
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {sessions.map((session) => (
               <SessionListItem
                 key={session.id}
                 session={session}
-                isSelected={selectedSessionId === session.id}
-                onClick={() => setSelectedSessionId(session.id)}
+                isSelected={false}
+                onClick={() => setSelectedSession(session)}
               />
             ))}
-          </div>
-
-          <div>
-            {selectedSessionId ? (
-              (() => {
-                const selectedSession = sessions.find((s) => s.id === selectedSessionId)
-                return (
-                  <Card>
-                    <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
-                      <CardTitle className="text-lg">Session Preview</CardTitle>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          if (selectedSession) handleResume(selectedSessionId, selectedSession.agentType)
-                        }}
-                      >
-                        <Play className="mr-2 h-3 w-3" />
-                        Resume
-                      </Button>
-                    </CardHeader>
-                    <CardContent>
-                      {selectedSession && <SessionMetadataHeader session={selectedSession} />}
-                      {isLoadingDetail ? (
-                        <div className="animate-pulse space-y-3">
-                          {[1, 2, 3].map((i) => (
-                            <div key={i} className="h-12 bg-muted rounded-lg" />
-                          ))}
-                        </div>
-                      ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
-                        <div className="space-y-3 max-h-80 overflow-y-auto">
-                          {sessionDetail.messages.slice(0, 20).map((msg, idx) => (
-                            <MessageBubble key={idx} message={msg} />
-                          ))}
-                          {sessionDetail.messages.length > 20 && (
-                            <p className="text-center text-sm text-muted-foreground py-2">
-                              ... and {sessionDetail.messages.length - 20} more messages
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-8">No messages in this session</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                )
-              })()
-            ) : (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <MessageSquare className="h-8 w-8 text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">Select a session to preview</p>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       )}

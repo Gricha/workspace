@@ -19,18 +19,37 @@ bun run test      # Run tests (requires Docker)
 
 ## Task Management
 
-Read `TODO.md` for current tasks. Reference `DESIGN.md` for architecture.
+**Document Hierarchy:**
 
+| Document | Purpose |
+|----------|---------|
+| `DESIGN.md` | High-level architecture and goals |
+| `REQUIREMENTS.md` | Developer feedback - issues found, things to improve |
+| `TODO.md` | Concrete tasks to implement (the work conduit) |
+
+**Workflow:**
+
+1. Check `REQUIREMENTS.md` for new developer feedback
+2. Research requirements as needed (create `RESEARCH_<TOPIC>.md` files)
+3. Convert requirements into concrete tasks in `TODO.md`
+4. Implement tasks from `TODO.md`
+5. Remove completed tasks from `TODO.md`
+
+**Guidelines:**
+
+- Choose tasks based on your perceived priority - no strict ordering required
+- Tasks should be detailed enough for a fresh contextless agent to understand, but not overly granular
 - Remove tasks when completed (don't leave checked items)
-- Add new considerations to the "Considerations" section
-- Work through phases in order
+- Add speculative ideas to the "Considerations" section in TODO.md
 
 ## Project Overview
 
-Workspace CLI creates isolated Docker-in-Docker development environments. Distributed architecture with agent daemon, oRPC API, and multiple clients (CLI, TUI, Web UI).
+Workspace CLI creates isolated Docker-in-Docker development environments. Distributed architecture with agent daemon, oRPC API, and multiple clients (CLI, TUI, Web UI, Mobile).
 
 **Runtime**: Bun (not Node.js)
 **Language**: TypeScript with ES modules
+
+**Mobile Parity Goal**: The React Native mobile app (`mobile/`) should maintain feature parity with the web UI. Both should support: workspace list/details, start/stop controls, settings (credentials/agents), and sessions viewing. When adding features to web, consider mobile implementation.
 
 ## Key Patterns
 

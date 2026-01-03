@@ -226,3 +226,41 @@ export async function showStatus(): Promise<void> {
     console.log('  workspace agent install');
   }
 }
+
+interface ShowLogsOptions {
+  follow?: boolean;
+  lines?: number;
+}
+
+export async function showLogs(options: ShowLogsOptions = {}): Promise<void> {
+  const status = await getServiceStatus();
+
+  if (!status.installed) {
+    console.error('Agent service is not installed.');
+    console.error('Install with: workspace agent install');
+    process.exit(1);
+  }
+
+  const args = ['--user', '-u', SERVICE_NAME, '--no-pager'];
+
+  if (options.follow) {
+    args.push('-f');
+  }
+
+  if (options.lines) {
+    args.push('-n', String(options.lines));
+  }
+
+  const proc = spawn('journalctl', args, {
+    stdio: 'inherit',
+  });
+
+  proc.on('error', (err) => {
+    console.error(`Failed to run journalctl: ${err.message}`);
+    process.exit(1);
+  });
+
+  proc.on('close', (code) => {
+    process.exit(code || 0);
+  });
+}

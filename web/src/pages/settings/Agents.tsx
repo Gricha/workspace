@@ -194,7 +194,7 @@ export function AgentsSettings() {
               <StatusIndicator configured={claudeConfigured} />
             </div>
             <p className="agent-description">
-              Credentials directory for interactive mode. OAuth token for <code className="text-xs bg-secondary px-1 py-0.5 rounded">--print</code> mode.
+              OAuth token for headless operation. Run <code className="text-xs bg-secondary px-1 py-0.5 rounded">claude setup-token</code> locally to generate.
             </p>
             <div className="space-y-2 mt-2">
               <div className="agent-input flex gap-2">

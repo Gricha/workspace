@@ -62,6 +62,19 @@ agentCmd
     await showStatus();
   });
 
+agentCmd
+  .command('logs')
+  .description('View agent service logs')
+  .option('-f, --follow', 'Follow log output')
+  .option('-n, --lines <lines>', 'Number of lines to show', '50')
+  .action(async (options) => {
+    const { showLogs } = await import('./agent/systemd');
+    await showLogs({
+      follow: options.follow,
+      lines: parseInt(options.lines, 10),
+    });
+  });
+
 async function checkLocalAgent(): Promise<boolean> {
   try {
     const response = await fetch('http://localhost:7391/health', {
