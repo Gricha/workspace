@@ -7,10 +7,24 @@ export interface WorkspaceScripts {
   post_start?: string;
 }
 
+export interface CodingAgents {
+  opencode?: {
+    api_key?: string;
+  };
+  github?: {
+    token?: string;
+  };
+  claude_code?: {
+    oauth_token?: string;
+    connected_at?: string;
+  };
+}
+
 export interface AgentConfig {
   port: number;
   credentials: WorkspaceCredentials;
   scripts: WorkspaceScripts;
+  agents?: CodingAgents;
 }
 
 export interface ClientConfig {

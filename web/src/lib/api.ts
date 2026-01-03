@@ -34,6 +34,19 @@ export interface Scripts {
   post_start?: string
 }
 
+export interface CodingAgents {
+  opencode?: {
+    api_key?: string
+  }
+  github?: {
+    token?: string
+  }
+  claude_code?: {
+    oauth_token?: string
+    connected_at?: string
+  }
+}
+
 function getRpcUrl(): string {
   if (typeof window !== 'undefined') {
     return `${window.location.origin}/rpc`
@@ -65,6 +78,10 @@ const client = createORPCClient<{
       get: () => Promise<Scripts>
       update: (input: Scripts) => Promise<Scripts>
     }
+    agents: {
+      get: () => Promise<CodingAgents>
+      update: (input: CodingAgents) => Promise<CodingAgents>
+    }
   }
 }>(link)
 
@@ -81,6 +98,8 @@ export const api = {
   updateCredentials: (data: Credentials) => client.config.credentials.update(data),
   getScripts: () => client.config.scripts.get(),
   updateScripts: (data: Scripts) => client.config.scripts.update(data),
+  getAgents: () => client.config.agents.get(),
+  updateAgents: (data: CodingAgents) => client.config.agents.update(data),
 }
 
 export function getTerminalUrl(name: string): string {

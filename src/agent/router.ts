@@ -32,6 +32,25 @@ const ScriptsSchema = z.object({
   post_start: z.string().optional(),
 });
 
+const CodingAgentsSchema = z.object({
+  opencode: z
+    .object({
+      api_key: z.string().optional(),
+    })
+    .optional(),
+  github: z
+    .object({
+      token: z.string().optional(),
+    })
+    .optional(),
+  claude_code: z
+    .object({
+      oauth_token: z.string().optional(),
+      connected_at: z.string().optional(),
+    })
+    .optional(),
+});
+
 export interface RouterContext {
   workspaces: WorkspaceManager;
   config: { get: () => AgentConfig; set: (config: AgentConfig) => void };
@@ -173,6 +192,21 @@ export function createRouter(ctx: RouterContext) {
       return input;
     });
 
+  const getAgents = os.output(CodingAgentsSchema).handler(async () => {
+    return ctx.config.get().agents || {};
+  });
+
+  const updateAgents = os
+    .input(CodingAgentsSchema)
+    .output(CodingAgentsSchema)
+    .handler(async ({ input }) => {
+      const currentConfig = ctx.config.get();
+      const newConfig = { ...currentConfig, agents: input };
+      ctx.config.set(newConfig);
+      await saveAgentConfig(newConfig, ctx.configDir);
+      return input;
+    });
+
   return {
     workspaces: {
       list: listWorkspaces,
@@ -192,6 +226,10 @@ export function createRouter(ctx: RouterContext) {
       scripts: {
         get: getScripts,
         update: updateScripts,
+      },
+      agents: {
+        get: getAgents,
+        update: updateAgents,
       },
     },
   };

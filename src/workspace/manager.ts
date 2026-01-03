@@ -224,6 +224,16 @@ export class WorkspaceManager {
         ...env,
       };
 
+      if (this.config.agents?.opencode?.api_key) {
+        containerEnv.OPENAI_API_KEY = this.config.agents.opencode.api_key;
+      }
+      if (this.config.agents?.github?.token) {
+        containerEnv.GITHUB_TOKEN = this.config.agents.github.token;
+      }
+      if (this.config.agents?.claude_code?.oauth_token) {
+        containerEnv.CLAUDE_CODE_OAUTH_TOKEN = this.config.agents.claude_code.oauth_token;
+      }
+
       if (clone) {
         containerEnv.WORKSPACE_REPO_URL = clone;
       }

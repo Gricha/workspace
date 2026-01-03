@@ -19,6 +19,7 @@ export function createDefaultAgentConfig(): AgentConfig {
       files: {},
     },
     scripts: {},
+    agents: {},
   };
 }
 
@@ -36,6 +37,7 @@ export async function loadAgentConfig(configDir?: string): Promise<AgentConfig> 
         files: config.credentials?.files || {},
       },
       scripts: config.scripts || {},
+      agents: config.agents || {},
     };
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, Save, RefreshCw } from 'lucide-react'
 import { api, type Credentials, type Scripts } from '@/lib/api'
@@ -25,26 +25,21 @@ export function Settings() {
   const [hasEnvChanges, setHasEnvChanges] = useState(false)
   const [hasFileChanges, setHasFileChanges] = useState(false)
   const [hasScriptChanges, setHasScriptChanges] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
-  const initializeFromCredentials = (creds: Credentials) => {
-    setEnvVars(Object.entries(creds.env).map(([key, value]) => ({ key, value })))
-    setFiles(Object.entries(creds.files).map(([dest, source]) => ({ dest, source })))
-    setHasEnvChanges(false)
-    setHasFileChanges(false)
-  }
+  useEffect(() => {
+    if (credentials && !initialized) {
+      setEnvVars(Object.entries(credentials.env).map(([key, value]) => ({ key, value })))
+      setFiles(Object.entries(credentials.files).map(([dest, source]) => ({ dest, source })))
+      setInitialized(true)
+    }
+  }, [credentials, initialized])
 
-  const initializeFromScripts = (s: Scripts) => {
-    setPostStartScript(s.post_start || '')
-    setHasScriptChanges(false)
-  }
-
-  if (credentials && envVars.length === 0 && files.length === 0 && !hasEnvChanges && !hasFileChanges) {
-    initializeFromCredentials(credentials)
-  }
-
-  if (scripts && !postStartScript && !hasScriptChanges) {
-    initializeFromScripts(scripts)
-  }
+  useEffect(() => {
+    if (scripts && !hasScriptChanges && postStartScript === '') {
+      setPostStartScript(scripts.post_start || '')
+    }
+  }, [scripts, hasScriptChanges, postStartScript])
 
   const credentialsMutation = useMutation({
     mutationFn: (data: Credentials) => api.updateCredentials(data),

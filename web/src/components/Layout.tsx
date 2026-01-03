@@ -1,45 +1,24 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
-import { cn } from '@/lib/utils'
+import { useState } from 'react'
+import { Outlet } from 'react-router-dom'
+import { Sidebar, SidebarTrigger } from './Sidebar'
 
 export function Layout() {
-  const location = useLocation()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto flex h-14 items-center px-4">
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold">Workspace</span>
-          </Link>
-          <nav className="ml-8 flex items-center space-x-4">
-            <Link
-              to="/workspaces"
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-primary",
-                location.pathname.startsWith('/workspaces')
-                  ? "text-primary"
-                  : "text-muted-foreground"
-              )}
-            >
-              Workspaces
-            </Link>
-            <Link
-              to="/settings"
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-primary",
-                location.pathname === '/settings'
-                  ? "text-primary"
-                  : "text-muted-foreground"
-              )}
-            >
-              Settings
-            </Link>
-          </nav>
-        </div>
-      </header>
-      <main className="container mx-auto px-4 py-6">
-        <Outlet />
-      </main>
+    <div className="flex min-h-screen bg-background">
+      <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(false)} />
+
+      <div className="flex flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-14 items-center border-b bg-background px-4 lg:hidden">
+          <SidebarTrigger onClick={() => setSidebarOpen(true)} />
+          <span className="ml-3 font-semibold">Workspace</span>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-6">
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
 }

@@ -712,6 +712,17 @@ Research from prior art for later implementation:
 - Compression strategies
 - Binary protocol optimizations
 
+### Token Usage Tracking (Priority: Medium)
+
+Research document: [RESEARCH_TOKEN_USAGE.md](./RESEARCH_TOKEN_USAGE.md)
+
+Track API token usage across workspaces to help users monitor costs:
+- Log-based collection from workspaces
+- SQLite storage on agent
+- Per-agent and per-workspace breakdown
+- Cost estimation based on model pricing
+- Dashboard UI with time-series visualization
+
 ---
 
 ## Container Image Changes

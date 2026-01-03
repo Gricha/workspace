@@ -2,7 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WorkspaceList } from './pages/WorkspaceList'
 import { WorkspaceDetail } from './pages/WorkspaceDetail'
-import { Settings } from './pages/Settings'
+import { EnvironmentSettings } from './pages/settings/Environment'
+import { FilesSettings } from './pages/settings/Files'
+import { ScriptsSettings } from './pages/settings/Scripts'
+import { AgentsSettings } from './pages/settings/Agents'
 import { Layout } from './components/Layout'
 
 const queryClient = new QueryClient({
@@ -23,7 +26,11 @@ function App() {
             <Route index element={<Navigate to="/workspaces" replace />} />
             <Route path="workspaces" element={<WorkspaceList />} />
             <Route path="workspaces/:name" element={<WorkspaceDetail />} />
-            <Route path="settings" element={<Settings />} />
+            <Route path="settings" element={<Navigate to="/settings/environment" replace />} />
+            <Route path="settings/environment" element={<EnvironmentSettings />} />
+            <Route path="settings/files" element={<FilesSettings />} />
+            <Route path="settings/scripts" element={<ScriptsSettings />} />
+            <Route path="settings/agents" element={<AgentsSettings />} />
           </Route>
         </Routes>
       </BrowserRouter>
