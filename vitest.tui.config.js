@@ -12,6 +12,6 @@ export default defineConfig({
     },
     fileParallelism: false,
     globalSetup: './test/setup/global.js',
-    exclude: ['**/node_modules/**', '**/test/web/**', '**/test/tui/**'],
+    include: ['**/test/tui/**/*.test.ts'],
   },
 });

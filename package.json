@@ -12,6 +12,7 @@
     "build:web": "cd web && bun run build && cp -r dist ../dist/agent/web",
     "test": "vitest run",
     "test:web": "playwright test",
+    "test:tui": "vitest run --config vitest.tui.config.js",
     "test:watch": "vitest",
     "lint": "oxlint --deny-warnings src/",
     "lint:fix": "oxlint --fix src/",

@@ -2,12 +2,17 @@ export interface SessionMessage {
   type: 'user' | 'assistant' | 'system' | 'tool_use' | 'tool_result';
   content?: string;
   timestamp?: string;
+  toolName?: string;
+  toolId?: string;
+  toolInput?: string;
 }
+
+export type AgentType = 'claude-code' | 'opencode' | 'codex';
 
 export interface SessionMetadata {
   id: string;
   name: string | null;
-  agentType: 'claude-code' | 'opencode' | 'unknown';
+  agentType: AgentType;
   projectPath: string;
   messageCount: number;
   lastActivity: string;
@@ -20,6 +25,6 @@ export interface SessionDetail extends SessionMetadata {
 }
 
 export interface AgentSessionsResult {
-  agentType: 'claude-code' | 'opencode' | 'unknown';
+  agentType: AgentType;
   sessions: SessionMetadata[];
 }

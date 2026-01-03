@@ -1,5 +1,13 @@
 # Agent Instructions
 
+## Research Tasks
+
+Research tasks are always allowed and encouraged. When the TODO list contains research tasks, you should:
+- Investigate the topic thoroughly using web search, documentation, and code exploration
+- Document findings in dedicated research files (e.g., `RESEARCH_<TOPIC>.md`)
+- Update TODO.md with concrete implementation tasks based on research findings
+- Research tasks help inform implementation decisions and should not be skipped
+
 ## Quick Reference
 
 ```bash
@@ -47,8 +55,24 @@ All tests must pass. Run `bun run validate` before completing any task.
 - E2E tests in `test/e2e/`
 - Integration tests in `test/integration/`
 - Web UI tests via Playwright in `test/web/`
+- TUI tests via harness in `test/tui/`
 
 If you modify Dockerfile or init scripts, run `workspace build` before testing.
+
+### UI Testing Requirements
+
+**Critical**: User-facing interfaces (Web UI, TUI, mobile apps) MUST have end-to-end tests that exercise the actual interface. Unit tests and integration tests are insufficient because:
+
+- UI code paths can fail silently (rendering issues, event binding, state management)
+- Visual and interactive elements can break without triggering code errors
+- Framework/library updates can cause regressions not caught by unit tests
+
+**Required e2e coverage for UI:**
+- Web apps: Playwright or similar browser automation
+- TUI apps: Process harness with output capture and input simulation
+- Mobile apps: Appium, Detox, or platform-specific UI testing frameworks
+
+Without e2e tests, there is a very high chance that UI features will be non-functional despite passing other tests.
 
 ## Known Issues & Workarounds
 

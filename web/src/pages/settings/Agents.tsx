@@ -23,6 +23,7 @@ export function AgentsSettings() {
   })
 
   const [openaiKey, setOpenaiKey] = useState('')
+  const [openaiBaseUrl, setOpenaiBaseUrl] = useState('')
   const [githubToken, setGithubToken] = useState('')
   const [claudeCredsPath, setClaudeCredsPath] = useState('')
   const [claudeOAuthToken, setClaudeOAuthToken] = useState('')
@@ -34,6 +35,7 @@ export function AgentsSettings() {
   useEffect(() => {
     if (agents && !initialized) {
       setOpenaiKey(agents.opencode?.api_key || '')
+      setOpenaiBaseUrl(agents.opencode?.api_base_url || '')
       setGithubToken(agents.github?.token || '')
       setClaudeCredsPath(agents.claude_code?.credentials_path || '')
       setClaudeOAuthToken(agents.claude_code?.oauth_token || '')
@@ -54,7 +56,10 @@ export function AgentsSettings() {
   const handleSaveOpenai = () => {
     mutation.mutate({
       ...agents,
-      opencode: { api_key: openaiKey.trim() || undefined },
+      opencode: {
+        api_key: openaiKey.trim() || undefined,
+        api_base_url: openaiBaseUrl.trim() || undefined,
+      },
     })
   }
 
@@ -138,28 +143,42 @@ export function AgentsSettings() {
               <StatusIndicator configured={openaiConfigured} />
             </div>
             <p className="agent-description">
-              OpenAI API key for AI-assisted coding. Injected as <code className="text-xs bg-secondary px-1 py-0.5 rounded">OPENAI_API_KEY</code>
+              OpenAI-compatible API for AI-assisted coding. Injected as <code className="text-xs bg-secondary px-1 py-0.5 rounded">OPENAI_API_KEY</code> and <code className="text-xs bg-secondary px-1 py-0.5 rounded">OPENAI_BASE_URL</code>
             </p>
-            <div className="agent-input flex gap-2">
-              <Input
-                type="password"
-                value={openaiKey}
-                onChange={(e) => {
-                  setOpenaiKey(e.target.value)
-                  setOpenaiHasChanges(true)
-                }}
-                placeholder="sk-..."
-                className="flex-1 font-mono text-sm h-9"
-              />
-              <Button
-                onClick={handleSaveOpenai}
-                disabled={mutation.isPending || !openaiHasChanges}
-                size="sm"
-                className="h-9"
-              >
-                <Save className="mr-1.5 h-3.5 w-3.5" />
-                Save
-              </Button>
+            <div className="space-y-2 mt-2">
+              <div className="agent-input flex gap-2">
+                <Input
+                  type="password"
+                  value={openaiKey}
+                  onChange={(e) => {
+                    setOpenaiKey(e.target.value)
+                    setOpenaiHasChanges(true)
+                  }}
+                  placeholder="sk-... (API key)"
+                  className="flex-1 font-mono text-sm h-9"
+                />
+              </div>
+              <div className="agent-input flex gap-2">
+                <Input
+                  type="text"
+                  value={openaiBaseUrl}
+                  onChange={(e) => {
+                    setOpenaiBaseUrl(e.target.value)
+                    setOpenaiHasChanges(true)
+                  }}
+                  placeholder="https://api.openai.com/v1 (optional, for other providers)"
+                  className="flex-1 font-mono text-sm h-9"
+                />
+                <Button
+                  onClick={handleSaveOpenai}
+                  disabled={mutation.isPending || !openaiHasChanges}
+                  size="sm"
+                  className="h-9"
+                >
+                  <Save className="mr-1.5 h-3.5 w-3.5" />
+                  Save
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -228,6 +247,9 @@ export function AgentsSettings() {
             <p className="agent-description">
               Uses the same <code className="text-xs bg-secondary px-1 py-0.5 rounded">OPENAI_API_KEY</code> as OpenCode. Configure OpenAI above to enable.
             </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Note: ChatGPT Plus subscription does not include API access. API keys are billed separately via pay-per-token on the OpenAI Platform.
+            </p>
           </div>
         </div>
       </div>
@@ -249,7 +271,7 @@ export function AgentsSettings() {
             <p className="agent-description">
               Personal Access Token for git operations. Injected as <code className="text-xs bg-secondary px-1 py-0.5 rounded">GITHUB_TOKEN</code>
               <a
-                href="https://github.com/settings/tokens/new?scopes=repo,read:org"
+                href="https://github.com/settings/personal-access-tokens/new"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="ml-2 text-primary hover:underline inline-flex items-center gap-1"
@@ -257,6 +279,9 @@ export function AgentsSettings() {
                 Create token
                 <ExternalLink className="h-3 w-3" />
               </a>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Use a fine-grained PAT. Add "Copilot Requests" permission for GitHub Copilot CLI support.
             </p>
             <div className="agent-input flex gap-2">
               <Input

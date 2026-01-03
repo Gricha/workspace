@@ -266,7 +266,7 @@ export async function cleanupVolumes(prefix: string): Promise<void> {
 }
 
 export async function startTestAgent(options: TestAgentOptions = {}): Promise<TestAgent> {
-  const port = await getRandomPort();
+  const port = options.config?.port || (await getRandomPort());
   const configDir = await createTempConfig({ ...options.config, port });
   const baseUrl = `http://127.0.0.1:${port}`;
 

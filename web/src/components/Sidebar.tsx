@@ -8,6 +8,7 @@ import {
   FileKey,
   Terminal,
   Cpu,
+  MessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api, type WorkspaceInfo } from '@/lib/api'
@@ -83,28 +84,55 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                   <Boxes className="h-4 w-4 text-muted-foreground" />
                   <span>All Workspaces</span>
                 </Link>
+                <Link
+                  to="/sessions"
+                  className={cn(
+                    'flex items-center gap-2.5 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent',
+                    location.pathname === '/sessions' && 'nav-active'
+                  )}
+                  onClick={() => isOpen && onToggle()}
+                >
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  <span>All Sessions</span>
+                </Link>
                 {workspaces?.map((ws: WorkspaceInfo) => (
-                  <Link
-                    key={ws.name}
-                    to={`/workspaces/${ws.name}`}
-                    className={cn(
-                      'flex items-center gap-2.5 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent group',
-                      location.pathname === `/workspaces/${ws.name}` && 'nav-active'
-                    )}
-                    onClick={() => isOpen && onToggle()}
-                  >
-                    <span
+                  <div key={ws.name}>
+                    <Link
+                      to={`/workspaces/${ws.name}`}
                       className={cn(
-                        'h-1.5 w-1.5 rounded-full flex-shrink-0',
-                        ws.status === 'running'
-                          ? 'status-online status-online-pulse'
-                          : 'bg-muted-foreground/40'
+                        'flex items-center gap-2.5 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent group',
+                        location.pathname === `/workspaces/${ws.name}` && 'nav-active'
                       )}
-                    />
-                    <span className="truncate text-muted-foreground group-hover:text-foreground transition-colors">
-                      {ws.name}
-                    </span>
-                  </Link>
+                      onClick={() => isOpen && onToggle()}
+                    >
+                      <span
+                        className={cn(
+                          'h-1.5 w-1.5 rounded-full flex-shrink-0',
+                          ws.status === 'running'
+                            ? 'status-online status-online-pulse'
+                            : 'bg-muted-foreground/40'
+                        )}
+                      />
+                      <span className="truncate text-muted-foreground group-hover:text-foreground transition-colors">
+                        {ws.name}
+                      </span>
+                    </Link>
+                    {ws.status === 'running' && (
+                      <Link
+                        to={`/workspaces/${ws.name}/sessions`}
+                        className={cn(
+                          'flex items-center gap-2.5 rounded px-2 py-1.5 pl-6 text-sm transition-colors hover:bg-accent group',
+                          location.pathname === `/workspaces/${ws.name}/sessions` && 'nav-active'
+                        )}
+                        onClick={() => isOpen && onToggle()}
+                      >
+                        <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="truncate text-muted-foreground group-hover:text-foreground transition-colors text-xs">
+                          Sessions
+                        </span>
+                      </Link>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

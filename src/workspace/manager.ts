@@ -295,6 +295,9 @@ export class WorkspaceManager {
       if (this.config.agents?.opencode?.api_key) {
         containerEnv.OPENAI_API_KEY = this.config.agents.opencode.api_key;
       }
+      if (this.config.agents?.opencode?.api_base_url) {
+        containerEnv.OPENAI_BASE_URL = this.config.agents.opencode.api_base_url;
+      }
       if (this.config.agents?.github?.token) {
         containerEnv.GITHUB_TOKEN = this.config.agents.github.token;
       }

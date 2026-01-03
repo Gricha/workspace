@@ -37,6 +37,7 @@ export interface Scripts {
 export interface CodingAgents {
   opencode?: {
     api_key?: string
+    api_base_url?: string
   }
   github?: {
     token?: string
@@ -47,10 +48,12 @@ export interface CodingAgents {
   }
 }
 
+export type AgentType = 'claude-code' | 'opencode' | 'codex'
+
 export interface SessionInfo {
   id: string
   name: string | null
-  agentType: string
+  agentType: AgentType
   projectPath: string
   messageCount: number
   lastActivity: string
@@ -58,13 +61,17 @@ export interface SessionInfo {
 }
 
 export interface SessionMessage {
-  type: string
+  type: 'user' | 'assistant' | 'system' | 'tool_use' | 'tool_result'
   content: string | null
   timestamp: string | null
+  toolName?: string
+  toolId?: string
+  toolInput?: string
 }
 
 export interface SessionDetail {
   id: string
+  agentType?: AgentType
   messages: SessionMessage[]
 }
 
@@ -90,8 +97,8 @@ const client = createORPCClient<{
     logs: (input: { name: string; tail?: number }) => Promise<string>
   }
   sessions: {
-    list: (input: { workspaceName: string }) => Promise<{ sessions: SessionInfo[] }>
-    get: (input: { workspaceName: string; sessionId: string }) => Promise<SessionDetail>
+    list: (input: { workspaceName: string; agentType?: AgentType }) => Promise<{ sessions: SessionInfo[] }>
+    get: (input: { workspaceName: string; sessionId: string; agentType?: AgentType }) => Promise<SessionDetail>
   }
   info: () => Promise<InfoResponse>
   config: {
@@ -118,9 +125,10 @@ export const api = {
   startWorkspace: (name: string) => client.workspaces.start({ name }),
   stopWorkspace: (name: string) => client.workspaces.stop({ name }),
   getLogs: (name: string, tail = 100) => client.workspaces.logs({ name, tail }),
-  listSessions: (workspaceName: string) => client.sessions.list({ workspaceName }),
-  getSession: (workspaceName: string, sessionId: string) =>
-    client.sessions.get({ workspaceName, sessionId }),
+  listSessions: (workspaceName: string, agentType?: AgentType) =>
+    client.sessions.list({ workspaceName, agentType }),
+  getSession: (workspaceName: string, sessionId: string, agentType?: AgentType) =>
+    client.sessions.get({ workspaceName, sessionId, agentType }),
   getInfo: () => client.info(),
   getCredentials: () => client.config.credentials.get(),
   updateCredentials: (data: Credentials) => client.config.credentials.update(data),

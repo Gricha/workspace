@@ -260,15 +260,20 @@ describe('CLI commands', () => {
 
   describe('error handling', () => {
     it('auto-detects localhost agent when no worker configured', async () => {
+      const localAgent = await startTestAgent({ config: { port: 7391 } });
+
       const emptyConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ws-empty-'));
       await fs.writeFile(path.join(emptyConfigDir, 'client.json'), JSON.stringify({}));
 
-      const result = await runCLI(['list'], {
-        env: { WS_CONFIG_DIR: emptyConfigDir },
-      });
-      expect(result.code).toBe(0);
-
-      await fs.rm(emptyConfigDir, { recursive: true, force: true });
+      try {
+        const result = await runCLI(['list'], {
+          env: { WS_CONFIG_DIR: emptyConfigDir },
+        });
+        expect(result.code).toBe(0);
+      } finally {
+        await localAgent.cleanup();
+        await fs.rm(emptyConfigDir, { recursive: true, force: true });
+      }
     });
 
     it('shows error when agent is not reachable', async () => {

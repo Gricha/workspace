@@ -1,13 +1,35 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, MessageSquare, Clock, Hash, Play, ChevronRight } from 'lucide-react'
-import { api, type SessionInfo, type SessionMessage } from '@/lib/api'
+import { ArrowLeft, MessageSquare, Clock, Hash, Play, ChevronRight, Bot, User, Sparkles, Calendar, FolderOpen, Wrench, ChevronDown, CheckCircle2 } from 'lucide-react'
+import Markdown from 'react-markdown'
+import { api, type SessionInfo, type SessionMessage, type AgentType } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Terminal } from '@/components/Terminal'
 import { cn } from '@/lib/utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+
+const AGENT_LABELS: Record<AgentType | 'all', string> = {
+  all: 'All Agents',
+  'claude-code': 'Claude Code',
+  opencode: 'OpenCode',
+  codex: 'Codex',
+}
+
+const AGENT_COLORS: Record<AgentType, string> = {
+  'claude-code': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  opencode: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  codex: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+}
 
 function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString)
@@ -44,8 +66,11 @@ function SessionListItem({
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <Badge variant="outline" className="text-xs font-normal">
-              {session.agentType}
+            <Badge
+              variant="outline"
+              className={cn('text-xs font-normal', AGENT_COLORS[session.agentType])}
+            >
+              {AGENT_LABELS[session.agentType]}
             </Badge>
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -71,23 +96,152 @@ function SessionListItem({
   )
 }
 
+function ToolCallBubble({ message }: { message: SessionMessage }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  if (message.type === 'tool_use') {
+    return (
+      <div className="flex gap-3">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+          <Wrench className="h-3 w-3" />
+        </div>
+        <div className="flex-1">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronDown
+              className={cn('h-3 w-3 transition-transform', isExpanded && 'rotate-180')}
+            />
+            <span className="font-mono font-medium">{message.toolName}</span>
+          </button>
+          {isExpanded && message.toolInput && (
+            <pre className="mt-2 p-2 bg-muted/50 rounded text-xs overflow-x-auto max-h-40 overflow-y-auto border border-border/50">
+              {message.toolInput}
+            </pre>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (message.type === 'tool_result') {
+    return (
+      <div className="flex gap-3">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+          <CheckCircle2 className="h-3 w-3" />
+        </div>
+        <div className="flex-1">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronDown
+              className={cn('h-3 w-3 transition-transform', isExpanded && 'rotate-180')}
+            />
+            <span>Tool result</span>
+          </button>
+          {isExpanded && message.content && (
+            <pre className="mt-2 p-2 bg-muted/50 rounded text-xs overflow-x-auto max-h-40 overflow-y-auto border border-border/50 whitespace-pre-wrap">
+              {message.content.slice(0, 2000)}
+              {message.content.length > 2000 && '... (truncated)'}
+            </pre>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
+
 function MessageBubble({ message }: { message: SessionMessage }) {
+  if (message.type === 'tool_use' || message.type === 'tool_result') {
+    return <ToolCallBubble message={message} />
+  }
+
   const isUser = message.type === 'user'
 
   return (
-    <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex gap-3', isUser ? 'flex-row-reverse' : 'flex-row')}>
       <div
         className={cn(
-          'max-w-[80%] rounded-lg px-3 py-2',
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
+          'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+          isUser
+            ? 'bg-primary/10 text-primary'
+            : 'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 text-violet-600'
         )}
       >
-        <p className="text-sm whitespace-pre-wrap">{message.content || '(empty)'}</p>
+        {isUser ? <User className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+      </div>
+      <div
+        className={cn(
+          'max-w-[85%] rounded-2xl px-4 py-3',
+          isUser
+            ? 'bg-primary text-primary-foreground rounded-tr-sm'
+            : 'bg-muted/50 border border-border/50 rounded-tl-sm'
+        )}
+      >
+        {isUser ? (
+          <p className="text-sm whitespace-pre-wrap">{message.content || '(empty)'}</p>
+        ) : (
+          <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-pre:bg-background/50 prose-pre:border prose-code:text-xs prose-code:before:content-none prose-code:after:content-none">
+            <Markdown>{message.content || '(empty)'}</Markdown>
+          </div>
+        )}
         {message.timestamp && (
-          <p className={cn('text-xs mt-1', isUser ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
-            {new Date(message.timestamp).toLocaleTimeString()}
+          <p
+            className={cn(
+              'text-[10px] mt-2 opacity-60',
+              isUser ? 'text-right' : 'text-left'
+            )}
+          >
+            {new Date(message.timestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
           </p>
         )}
+      </div>
+    </div>
+  )
+}
+
+function SessionMetadataHeader({ session }: { session: SessionInfo }) {
+  const formattedDate = new Date(session.lastActivity).toLocaleDateString(undefined, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+  const formattedTime = new Date(session.lastActivity).toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  return (
+    <div className="flex flex-col gap-3 p-3 bg-muted/30 rounded-lg border border-border/50 mb-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge
+          variant="outline"
+          className={cn('text-xs font-medium', AGENT_COLORS[session.agentType])}
+        >
+          {AGENT_LABELS[session.agentType]}
+        </Badge>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Hash className="h-3 w-3" />
+          <span>{session.messageCount} messages</span>
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <FolderOpen className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate font-mono">{session.projectPath}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Calendar className="h-3 w-3 flex-shrink-0" />
+          <span>{formattedDate} at {formattedTime}</span>
+        </div>
       </div>
     </div>
   )
@@ -99,6 +253,7 @@ export function Sessions() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [showTerminal, setShowTerminal] = useState(false)
   const [terminalCommand, setTerminalCommand] = useState<string | null>(null)
+  const [agentFilter, setAgentFilter] = useState<AgentType | 'all'>('all')
 
   const { data: workspace } = useQuery({
     queryKey: ['workspace', workspaceName],
@@ -111,8 +266,8 @@ export function Sessions() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['sessions', workspaceName],
-    queryFn: () => api.listSessions(workspaceName!),
+    queryKey: ['sessions', workspaceName, agentFilter],
+    queryFn: () => api.listSessions(workspaceName!, agentFilter === 'all' ? undefined : agentFilter),
     enabled: !!workspaceName && workspace?.status === 'running',
   })
 
@@ -124,13 +279,23 @@ export function Sessions() {
 
   const sessions = sessionsData?.sessions || []
 
-  const handleResume = (sessionId: string) => {
-    setTerminalCommand(`claude -r ${sessionId}`)
+  const handleResume = (sessionId: string, agentType: AgentType) => {
+    const commands: Record<AgentType, string> = {
+      'claude-code': `claude -r ${sessionId}`,
+      opencode: `opencode --resume ${sessionId}`,
+      codex: `codex resume ${sessionId}`,
+    }
+    setTerminalCommand(commands[agentType])
     setShowTerminal(true)
   }
 
-  const handleNewChat = () => {
-    setTerminalCommand('claude')
+  const handleNewChat = (agentType: AgentType = 'claude-code') => {
+    const commands: Record<AgentType, string> = {
+      'claude-code': 'claude',
+      opencode: 'opencode',
+      codex: 'codex',
+    }
+    setTerminalCommand(commands[agentType])
     setShowTerminal(true)
   }
 
@@ -188,10 +353,52 @@ export function Sessions() {
           </Button>
           <h1 className="text-2xl font-bold">Sessions</h1>
         </div>
-        <Button onClick={handleNewChat}>
-          <Play className="mr-2 h-4 w-4" />
-          New Chat
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Bot className="mr-2 h-4 w-4" />
+                {AGENT_LABELS[agentFilter]}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuRadioGroup
+                value={agentFilter}
+                onValueChange={(value) => {
+                  setAgentFilter(value as AgentType | 'all')
+                  setSelectedSessionId(null)
+                }}
+              >
+                <DropdownMenuRadioItem value="all">All Agents</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="claude-code">Claude Code</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="opencode">OpenCode</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="codex">Codex</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                <Play className="mr-2 h-4 w-4" />
+                New Chat
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleNewChat('claude-code')}>
+                <span className="w-2 h-2 rounded-full bg-orange-500 mr-2" />
+                Claude Code
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleNewChat('opencode')}>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
+                OpenCode
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleNewChat('codex')}>
+                <span className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+                Codex
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {isLoading ? (
@@ -211,10 +418,28 @@ export function Sessions() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-4">No sessions found</p>
-            <Button onClick={handleNewChat}>
-              <Play className="mr-2 h-4 w-4" />
-              Start a new chat
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>
+                  <Play className="mr-2 h-4 w-4" />
+                  Start a new chat
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleNewChat('claude-code')}>
+                  <span className="w-2 h-2 rounded-full bg-orange-500 mr-2" />
+                  Claude Code
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleNewChat('opencode')}>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
+                  OpenCode
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleNewChat('codex')}>
+                  <span className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+                  Codex
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </CardContent>
         </Card>
       ) : (
@@ -235,42 +460,48 @@ export function Sessions() {
 
           <div>
             {selectedSessionId ? (
-              <Card>
-                <CardHeader className="flex-row items-center justify-between space-y-0">
-                  <div>
-                    <CardTitle className="text-lg">Session Preview</CardTitle>
-                    <CardDescription>
-                      {sessions.find((s) => s.id === selectedSessionId)?.projectPath}
-                    </CardDescription>
-                  </div>
-                  <Button size="sm" onClick={() => handleResume(selectedSessionId)}>
-                    <Play className="mr-2 h-3 w-3" />
-                    Resume
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {isLoadingDetail ? (
-                    <div className="animate-pulse space-y-3">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-12 bg-muted rounded-lg" />
-                      ))}
-                    </div>
-                  ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {sessionDetail.messages.slice(0, 20).map((msg, idx) => (
-                        <MessageBubble key={idx} message={msg} />
-                      ))}
-                      {sessionDetail.messages.length > 20 && (
-                        <p className="text-center text-sm text-muted-foreground py-2">
-                          ... and {sessionDetail.messages.length - 20} more messages
-                        </p>
+              (() => {
+                const selectedSession = sessions.find((s) => s.id === selectedSessionId)
+                return (
+                  <Card>
+                    <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+                      <CardTitle className="text-lg">Session Preview</CardTitle>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          if (selectedSession) handleResume(selectedSessionId, selectedSession.agentType)
+                        }}
+                      >
+                        <Play className="mr-2 h-3 w-3" />
+                        Resume
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedSession && <SessionMetadataHeader session={selectedSession} />}
+                      {isLoadingDetail ? (
+                        <div className="animate-pulse space-y-3">
+                          {[1, 2, 3].map((i) => (
+                            <div key={i} className="h-12 bg-muted rounded-lg" />
+                          ))}
+                        </div>
+                      ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
+                        <div className="space-y-3 max-h-80 overflow-y-auto">
+                          {sessionDetail.messages.slice(0, 20).map((msg, idx) => (
+                            <MessageBubble key={idx} message={msg} />
+                          ))}
+                          {sessionDetail.messages.length > 20 && (
+                            <p className="text-center text-sm text-muted-foreground py-2">
+                              ... and {sessionDetail.messages.length - 20} more messages
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-8">No messages in this session</p>
                       )}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">No messages in this session</p>
-                  )}
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                )
+              })()
             ) : (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
