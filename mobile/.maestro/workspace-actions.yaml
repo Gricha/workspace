@@ -1,0 +1,22 @@
+appId: com.subroutine.workspace
+---
+- launchApp
+- assertVisible: "Workspaces"
+
+- runFlow:
+    when:
+      visible: "No workspaces yet"
+    commands:
+      - assertVisible: "Tap + to create one"
+
+- runFlow:
+    when:
+      visible:
+        text: "SSH:"
+    commands:
+      - tapOn:
+          text: "Start"
+          optional: true
+      - tapOn:
+          text: "Stop"
+          optional: true

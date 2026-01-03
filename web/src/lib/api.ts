@@ -44,7 +44,6 @@ export interface CodingAgents {
   }
   claude_code?: {
     oauth_token?: string
-    credentials_path?: string
   }
 }
 
@@ -146,4 +145,9 @@ export const api = {
 export function getTerminalUrl(name: string): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${protocol}//${window.location.host}/rpc/terminal/${encodeURIComponent(name)}`
+}
+
+export function getChatUrl(name: string): string {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}/rpc/chat/${encodeURIComponent(name)}`
 }

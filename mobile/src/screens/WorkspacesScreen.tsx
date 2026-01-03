@@ -44,9 +44,9 @@ function WorkspaceItem({
   const isRunning = workspace.status === 'running'
 
   return (
-    <TouchableOpacity style={styles.item} onPress={onPress}>
+    <TouchableOpacity style={styles.item} onPress={onPress} testID={`workspace-item-${workspace.name}`}>
       <View style={styles.itemHeader}>
-        <Text style={styles.itemName}>{workspace.name}</Text>
+        <Text style={styles.itemName} testID="workspace-name">{workspace.name}</Text>
         <StatusBadge status={workspace.status} />
       </View>
       {workspace.repo && <Text style={styles.itemRepo}>{workspace.repo}</Text>}
@@ -217,7 +217,7 @@ export function WorkspacesScreen() {
           </View>
         }
       />
-      <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(true)}>
+      <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(true)} testID="create-workspace-button">
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
       <CreateWorkspaceModal

@@ -1,0 +1,19 @@
+appId: com.subroutine.workspace
+---
+- launchApp
+- assertVisible: "Workspaces"
+- assertVisible:
+    id: ".*fab.*"
+    optional: true
+
+- tapOn:
+    text: "+"
+    optional: true
+
+- assertVisible:
+    text: "Create Workspace"
+    optional: true
+
+- tapOn:
+    text: "Cancel"
+    optional: true

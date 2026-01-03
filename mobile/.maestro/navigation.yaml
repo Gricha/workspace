@@ -1,0 +1,15 @@
+appId: com.subroutine.workspace
+---
+- launchApp
+
+- assertVisible: "Workspaces"
+
+- tapOn: "Sessions"
+- assertVisible: "All Sessions"
+
+- tapOn: "Settings"
+- assertVisible: "Connection"
+- assertVisible: "Coding Agents"
+
+- tapOn: "Workspaces"
+- assertVisible: "Workspaces"

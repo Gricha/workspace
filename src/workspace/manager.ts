@@ -137,12 +137,8 @@ export class WorkspaceManager {
   }
 
   private async copyClaudeCredentials(containerName: string): Promise<void> {
-    const credentialsPath = this.config.agents?.claude_code?.credentials_path;
-    if (!credentialsPath) {
-      return;
-    }
-
-    const expandedSource = expandPath(credentialsPath);
+    const defaultPath = '~/.claude';
+    const expandedSource = expandPath(defaultPath);
 
     try {
       await fs.access(expandedSource);
@@ -201,6 +197,66 @@ export class WorkspaceManager {
           user: 'workspace',
         }
       );
+    }
+  }
+
+  private async copyCodexCredentials(containerName: string): Promise<void> {
+    const defaultPath = '~/.codex';
+    const expandedSource = expandPath(defaultPath);
+
+    try {
+      await fs.access(expandedSource);
+    } catch {
+      console.warn(`Codex credentials not found, skipping: ${expandedSource}`);
+      return;
+    }
+
+    const stat = await fs.stat(expandedSource);
+    const destPath = '/home/workspace/.codex';
+
+    if (stat.isDirectory()) {
+      const tempTar = path.join(os.tmpdir(), `ws-codex-${Date.now()}.tar`);
+      try {
+        const { execSync } = await import('child_process');
+        execSync(`tar -cf "${tempTar}" -C "${expandedSource}" .`, { stdio: 'pipe' });
+        await docker.execInContainer(containerName, ['mkdir', '-p', destPath], {
+          user: 'workspace',
+        });
+        await docker.copyToContainer(containerName, tempTar, '/tmp/codex-creds.tar');
+        await docker.execInContainer(
+          containerName,
+          ['tar', '-xf', '/tmp/codex-creds.tar', '-C', destPath],
+          { user: 'workspace' }
+        );
+        await docker.execInContainer(containerName, ['rm', '/tmp/codex-creds.tar'], {
+          user: 'workspace',
+        });
+        await docker.execInContainer(containerName, ['chmod', '-R', '600', destPath], {
+          user: 'workspace',
+        });
+        await docker.execInContainer(containerName, ['chmod', '700', destPath], {
+          user: 'workspace',
+        });
+      } finally {
+        try {
+          await fs.unlink(tempTar);
+        } catch (err) {
+          console.warn(`[workspace] Failed to clean up temp file ${tempTar}:`, err);
+        }
+      }
+    } else {
+      await docker.execInContainer(containerName, ['mkdir', '-p', destPath], {
+        user: 'workspace',
+      });
+      await docker.copyToContainer(containerName, expandedSource, `${destPath}/auth.json`);
+      await docker.execInContainer(
+        containerName,
+        ['chown', 'workspace:workspace', `${destPath}/auth.json`],
+        { user: 'root' }
+      );
+      await docker.execInContainer(containerName, ['chmod', '600', `${destPath}/auth.json`], {
+        user: 'workspace',
+      });
     }
   }
 
@@ -350,6 +406,7 @@ export class WorkspaceManager {
       await this.copyCredentialFiles(containerName);
       await this.copyClaudeCredentials(containerName);
       await this.setupClaudeCodeConfig(containerName);
+      await this.copyCodexCredentials(containerName);
 
       workspace.status = 'running';
       await this.state.setWorkspace(workspace);
@@ -386,6 +443,7 @@ export class WorkspaceManager {
     await this.copyCredentialFiles(containerName);
     await this.copyClaudeCredentials(containerName);
     await this.setupClaudeCodeConfig(containerName);
+    await this.copyCodexCredentials(containerName);
 
     workspace.status = 'running';
     await this.state.setWorkspace(workspace);

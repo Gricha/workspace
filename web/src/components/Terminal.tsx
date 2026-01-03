@@ -45,7 +45,7 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
     wsRef.current = ws
 
     ws.onopen = () => {
-      xterm.writeln('\x1b[32mConnected to terminal\x1b[0m')
+      xterm.writeln('\x1b[32mConnected to workspace terminal\x1b[0m')
       xterm.writeln('')
       const { cols, rows } = xterm
       ws.send(JSON.stringify({ type: 'resize', cols, rows }))
@@ -54,7 +54,7 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
         initialCommandSent.current = true
         setTimeout(() => {
           ws.send(initialCommand + '\n')
-        }, 500)
+        }, 300)
       }
     }
 
@@ -62,13 +62,20 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
       xterm.write(event.data)
     }
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       xterm.writeln('')
-      xterm.writeln('\x1b[31mDisconnected from terminal\x1b[0m')
+      if (event.code === 1000) {
+        xterm.writeln('\x1b[33mSession ended\x1b[0m')
+      } else if (event.code === 404 || event.reason?.includes('not found')) {
+        xterm.writeln('\x1b[31mWorkspace not found or not running\x1b[0m')
+      } else {
+        xterm.writeln(`\x1b[31mDisconnected (code: ${event.code})\x1b[0m`)
+      }
     }
 
-    ws.onerror = () => {
-      xterm.writeln('\x1b[31mConnection error\x1b[0m')
+    ws.onerror = (error) => {
+      console.error('Terminal WebSocket error:', error)
+      xterm.writeln('\x1b[31mConnection error - is the workspace running?\x1b[0m')
     }
 
     xterm.onData((data) => {

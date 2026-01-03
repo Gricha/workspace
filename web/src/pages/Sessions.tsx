@@ -24,6 +24,7 @@ import { api, type SessionInfo, type SessionMessage, type AgentType } from '@/li
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Chat } from '@/components/Chat'
 import { Terminal } from '@/components/Terminal'
 import { cn } from '@/lib/utils'
 import {
@@ -321,12 +322,13 @@ function SessionDetailView({
   )
 }
 
+type ChatMode = { type: 'chat'; sessionId?: string } | { type: 'terminal'; command: string }
+
 export function Sessions() {
   const { name: workspaceName } = useParams<{ name: string }>()
   const navigate = useNavigate()
   const [selectedSession, setSelectedSession] = useState<SessionInfo | null>(null)
-  const [showTerminal, setShowTerminal] = useState(false)
-  const [terminalCommand, setTerminalCommand] = useState<string | null>(null)
+  const [chatMode, setChatMode] = useState<ChatMode | null>(null)
   const [agentFilter, setAgentFilter] = useState<AgentType | 'all'>('all')
 
   const { data: workspace } = useQuery({
@@ -350,23 +352,29 @@ export function Sessions() {
   const totalSessions = sessionsData?.total || 0
 
   const handleResume = (sessionId: string, agentType: AgentType) => {
-    const commands: Record<AgentType, string> = {
-      'claude-code': `claude -r ${sessionId}`,
-      opencode: `opencode --resume ${sessionId}`,
-      codex: `codex resume ${sessionId}`,
+    if (agentType === 'claude-code') {
+      setChatMode({ type: 'chat', sessionId })
+    } else {
+      const commands: Record<AgentType, string> = {
+        'claude-code': `claude -r ${sessionId}`,
+        opencode: `opencode --resume ${sessionId}`,
+        codex: `codex resume ${sessionId}`,
+      }
+      setChatMode({ type: 'terminal', command: commands[agentType] })
     }
-    setTerminalCommand(commands[agentType])
-    setShowTerminal(true)
   }
 
   const handleNewChat = (agentType: AgentType = 'claude-code') => {
-    const commands: Record<AgentType, string> = {
-      'claude-code': 'claude',
-      opencode: 'opencode',
-      codex: 'codex',
+    if (agentType === 'claude-code') {
+      setChatMode({ type: 'chat' })
+    } else {
+      const commands: Record<AgentType, string> = {
+        'claude-code': 'claude',
+        opencode: 'opencode',
+        codex: 'codex',
+      }
+      setChatMode({ type: 'terminal', command: commands[agentType] })
     }
-    setTerminalCommand(commands[agentType])
-    setShowTerminal(true)
   }
 
   if (!workspaceName) {
@@ -396,19 +404,41 @@ export function Sessions() {
     )
   }
 
-  if (showTerminal) {
+  if (chatMode) {
+    if (chatMode.type === 'chat') {
+      return (
+        <div className="h-[calc(100vh-8rem)] flex flex-col">
+          <div className="flex items-center gap-4 mb-4">
+            <Button variant="ghost" onClick={() => setChatMode(null)}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Sessions
+            </Button>
+            <h1 className="text-2xl font-bold">Claude Code</h1>
+          </div>
+          <Card className="flex-1 overflow-hidden">
+            <CardContent className="p-0 h-full">
+              <Chat
+                workspaceName={workspaceName}
+                sessionId={chatMode.sessionId}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )
+    }
+
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => setShowTerminal(false)}>
+          <Button variant="ghost" onClick={() => setChatMode(null)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Sessions
           </Button>
-          <h1 className="text-2xl font-bold">Claude Code</h1>
+          <h1 className="text-2xl font-bold">Agent Terminal</h1>
         </div>
         <Card>
           <CardContent className="p-0">
-            <Terminal workspaceName={workspaceName} initialCommand={terminalCommand || undefined} />
+            <Terminal workspaceName={workspaceName} initialCommand={chatMode.command} />
           </CardContent>
         </Card>
       </div>

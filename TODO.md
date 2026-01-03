@@ -16,14 +16,6 @@
 
 ## Tasks
 
-### Codex CLI for ChatGPT Subscription Users
-
-Per [RESEARCH_OPENAI_OAUTH.md](./RESEARCH_OPENAI_OAUTH.md), Codex CLI supports device code auth for ChatGPT subscribers, but this requires interactive browser flow. Research if there's a way to support subscription users in headless Docker containers - possibly by copying `~/.codex/auth.json` from host, or implementing device code flow in our web UI. Note: OpenCode only needs Zen provider working for now (lower priority).
-
-### Mobile App E2E Tests
-
-Set up e2e testing for the React Native mobile app in `mobile/`. Use Detox or Maestro for cross-platform testing. Cover core flows: workspace listing, workspace start/stop, settings configuration. Requires simulator/emulator setup.
-
 ### Interactive Chat with Agent SDK Streaming
 
 The Sessions page currently only displays historical messages. Implement real-time interaction:

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Save, RefreshCw, ExternalLink, Sparkles, Github, Bot, Code2 } from 'lucide-react'
+import { Save, RefreshCw, ExternalLink, Sparkles, Github, Code2 } from 'lucide-react'
 import { api, type CodingAgents } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,7 +25,6 @@ export function AgentsSettings() {
   const [openaiKey, setOpenaiKey] = useState('')
   const [openaiBaseUrl, setOpenaiBaseUrl] = useState('')
   const [githubToken, setGithubToken] = useState('')
-  const [claudeCredsPath, setClaudeCredsPath] = useState('')
   const [claudeOAuthToken, setClaudeOAuthToken] = useState('')
   const [openaiHasChanges, setOpenaiHasChanges] = useState(false)
   const [githubHasChanges, setGithubHasChanges] = useState(false)
@@ -37,7 +36,6 @@ export function AgentsSettings() {
       setOpenaiKey(agents.opencode?.api_key || '')
       setOpenaiBaseUrl(agents.opencode?.api_base_url || '')
       setGithubToken(agents.github?.token || '')
-      setClaudeCredsPath(agents.claude_code?.credentials_path || '')
       setClaudeOAuthToken(agents.claude_code?.oauth_token || '')
       setInitialized(true)
     }
@@ -74,7 +72,6 @@ export function AgentsSettings() {
     mutation.mutate({
       ...agents,
       claude_code: {
-        credentials_path: claudeCredsPath.trim() || undefined,
         oauth_token: claudeOAuthToken.trim() || undefined,
       },
     })
@@ -97,7 +94,7 @@ export function AgentsSettings() {
 
   const openaiConfigured = !!agents?.opencode?.api_key
   const githubConfigured = !!agents?.github?.token
-  const claudeConfigured = !!agents?.claude_code?.credentials_path || !!agents?.claude_code?.oauth_token
+  const claudeConfigured = !!agents?.claude_code?.oauth_token
 
   if (isLoading) {
     return (
@@ -196,60 +193,27 @@ export function AgentsSettings() {
             <p className="agent-description">
               OAuth token for headless operation. Run <code className="text-xs bg-secondary px-1 py-0.5 rounded">claude setup-token</code> locally to generate.
             </p>
-            <div className="space-y-2 mt-2">
-              <div className="agent-input flex gap-2">
-                <Input
-                  type="text"
-                  value={claudeCredsPath}
-                  onChange={(e) => {
-                    setClaudeCredsPath(e.target.value)
-                    setClaudeHasChanges(true)
-                  }}
-                  placeholder="~/.claude (credentials directory)"
-                  className="flex-1 font-mono text-sm h-9"
-                />
-              </div>
-              <div className="agent-input flex gap-2">
-                <Input
-                  type="password"
-                  value={claudeOAuthToken}
-                  onChange={(e) => {
-                    setClaudeOAuthToken(e.target.value)
-                    setClaudeHasChanges(true)
-                  }}
-                  placeholder="sk-ant-oat01-... (OAuth token)"
-                  className="flex-1 font-mono text-sm h-9"
-                />
-                <Button
-                  onClick={handleSaveClaude}
-                  disabled={mutation.isPending || !claudeHasChanges}
-                  size="sm"
-                  className="h-9"
-                >
-                  <Save className="mr-1.5 h-3.5 w-3.5" />
-                  Save
-                </Button>
-              </div>
+            <div className="agent-input flex gap-2 mt-2">
+              <Input
+                type="password"
+                value={claudeOAuthToken}
+                onChange={(e) => {
+                  setClaudeOAuthToken(e.target.value)
+                  setClaudeHasChanges(true)
+                }}
+                placeholder="sk-ant-oat01-... (OAuth token)"
+                className="flex-1 font-mono text-sm h-9"
+              />
+              <Button
+                onClick={handleSaveClaude}
+                disabled={mutation.isPending || !claudeHasChanges}
+                size="sm"
+                className="h-9"
+              >
+                <Save className="mr-1.5 h-3.5 w-3.5" />
+                Save
+              </Button>
             </div>
-          </div>
-        </div>
-
-        {/* Codex CLI */}
-        <div className="agent-row">
-          <div className="agent-icon">
-            <Bot className="h-5 w-5" />
-          </div>
-          <div className="agent-info">
-            <div className="agent-name">
-              Codex CLI
-              <StatusIndicator configured={openaiConfigured} />
-            </div>
-            <p className="agent-description">
-              Uses the same <code className="text-xs bg-secondary px-1 py-0.5 rounded">OPENAI_API_KEY</code> as OpenCode. Configure OpenAI above to enable.
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Note: ChatGPT Plus subscription does not include API access. API keys are billed separately via pay-per-token on the OpenAI Platform.
-            </p>
           </div>
         </div>
       </div>
@@ -281,7 +245,7 @@ export function AgentsSettings() {
               </a>
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Use a fine-grained PAT. Add "Copilot Requests" permission for GitHub Copilot CLI support.
+              Use a fine-grained PAT with repository access permissions.
             </p>
             <div className="agent-input flex gap-2">
               <Input

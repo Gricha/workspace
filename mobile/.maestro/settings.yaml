@@ -1,0 +1,21 @@
+appId: com.subroutine.workspace
+---
+- launchApp
+
+- tapOn: "Settings"
+
+- assertVisible: "Connection"
+- assertVisible: "Agent Server"
+- assertVisible: "Server URL"
+
+- assertVisible: "Coding Agents"
+- assertVisible: "OpenCode"
+- assertVisible: "Claude Code"
+- assertVisible: "GitHub"
+
+- assertVisible: "About"
+
+- scrollUntilVisible:
+    element:
+      text: "Workspaces"
+    direction: DOWN

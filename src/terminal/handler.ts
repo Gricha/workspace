@@ -25,13 +25,14 @@ export class TerminalSession {
 
     const args = [
       'exec',
-      '-it',
+      '-i',
       '-u',
       this.user,
       '-e',
       `TERM=xterm-256color`,
       this.containerName,
       this.shell,
+      '-l',
     ];
 
     this.process = Bun.spawn(['docker', ...args], {
