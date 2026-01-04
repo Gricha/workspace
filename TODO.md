@@ -16,7 +16,30 @@
 
 ## Tasks
 
-*No remaining tasks.*
+### Web Chat: Tool Call Display & State Management
+
+Improve the Chat component (`web/src/components/Chat.tsx`) for better UX when chatting with Claude Code:
+
+1. **Tool calls grouped at top**: Tool use messages should be collected and displayed at the top of the assistant's response, not intertwined between message bubbles
+2. **State management cleanup**: Review and fix state management issues in the streaming/message handling logic
+3. **Manual testing required**: Test the chat flow manually to verify:
+   - Streaming works correctly (messages accumulate, not replace)
+   - Tool calls display properly grouped
+   - Session ID handling works across messages
+   - Reconnection behavior is smooth
+
+### Web Terminal: Replace xterm.js with ghostty-web
+
+Replace the current xterm.js terminal with [ghostty-web](https://github.com/coder/ghostty-web) for a more native terminal experience:
+
+1. Install `@anthropic-ai/ghostty-web` or equivalent package
+2. Replace Terminal component implementation (`web/src/components/Terminal.tsx`)
+3. Adapt WebSocket communication layer to work with ghostty's API
+4. Benefits expected:
+   - GPU-accelerated rendering (WebGL2)
+   - Better Unicode/emoji support
+   - More native-feeling terminal experience
+   - Should work better with Claude Code's TUI output
 
 ---
 

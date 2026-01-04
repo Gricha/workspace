@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar, SidebarTrigger } from './Sidebar'
 import { Boxes } from 'lucide-react'
 
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
+
+  const isWideLayout = location.pathname.includes('/sessions')
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -22,7 +25,7 @@ export function Layout() {
         </header>
 
         <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-3xl px-6 py-8">
+          <div className={isWideLayout ? "px-6 py-8" : "mx-auto max-w-3xl px-6 py-8"}>
             <Outlet />
           </div>
         </main>

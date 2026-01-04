@@ -113,6 +113,27 @@ export interface StartAgentOptions {
   configDir?: string;
 }
 
+async function getProcessUsingPort(port: number): Promise<string | null> {
+  try {
+    const proc = Bun.spawn(['lsof', '-i', `:${port}`, '-t'], {
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    const output = await new Response(proc.stdout).text();
+    const pid = output.trim().split('\n')[0];
+    if (!pid) return null;
+
+    const psProc = Bun.spawn(['ps', '-p', pid, '-o', 'pid=,comm=,args='], {
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    const psOutput = await new Response(psProc.stdout).text();
+    return psOutput.trim() || `PID ${pid}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function startAgent(options: StartAgentOptions = {}): Promise<void> {
   const configDir = options.configDir || getConfigDir();
 
@@ -126,6 +147,21 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
   console.log(`[agent] Starting on port ${port}...`);
 
   const { server, terminalServer, chatServer } = createAgentServer(configDir, config);
+
+  server.on('error', async (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[agent] Error: Port ${port} is already in use.`);
+      const processInfo = await getProcessUsingPort(port);
+      if (processInfo) {
+        console.error(`[agent] Process using port: ${processInfo}`);
+      }
+      console.error(`[agent] Try using a different port with: workspace agent run --port <port>`);
+      process.exit(1);
+    } else {
+      console.error(`[agent] Server error: ${err.message}`);
+      process.exit(1);
+    }
+  });
 
   server.listen(port, '::', () => {
     console.log(`[agent] Agent running at http://localhost:${port}`);

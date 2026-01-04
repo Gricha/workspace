@@ -405,12 +405,18 @@ export function Sessions() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          <h1 className="text-2xl font-bold">Sessions</h1>
+          <div>
+            <h1 className="text-2xl font-bold">Sessions</h1>
+            <p className="text-sm text-muted-foreground">{workspaceName}</p>
+          </div>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground mb-4">Workspace is not running</p>
+            <p className="text-lg font-medium mb-2">Workspace is not running</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Start the workspace to view and create sessions
+            </p>
             <Button onClick={() => navigate(`/workspaces/${workspaceName}`)}>
               Go to Workspace
             </Button>
@@ -480,7 +486,10 @@ export function Sessions() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          <h1 className="text-2xl font-bold">Sessions</h1>
+          <div>
+            <h1 className="text-2xl font-bold">Sessions</h1>
+            <p className="text-sm text-muted-foreground">{workspaceName}</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>

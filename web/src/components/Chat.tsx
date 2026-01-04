@@ -150,34 +150,38 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
         }
 
         if (msg.type === 'assistant') {
-          if (isStreaming) {
-            setStreamingContent(prev => prev + msg.content)
-          } else {
-            setIsStreaming(true)
-            setStreamingContent(msg.content)
-          }
+          setIsStreaming(true)
+          setStreamingContent(prev => prev + msg.content)
           return
         }
 
         if (msg.type === 'done') {
-          if (streamingContent) {
-            setMessages(prev => [...prev, {
-              type: 'assistant',
-              content: streamingContent,
-              timestamp: new Date().toISOString(),
-            }])
-          }
-          setStreamingContent('')
+          setStreamingContent(prev => {
+            if (prev) {
+              setMessages(msgs => [...msgs, {
+                type: 'assistant',
+                content: prev,
+                timestamp: new Date().toISOString(),
+              }])
+            }
+            return ''
+          })
           setIsStreaming(false)
           return
         }
 
-        if (msg.type === 'system' && msg.content.startsWith('Session started')) {
-          const match = msg.content.match(/Session (\S+)/)
-          if (match) {
-            const newSessionId = match[1]
-            setSessionId(newSessionId)
-            onSessionId?.(newSessionId)
+        if (msg.type === 'system') {
+          if (msg.content.startsWith('Session started')) {
+            const match = msg.content.match(/Session (\S+)/)
+            if (match) {
+              const newSessionId = match[1]
+              setSessionId(newSessionId)
+              onSessionId?.(newSessionId)
+            }
+            return
+          }
+          if (msg.content === 'Processing your message...') {
+            return
           }
         }
 
@@ -189,14 +193,16 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
 
     ws.onclose = () => {
       setIsConnected(false)
-      if (streamingContent) {
-        setMessages(prev => [...prev, {
-          type: 'assistant',
-          content: streamingContent,
-          timestamp: new Date().toISOString(),
-        }])
-        setStreamingContent('')
-      }
+      setStreamingContent(prev => {
+        if (prev) {
+          setMessages(msgs => [...msgs, {
+            type: 'assistant',
+            content: prev,
+            timestamp: new Date().toISOString(),
+          }])
+        }
+        return ''
+      })
       setIsStreaming(false)
     }
 

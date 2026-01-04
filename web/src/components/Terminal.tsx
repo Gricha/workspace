@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
@@ -15,19 +15,49 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
   const fitAddonRef = useRef<FitAddon | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const initialCommandSent = useRef(false)
+  const resizeObserverRef = useRef<ResizeObserver | null>(null)
+  const [isConnected, setIsConnected] = useState(false)
 
   const connect = useCallback(() => {
     if (!terminalRef.current) return
 
     const xterm = new XTerm({
       cursorBlink: true,
+      cursorStyle: 'block',
       fontSize: 14,
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontFamily: 'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+      fontWeight: 'normal',
+      fontWeightBold: 'bold',
+      lineHeight: 1.2,
+      letterSpacing: 0,
+      allowProposedApi: true,
+      scrollback: 10000,
+      scrollOnUserInput: true,
+      convertEol: true,
       theme: {
-        background: '#1e1e1e',
-        foreground: '#d4d4d4',
-        cursor: '#aeafad',
+        background: '#0d1117',
+        foreground: '#c9d1d9',
+        cursor: '#58a6ff',
+        cursorAccent: '#0d1117',
         selectionBackground: '#264f78',
+        selectionForeground: '#ffffff',
+        selectionInactiveBackground: '#264f7855',
+        black: '#484f58',
+        red: '#ff7b72',
+        green: '#3fb950',
+        yellow: '#d29922',
+        blue: '#58a6ff',
+        magenta: '#bc8cff',
+        cyan: '#39c5cf',
+        white: '#b1bac4',
+        brightBlack: '#6e7681',
+        brightRed: '#ffa198',
+        brightGreen: '#56d364',
+        brightYellow: '#e3b341',
+        brightBlue: '#79c0ff',
+        brightMagenta: '#d2a8ff',
+        brightCyan: '#56d4dd',
+        brightWhite: '#f0f6fc',
       },
     })
     xtermRef.current = xterm
@@ -37,7 +67,10 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
     xterm.loadAddon(fitAddon)
 
     xterm.open(terminalRef.current)
-    fitAddon.fit()
+
+    requestAnimationFrame(() => {
+      fitAddon.fit()
+    })
 
     const wsUrl = getTerminalUrl(workspaceName)
 
@@ -45,23 +78,20 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
     wsRef.current = ws
 
     ws.onopen = () => {
-      console.log('[terminal] WebSocket opened to:', wsUrl)
-      xterm.writeln('\x1b[32mConnected to workspace terminal\x1b[0m')
-      xterm.writeln('')
+      setIsConnected(true)
+      xterm.writeln('\x1b[38;5;245mConnecting to workspace...\x1b[0m')
       const { cols, rows } = xterm
-      console.log('[terminal] sending resize:', cols, rows)
       ws.send(JSON.stringify({ type: 'resize', cols, rows }))
 
       if (initialCommand && !initialCommandSent.current) {
         initialCommandSent.current = true
         setTimeout(() => {
           ws.send(initialCommand + '\n')
-        }, 300)
+        }, 500)
       }
     }
 
     ws.onmessage = (event) => {
-      console.log('[terminal] received:', typeof event.data, event.data.length || event.data.byteLength)
       if (event.data instanceof Blob) {
         event.data.text().then((text) => {
           xterm.write(text)
@@ -74,9 +104,10 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
     }
 
     ws.onclose = (event) => {
+      setIsConnected(false)
       xterm.writeln('')
       if (event.code === 1000) {
-        xterm.writeln('\x1b[33mSession ended\x1b[0m')
+        xterm.writeln('\x1b[38;5;245mSession ended\x1b[0m')
       } else if (event.code === 404 || event.reason?.includes('not found')) {
         xterm.writeln('\x1b[31mWorkspace not found or not running\x1b[0m')
       } else {
@@ -84,8 +115,8 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
       }
     }
 
-    ws.onerror = (error) => {
-      console.error('Terminal WebSocket error:', error)
+    ws.onerror = () => {
+      setIsConnected(false)
       xterm.writeln('\x1b[31mConnection error - is the workspace running?\x1b[0m')
     }
 
@@ -100,21 +131,38 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
         ws.send(JSON.stringify({ type: 'resize', cols, rows }))
       }
     })
+
+    xterm.focus()
   }, [workspaceName, initialCommand])
 
   useEffect(() => {
     connect()
 
-    const handleResize = () => {
-      if (fitAddonRef.current) {
-        fitAddonRef.current.fit()
+    const handleFit = () => {
+      if (fitAddonRef.current && xtermRef.current) {
+        try {
+          fitAddonRef.current.fit()
+        } catch {
+        }
       }
     }
 
-    window.addEventListener('resize', handleResize)
+    const debouncedFit = debounce(handleFit, 100)
+
+    if (terminalRef.current) {
+      resizeObserverRef.current = new ResizeObserver(() => {
+        debouncedFit()
+      })
+      resizeObserverRef.current.observe(terminalRef.current)
+    }
+
+    window.addEventListener('resize', debouncedFit)
 
     return () => {
-      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('resize', debouncedFit)
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect()
+      }
       if (wsRef.current) {
         wsRef.current.close()
       }
@@ -125,9 +173,31 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
   }, [connect])
 
   return (
-    <div
-      ref={terminalRef}
-      className="h-full w-full min-h-[400px] bg-[#1e1e1e] rounded-lg overflow-hidden"
-    />
+    <div className="relative flex flex-col h-full w-full min-h-[500px]">
+      <div
+        ref={terminalRef}
+        className="flex-1 w-full bg-[#0d1117] rounded-lg overflow-hidden"
+        style={{
+          padding: '12px',
+          minHeight: '500px',
+        }}
+        onClick={() => xtermRef.current?.focus()}
+      />
+      {!isConnected && (
+        <div className="absolute bottom-3 right-3">
+          <span className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+            Disconnected
+          </span>
+        </div>
+      )}
+    </div>
   )
+}
+
+function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
+  let timeoutId: ReturnType<typeof setTimeout>
+  return ((...args: unknown[]) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), ms)
+  }) as T
 }
