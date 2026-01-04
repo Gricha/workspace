@@ -72,8 +72,7 @@ export class ChatSession {
       '--include-partial-messages',
       '--model',
       this.model,
-      '--permission-mode',
-      'acceptEdits',
+      '--dangerously-skip-permissions',
     ];
 
     if (this.sessionId) {

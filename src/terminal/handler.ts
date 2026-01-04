@@ -25,7 +25,7 @@ export class TerminalSession {
 
     const args = [
       'exec',
-      '-i',
+      '-it',
       '-u',
       this.user,
       '-e',
