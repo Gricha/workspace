@@ -1,58 +1,24 @@
-import { IncomingMessage } from 'http';
-import { Duplex } from 'stream';
-import { WebSocket, WebSocketServer } from 'ws';
+import { WebSocket } from 'ws';
+import { BaseWebSocketServer, type BaseConnection } from '../shared/base-websocket';
 import { createTerminalSession, TerminalSession } from './handler';
 import { isControlMessage } from './types';
 
-interface TerminalConnection {
-  ws: WebSocket;
+interface TerminalConnection extends BaseConnection {
   session: TerminalSession;
-  workspaceName: string;
 }
 
-export class TerminalWebSocketServer {
-  private wss: WebSocketServer;
-  private connections: Map<WebSocket, TerminalConnection> = new Map();
+export class TerminalWebSocketServer extends BaseWebSocketServer<TerminalConnection> {
   private getContainerName: (workspaceName: string) => string;
-  private isWorkspaceRunning: (workspaceName: string) => Promise<boolean>;
 
   constructor(options: {
     getContainerName: (workspaceName: string) => string;
     isWorkspaceRunning: (workspaceName: string) => Promise<boolean>;
   }) {
-    this.wss = new WebSocketServer({ noServer: true });
+    super({ isWorkspaceRunning: options.isWorkspaceRunning });
     this.getContainerName = options.getContainerName;
-    this.isWorkspaceRunning = options.isWorkspaceRunning;
-
-    this.wss.on('connection', this.handleConnection.bind(this));
   }
 
-  async handleUpgrade(
-    request: IncomingMessage,
-    socket: Duplex,
-    head: Buffer,
-    workspaceName: string
-  ): Promise<void> {
-    const running = await this.isWorkspaceRunning(workspaceName);
-    if (!running) {
-      socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
-      socket.end();
-      return;
-    }
-
-    this.wss.handleUpgrade(request, socket, head, (ws) => {
-      (ws as WebSocket & { workspaceName: string }).workspaceName = workspaceName;
-      this.wss.emit('connection', ws, request);
-    });
-  }
-
-  private handleConnection(ws: WebSocket & { workspaceName?: string }): void {
-    const workspaceName = ws.workspaceName;
-    if (!workspaceName) {
-      ws.close(1008, 'Missing workspace name');
-      return;
-    }
-
+  protected handleConnection(ws: WebSocket, workspaceName: string): void {
     const containerName = this.getContainerName(workspaceName);
     const session = createTerminalSession({
       containerName,
@@ -117,8 +83,8 @@ export class TerminalWebSocketServer {
     }
   }
 
-  getConnectionCount(): number {
-    return this.connections.size;
+  protected cleanupConnection(connection: TerminalConnection): void {
+    connection.session.kill();
   }
 
   getConnectionsForWorkspace(workspaceName: string): number {
@@ -129,24 +95,5 @@ export class TerminalWebSocketServer {
       }
     }
     return count;
-  }
-
-  closeConnectionsForWorkspace(workspaceName: string): void {
-    for (const [ws, conn] of this.connections.entries()) {
-      if (conn.workspaceName === workspaceName) {
-        conn.session.kill();
-        ws.close(1001, 'Workspace stopped');
-        this.connections.delete(ws);
-      }
-    }
-  }
-
-  close(): void {
-    for (const [ws, conn] of this.connections.entries()) {
-      conn.session.kill();
-      ws.close(1001, 'Server shutting down');
-    }
-    this.connections.clear();
-    this.wss.close();
   }
 }

@@ -6,7 +6,7 @@ import { startAgent } from './agent/run';
 import { installService, uninstallService, showStatus } from './agent/systemd';
 import { createApiClient, ApiClientError } from './client/api';
 import { loadClientConfig, getWorker, setWorker } from './client/config';
-import { openShell } from './client/shell';
+import { openSSHShell } from './client/shell';
 import { startProxy, parsePortForward, formatPortForwards } from './client/proxy';
 import { loadAgentConfig, getConfigDir, ensureConfigDir } from './config/loader';
 import { buildImage } from './docker';
@@ -255,6 +255,7 @@ program
   .description('Open interactive terminal to workspace')
   .action(async (name) => {
     try {
+      const worker = await getWorkerWithFallback();
       const client = await getClient();
 
       const workspace = await client.getWorkspace(name);
@@ -263,10 +264,9 @@ program
         process.exit(1);
       }
 
-      const terminalUrl = client.getTerminalUrl(name);
-
-      await openShell({
-        terminalUrl,
+      await openSSHShell({
+        worker,
+        sshPort: workspace.ports.ssh,
         onError: (err) => {
           console.error(`\nConnection error: ${err.message}`);
         },

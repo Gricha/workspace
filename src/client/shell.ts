@@ -1,116 +1,86 @@
-import WebSocket from 'ws';
-import type { ControlMessage } from '../terminal/types';
+import { spawn } from 'child_process';
 
-export interface ShellOptions {
-  terminalUrl: string;
+export interface SSHShellOptions {
+  worker: string;
+  sshPort: number;
+  user?: string;
   onConnect?: () => void;
   onDisconnect?: (code: number) => void;
   onError?: (error: Error) => void;
 }
 
-export async function openShell(options: ShellOptions): Promise<void> {
-  const { terminalUrl, onConnect, onDisconnect, onError } = options;
+function extractHost(worker: string): string {
+  let host = worker;
+  if (host.startsWith('http://')) {
+    host = host.slice(7);
+  } else if (host.startsWith('https://')) {
+    host = host.slice(8);
+  }
+  if (host.includes(':')) {
+    host = host.split(':')[0];
+  }
+  return host;
+}
+
+export async function openSSHShell(options: SSHShellOptions): Promise<void> {
+  const { worker, sshPort, user = 'workspace', onConnect, onDisconnect, onError } = options;
+  const host = extractHost(worker);
 
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(terminalUrl);
+    const sshArgs: string[] = [
+      '-o',
+      'StrictHostKeyChecking=no',
+      '-o',
+      'UserKnownHostsFile=/dev/null',
+      '-o',
+      'LogLevel=ERROR',
+      '-p',
+      String(sshPort),
+      `${user}@${host}`,
+    ];
+
+    const proc = spawn('ssh', sshArgs, {
+      stdio: 'inherit',
+    });
 
     let connected = false;
-    let originalStdinRawMode: boolean | undefined;
-    let cleanedUp = false;
 
-    const cleanup = (exitCode = 0) => {
-      if (cleanedUp) return;
-      cleanedUp = true;
-
-      if (originalStdinRawMode !== undefined && process.stdin.isTTY) {
-        process.stdin.setRawMode(originalStdinRawMode);
+    const connectionTimeout = setTimeout(() => {
+      if (!connected) {
+        proc.kill();
+        reject(new Error('SSH connection timeout'));
       }
-      process.stdin.removeAllListeners('data');
-      process.removeAllListeners('SIGWINCH');
+    }, 30000);
 
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-
-      if (onDisconnect) {
-        onDisconnect(exitCode);
-      }
-
-      resolve();
-    };
-
-    const sendResize = () => {
-      if (ws.readyState !== WebSocket.OPEN) return;
-      if (!process.stdout.isTTY) return;
-
-      const resizeMessage: ControlMessage = {
-        type: 'resize',
-        cols: process.stdout.columns || 80,
-        rows: process.stdout.rows || 24,
-      };
-      ws.send(JSON.stringify(resizeMessage));
-    };
-
-    ws.on('open', () => {
-      connected = true;
-
-      if (process.stdin.isTTY) {
-        originalStdinRawMode = process.stdin.isRaw;
-        process.stdin.setRawMode(true);
-      }
-
-      process.stdin.resume();
-
-      process.stdin.on('data', (data: Buffer) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(data);
+    setTimeout(() => {
+      if (proc.exitCode === null) {
+        connected = true;
+        clearTimeout(connectionTimeout);
+        if (onConnect) {
+          onConnect();
         }
-      });
-
-      process.on('SIGWINCH', sendResize);
-
-      sendResize();
-
-      if (onConnect) {
-        onConnect();
       }
-    });
+    }, 500);
 
-    ws.on('message', (data: Buffer | string) => {
-      process.stdout.write(data);
-    });
-
-    ws.on('close', (code) => {
-      cleanup(code === 1000 ? 0 : 1);
-    });
-
-    ws.on('error', (err) => {
+    proc.on('error', (err) => {
+      clearTimeout(connectionTimeout);
       if (!connected) {
         reject(err);
-        return;
-      }
-
-      if (onError) {
+      } else if (onError) {
         onError(err);
       }
-      cleanup(1);
     });
 
-    ws.on('unexpected-response', (_req, res) => {
-      const statusCode = res.statusCode || 0;
-      let errorMessage = `Connection failed with status ${statusCode}`;
-
-      if (statusCode === 404) {
-        errorMessage = 'Workspace not found or not running';
-      } else if (statusCode === 503) {
-        errorMessage = 'Workspace is not running';
+    proc.on('close', (code) => {
+      clearTimeout(connectionTimeout);
+      if (!connected && code !== 0) {
+        reject(new Error(`SSH failed with exit code ${code}`));
+      } else {
+        if (onDisconnect) {
+          onDisconnect(code || 0);
+        }
+        resolve();
       }
-
-      reject(new Error(errorMessage));
-    });
-
-    process.stdin.on('end', () => {
-      cleanup(0);
     });
   });
 }

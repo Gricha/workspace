@@ -1,15 +1,45 @@
 appId: com.subroutine.workspace
 ---
-- launchApp
+# Test: Basic Navigation Between Screens
+# Verifies all three tabs are accessible and display correct content
 
+- launchApp:
+    clearState: true
+
+# Verify we start on Workspaces tab
 - assertVisible: "Workspaces"
 
+# Navigate to Sessions tab
 - tapOn: "Sessions"
 - assertVisible: "All Sessions"
 
+# Handle running vs non-running workspaces
+- runFlow:
+    when:
+      visible: "No running workspaces"
+    commands:
+      - assertVisible: "Go to Workspaces"
+
+- runFlow:
+    when:
+      visible: "No sessions found"
+    commands:
+      - assertVisible: "No sessions found"
+
+# Navigate to Settings tab
 - tapOn: "Settings"
 - assertVisible: "Connection"
 - assertVisible: "Coding Agents"
+- assertVisible: "About"
 
+# Navigate back to Workspaces tab
+- tapOn: "Workspaces"
+- assertVisible: "Workspaces"
+
+# Verify tab switching is smooth - do a full cycle
+- tapOn: "Sessions"
+- assertVisible: "All Sessions"
+- tapOn: "Settings"
+- assertVisible: "Connection"
 - tapOn: "Workspaces"
 - assertVisible: "Workspaces"

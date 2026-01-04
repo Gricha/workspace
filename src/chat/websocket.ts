@@ -1,13 +1,10 @@
-import { IncomingMessage } from 'http';
-import { Duplex } from 'stream';
-import { WebSocket, WebSocketServer } from 'ws';
+import { WebSocket } from 'ws';
+import { BaseWebSocketServer, type BaseConnection } from '../shared/base-websocket';
 import { createChatSession, type ChatSession, type ChatMessage } from './handler';
 import { getContainerName } from '../docker';
 
-interface ChatConnection {
-  ws: WebSocket;
+interface ChatConnection extends BaseConnection {
   session: ChatSession | null;
-  workspaceName: string;
 }
 
 interface IncomingChatMessage {
@@ -16,44 +13,12 @@ interface IncomingChatMessage {
   sessionId?: string;
 }
 
-export class ChatWebSocketServer {
-  private wss: WebSocketServer;
-  private connections: Map<WebSocket, ChatConnection> = new Map();
-  private isWorkspaceRunning: (workspaceName: string) => Promise<boolean>;
-
+export class ChatWebSocketServer extends BaseWebSocketServer<ChatConnection> {
   constructor(options: { isWorkspaceRunning: (workspaceName: string) => Promise<boolean> }) {
-    this.wss = new WebSocketServer({ noServer: true });
-    this.isWorkspaceRunning = options.isWorkspaceRunning;
-
-    this.wss.on('connection', this.handleConnection.bind(this));
+    super(options);
   }
 
-  async handleUpgrade(
-    request: IncomingMessage,
-    socket: Duplex,
-    head: Buffer,
-    workspaceName: string
-  ): Promise<void> {
-    const running = await this.isWorkspaceRunning(workspaceName);
-    if (!running) {
-      socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
-      socket.end();
-      return;
-    }
-
-    this.wss.handleUpgrade(request, socket, head, (ws) => {
-      (ws as WebSocket & { workspaceName: string }).workspaceName = workspaceName;
-      this.wss.emit('connection', ws, request);
-    });
-  }
-
-  private handleConnection(ws: WebSocket & { workspaceName?: string }): void {
-    const workspaceName = ws.workspaceName;
-    if (!workspaceName) {
-      ws.close(1008, 'Missing workspace name');
-      return;
-    }
-
+  protected handleConnection(ws: WebSocket, workspaceName: string): void {
     const connection: ChatConnection = {
       ws,
       session: null,
@@ -133,30 +98,9 @@ export class ChatWebSocketServer {
     });
   }
 
-  getConnectionCount(): number {
-    return this.connections.size;
-  }
-
-  closeConnectionsForWorkspace(workspaceName: string): void {
-    for (const [ws, conn] of this.connections.entries()) {
-      if (conn.workspaceName === workspaceName) {
-        if (conn.session) {
-          conn.session.interrupt().catch(() => {});
-        }
-        ws.close(1001, 'Workspace stopped');
-        this.connections.delete(ws);
-      }
+  protected cleanupConnection(connection: ChatConnection): void {
+    if (connection.session) {
+      connection.session.interrupt().catch(() => {});
     }
-  }
-
-  close(): void {
-    for (const [ws, conn] of this.connections.entries()) {
-      if (conn.session) {
-        conn.session.interrupt().catch(() => {});
-      }
-      ws.close(1001, 'Server shutting down');
-    }
-    this.connections.clear();
-    this.wss.close();
   }
 }

@@ -1,21 +1,50 @@
 appId: com.subroutine.workspace
 ---
-- launchApp
+# Test: Settings Screen Visibility and Interactions
+# Verifies all settings sections are accessible
 
+- launchApp:
+    clearState: true
+
+# Navigate to Settings
 - tapOn: "Settings"
 
+# Connection section
 - assertVisible: "Connection"
 - assertVisible: "Agent Server"
 - assertVisible: "Server URL"
 
+# Coding Agents section
 - assertVisible: "Coding Agents"
 - assertVisible: "OpenCode"
 - assertVisible: "Claude Code"
 - assertVisible: "GitHub"
 
+# Scroll to see About section
+- scroll:
+    direction: DOWN
+
 - assertVisible: "About"
 
-- scrollUntilVisible:
-    element:
-      text: "Workspaces"
-    direction: DOWN
+# About section should show system info (when connected)
+- runFlow:
+    when:
+      visible: "Host:"
+    commands:
+      - assertVisible: "Docker:"
+      - assertVisible: "Workspaces:"
+      - assertVisible: "Uptime:"
+
+# Handle connection error state
+- runFlow:
+    when:
+      visible: "Connection error"
+    commands:
+      - assertVisible: "Unable to connect"
+
+# Navigate back to Workspaces
+- scroll:
+    direction: UP
+
+- tapOn: "Workspaces"
+- assertVisible: "Workspaces"

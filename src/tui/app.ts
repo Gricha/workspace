@@ -10,7 +10,7 @@ import {
 } from '@opentui/core';
 import { createApiClient, ApiClientError, type ApiClient } from '../client/api';
 import { getWorker, setWorker } from '../client/config';
-import { openShell } from '../client/shell';
+import { openSSHShell } from '../client/shell';
 import type { WorkspaceInfo } from '../shared/types';
 import { DEFAULT_AGENT_PORT } from '../shared/constants';
 
@@ -449,6 +449,7 @@ export class WorkspaceTui {
   private async openShell(): Promise<void> {
     const ws = this.state.selectedWorkspace;
     if (!ws || ws.status !== 'running') return;
+    if (!this.state.worker) return;
 
     this.renderer.destroy();
 
@@ -458,10 +459,9 @@ export class WorkspaceTui {
     process.stdout.write('\x1b[?1049l');
     process.stdout.write('\x1b[?25h');
 
-    const terminalUrl = this.client.getTerminalUrl(ws.name);
-
-    await openShell({
-      terminalUrl,
+    await openSSHShell({
+      worker: this.state.worker,
+      sshPort: ws.ports.ssh,
       onError: (err) => {
         console.error(`Connection error: ${err.message}`);
       },

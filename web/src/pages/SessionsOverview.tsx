@@ -54,14 +54,20 @@ function SessionListItem({
   session: SessionWithWorkspace
   onClick: () => void
 }) {
+  const isEmpty = session.messageCount === 0
+  const hasPrompt = session.firstPrompt && session.firstPrompt.trim().length > 0
+
   return (
     <button
       onClick={onClick}
-      className="w-full text-left p-3 rounded-lg border transition-colors hover:bg-accent"
+      className={cn(
+        'w-full text-left p-3 rounded-lg border transition-colors hover:bg-accent',
+        isEmpty && 'opacity-60'
+      )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <Badge variant="outline" className="text-xs font-normal bg-muted/50">
               <Boxes className="h-3 w-3 mr-1" />
               {session.workspaceName}
@@ -72,20 +78,28 @@ function SessionListItem({
             >
               {AGENT_LABELS[session.agentType]}
             </Badge>
+            {isEmpty && (
+              <Badge variant="secondary" className="text-xs font-normal bg-muted text-muted-foreground">
+                Empty
+              </Badge>
+            )}
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {formatTimeAgo(session.lastActivity)}
             </span>
           </div>
-          <p className="text-sm truncate text-muted-foreground">
-            {session.firstPrompt || 'No prompt'}
+          <p className={cn(
+            'text-sm line-clamp-2',
+            hasPrompt ? 'text-foreground' : 'text-muted-foreground italic'
+          )}>
+            {hasPrompt ? session.firstPrompt : 'No prompt recorded'}
           </p>
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Hash className="h-3 w-3" />
-              {session.messageCount} messages
+              {session.messageCount} {session.messageCount === 1 ? 'message' : 'messages'}
             </span>
-            <span className="truncate">{session.projectPath}</span>
+            <span className="truncate font-mono text-[11px]">{session.projectPath}</span>
           </div>
         </div>
         <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />

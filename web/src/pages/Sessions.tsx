@@ -73,37 +73,49 @@ function SessionListItem({
   isSelected: boolean
   onClick: () => void
 }) {
+  const isEmpty = session.messageCount === 0
+  const hasPrompt = session.firstPrompt && session.firstPrompt.trim().length > 0
+
   return (
     <button
       onClick={onClick}
       className={cn(
         'w-full text-left p-3 rounded-lg border transition-colors hover:bg-accent',
-        isSelected && 'bg-accent border-primary/30'
+        isSelected && 'bg-accent border-primary/30',
+        isEmpty && 'opacity-60'
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <Badge
               variant="outline"
               className={cn('text-xs font-normal', AGENT_COLORS[session.agentType])}
             >
               {AGENT_LABELS[session.agentType]}
             </Badge>
+            {isEmpty && (
+              <Badge variant="secondary" className="text-xs font-normal bg-muted text-muted-foreground">
+                Empty
+              </Badge>
+            )}
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {formatTimeAgo(session.lastActivity)}
             </span>
           </div>
-          <p className="text-sm truncate text-muted-foreground">
-            {session.firstPrompt || 'No prompt'}
+          <p className={cn(
+            'text-sm line-clamp-2',
+            hasPrompt ? 'text-foreground' : 'text-muted-foreground italic'
+          )}>
+            {hasPrompt ? session.firstPrompt : 'No prompt recorded'}
           </p>
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Hash className="h-3 w-3" />
-              {session.messageCount} messages
+              {session.messageCount} {session.messageCount === 1 ? 'message' : 'messages'}
             </span>
-            <span className="truncate">{session.projectPath}</span>
+            <span className="truncate font-mono text-[11px]">{session.projectPath}</span>
           </div>
         </div>
         <ChevronRight
@@ -280,43 +292,47 @@ function SessionDetailView({
   })
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between gap-4 pb-4 border-b">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      <div className="flex items-center justify-between gap-4 px-6 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={onBack}>
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back
           </Button>
-          <div>
-            <h2 className="font-semibold">
-              {session.firstPrompt?.slice(0, 60) || 'Session'}
-              {(session.firstPrompt?.length || 0) > 60 && '...'}
+          <div className="border-l pl-3">
+            <h2 className="font-semibold text-lg">
+              {session.firstPrompt?.slice(0, 80) || 'Untitled Session'}
+              {(session.firstPrompt?.length || 0) > 80 && '...'}
             </h2>
             <SessionMetadataHeader session={session} />
           </div>
         </div>
-        <Button size="sm" onClick={() => onResume(session.id, session.agentType)}>
-          <Play className="mr-2 h-3 w-3" />
-          Resume
+        <Button onClick={() => onResume(session.id, session.agentType)}>
+          <Play className="mr-2 h-4 w-4" />
+          Resume Session
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-4">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
-          <div className="space-y-4">
-            {sessionDetail.messages.map((msg, idx) => (
-              <MessageBubble key={idx} message={msg} />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <MessageSquare className="h-8 w-8 mb-2" />
-            <p>No messages in this session</p>
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
+            <div className="space-y-6">
+              {sessionDetail.messages.map((msg, idx) => (
+                <MessageBubble key={idx} message={msg} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+              <MessageSquare className="h-12 w-12 mb-4 opacity-50" />
+              <p className="text-lg font-medium">No messages in this session</p>
+              <p className="text-sm mt-1">This session may have been created but not used</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -447,14 +463,12 @@ export function Sessions() {
 
   if (selectedSession) {
     return (
-      <div className="h-[calc(100vh-8rem)]">
-        <SessionDetailView
-          workspaceName={workspaceName}
-          session={selectedSession}
-          onBack={() => setSelectedSession(null)}
-          onResume={handleResume}
-        />
-      </div>
+      <SessionDetailView
+        workspaceName={workspaceName}
+        session={selectedSession}
+        onBack={() => setSelectedSession(null)}
+        onResume={handleResume}
+      />
     )
   }
 

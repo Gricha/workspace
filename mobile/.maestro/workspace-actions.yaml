@@ -1,22 +1,60 @@
 appId: com.subroutine.workspace
 ---
-- launchApp
+# Test: Workspace Start/Stop Operations
+# Verifies start and stop buttons work correctly for workspaces
+
+- launchApp:
+    clearState: true
+
 - assertVisible: "Workspaces"
 
+# If no workspaces exist, the test gracefully handles empty state
 - runFlow:
     when:
       visible: "No workspaces yet"
     commands:
       - assertVisible: "Tap + to create one"
 
+# If workspaces exist, test the start/stop buttons
 - runFlow:
     when:
       visible:
         text: "SSH:"
     commands:
+      # Tap on the workspace card to open detail modal
       - tapOn:
-          text: "Start"
+          text: "SSH:"
+      # Should see workspace detail modal with logs
+      - assertVisible:
+          text: "Container Logs"
           optional: true
+      # Close modal if open
       - tapOn:
-          text: "Stop"
+          text: "Close"
           optional: true
+
+# Test start button if workspace is stopped
+- runFlow:
+    when:
+      visible:
+        text: "Start"
+    commands:
+      - tapOn: "Start"
+      # Wait a moment for the action to register
+      - extendedWaitUntil:
+          visible:
+            text: "running|Starting"
+          timeout: 5000
+
+# Test stop button if workspace is running
+- runFlow:
+    when:
+      visible:
+        text: "Stop"
+    commands:
+      - tapOn: "Stop"
+      # Wait a moment for the action to register
+      - extendedWaitUntil:
+          visible:
+            text: "stopped|Stopping"
+          timeout: 5000

@@ -1,3 +1,7 @@
+> **VISION DOCUMENT**: This document describes the aspirational v2 architecture.
+> Some features are implemented, others are planned. For current capabilities,
+> see README.md. For implementation tasks, see TODO.md.
+
 # Workspace v2: Distributed Development Environment
 
 ## Overview

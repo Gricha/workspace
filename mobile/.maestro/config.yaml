@@ -1,0 +1,5 @@
+flows:
+  - workspaces.yaml
+  - navigation.yaml
+  - settings.yaml
+  - workspace-actions.yaml
