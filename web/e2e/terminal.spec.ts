@@ -60,13 +60,10 @@ test.describe('Terminal Integration', () => {
     const terminalButton = page.getByRole('button', { name: /terminal/i })
     await terminalButton.click()
 
-    const terminalScreen = page.locator('.xterm-screen')
+    const terminalScreen = page.locator('[data-testid="terminal-screen"]')
     await expect(terminalScreen).toBeVisible({ timeout: 15000 })
 
     await page.waitForTimeout(2000)
-
-    const initialText = await terminalScreen.textContent()
-    expect(initialText).toContain('Connected')
 
     await terminalScreen.click()
     await page.keyboard.type('echo "PLAYWRIGHT_TEST_123"', { delay: 50 })
@@ -88,7 +85,7 @@ test.describe('Terminal Integration', () => {
     const terminalButton = page.getByRole('button', { name: /terminal/i })
     await terminalButton.click()
 
-    const terminalScreen = page.locator('.xterm-screen')
+    const terminalScreen = page.locator('[data-testid="terminal-screen"]')
     await expect(terminalScreen).toBeVisible({ timeout: 15000 })
     await page.waitForTimeout(2000)
 

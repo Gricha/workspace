@@ -16,7 +16,22 @@
 
 ## Tasks
 
-*No remaining tasks.*
+### Test Infrastructure Fixes
+
+#### Moderate (Flakiness & Maintenance)
+
+- [ ] Add pre-test cleanup script to remove orphaned `workspace-test-*` containers and volumes
+- [ ] Skip Docker image build in `test/setup/global.js` if image exists and Dockerfile unchanged
+- [ ] Consolidate `test/web/` and `web/e2e/` into single Playwright suite with shared fixtures
+- [ ] Fix TUI test command - `tui` subcommand doesn't exist, tests rely on default action
+- [ ] Deduplicate `startTestAgentWithCredentials` in credentials.test.ts - use standard helper with options
+
+#### Nice to Have
+
+- [ ] Add test for terminal URL param mode (`?terminal=true` full-screen view)
+- [ ] Add Playwright fixture for agent lifecycle instead of manual beforeAll/afterAll
+- [ ] Mock Claude API responses in chat integration tests to avoid real API calls
+- [ ] Use unique run ID in container names for parallel test safety
 
 ---
 

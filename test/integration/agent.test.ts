@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { startTestAgent, generateTestWorkspaceName, type TestAgent } from '../helpers/agent';
+import pkg from '../../package.json';
 
 describe('Agent', () => {
   let agent: TestAgent;
@@ -18,7 +19,7 @@ describe('Agent', () => {
     it('responds to health check', async () => {
       const health = await agent.api.health();
       expect(health.status).toBe('ok');
-      expect(health.version).toBe('2.0.0');
+      expect(health.version).toBe(pkg.version);
     });
   });
 

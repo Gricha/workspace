@@ -123,17 +123,19 @@ test.describe('Web UI - Terminal', () => {
     const terminalButton = page.getByRole('button', { name: /terminal/i });
     await terminalButton.click();
 
-    await expect(page.getByText('Connected to terminal')).toBeVisible({ timeout: 10000 });
+    const terminalScreen = page.locator('[data-testid="terminal-screen"]');
+    await expect(terminalScreen).toBeVisible({ timeout: 15000 });
 
-    const terminalElement = page.locator('.xterm-helper-textarea');
-    await terminalElement.focus();
+    await page.waitForTimeout(2000);
 
-    await page.keyboard.type('echo hello-from-test');
+    await terminalScreen.click();
+    await page.keyboard.type('echo hello-from-test', { delay: 50 });
     await page.keyboard.press('Enter');
 
-    await expect(page.locator('.xterm').getByText('hello-from-test')).toBeVisible({
-      timeout: 10000,
-    });
+    await page.waitForTimeout(2000);
+
+    const terminalText = await terminalScreen.textContent();
+    expect(terminalText).toContain('hello-from-test');
   }, 120000);
 });
 

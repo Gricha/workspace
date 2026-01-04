@@ -198,10 +198,11 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
   }, [connect])
 
   return (
-    <div className="relative h-full w-full bg-[#0d1117] rounded-lg overflow-hidden cursor-default">
+    <div className="relative h-full w-full bg-[#0d1117] rounded-lg overflow-hidden cursor-default" data-testid="terminal-container">
       <div
         ref={terminalRef}
         className="absolute inset-0"
+        data-testid="terminal-screen"
         style={{
           padding: '8px',
           opacity: 1,

@@ -9,6 +9,7 @@ import { TerminalWebSocketServer } from '../terminal/websocket';
 import { ChatWebSocketServer } from '../chat/websocket';
 import { createRouter } from './router';
 import { serveStatic } from './static';
+import pkg from '../../package.json';
 
 const startTime = Date.now();
 
@@ -67,7 +68,7 @@ function createAgentServer(configDir: string, config: AgentConfig) {
 
     try {
       if (pathname === '/health' && method === 'GET') {
-        sendJson(res, 200, { status: 'ok', version: '2.0.0' });
+        sendJson(res, 200, { status: 'ok', version: pkg.version });
         return;
       }
 
