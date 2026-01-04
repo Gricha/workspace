@@ -18,33 +18,6 @@
 
 ### UI Feedback Round 1
 
-#### Chat Component Cleanup
-- [ ] **Remove vertical connector lines from chat messages**
-  - File: `web/src/components/Chat.tsx`
-  - The `isInTurn` prop adds vertical lines between related messages
-  - Remove the connector line divs (the 0.5px border elements)
-
-- [ ] **Remove agent avatar icon and bubble from assistant text messages**
-  - File: `web/src/components/Chat.tsx`
-  - Assistant text should render directly on background without avatar or bubble wrapper
-  - Keep the message content, just remove visual container
-
-- [ ] **Keep tool calls in bubbles, keep user messages in bubbles**
-  - File: `web/src/components/Chat.tsx`
-  - Tool use/result components (`ToolUseBubble`, `ToolResultBubble`) should stay in bubbles
-  - User messages should stay in bubbles
-  - Only assistant text messages lose their bubble
-
-- [ ] **Remove user avatar icon from chat messages**
-  - File: `web/src/components/Chat.tsx`
-  - User messages currently show an avatar icon
-  - Remove the icon, keep the bubble styling
-
-- [ ] **Fix chat input box to extend to bottom of screen**
-  - File: `web/src/components/Chat.tsx`
-  - Currently there's a gap between chat input and screen bottom
-  - Adjust flex layout or padding to make input touch bottom edge
-
 #### Agent Terminal Integration (Research Required)
 - [ ] **Research: How OpenCode and Codex handle chat/terminal experience**
   - Document findings in `docs/research/RESEARCH_AGENT_TERMINAL.md`
