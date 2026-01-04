@@ -8,6 +8,7 @@ export function Layout() {
   const location = useLocation()
 
   const isWideLayout = location.pathname.includes('/sessions')
+  const isTerminalView = location.search.includes('terminal=true')
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -24,8 +25,14 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
-          <div className={isWideLayout ? "px-6 py-8" : "mx-auto max-w-3xl px-6 py-8"}>
+        <main className="flex-1 overflow-y-auto flex flex-col">
+          <div className={
+            isTerminalView
+              ? "flex-1 flex flex-col p-2"
+              : isWideLayout
+                ? "px-6 py-8"
+                : "mx-auto max-w-3xl px-6 py-8"
+          }>
             <Outlet />
           </div>
         </main>

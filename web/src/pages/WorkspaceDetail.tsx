@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -18,13 +17,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Terminal } from '@/components/Terminal'
 
-type ViewMode = 'overview' | 'terminal'
-
 export function WorkspaceDetail() {
   const { name } = useParams<{ name: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [viewMode, setViewMode] = useState<ViewMode>('overview')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const isTerminalView = searchParams.get('terminal') === 'true'
+
+  const setTerminalView = (show: boolean) => {
+    if (show) {
+      setSearchParams({ terminal: 'true' })
+    } else {
+      setSearchParams({})
+    }
+  }
 
   const { data: workspace, isLoading, error, refetch } = useQuery({
     queryKey: ['workspace', name],
@@ -45,7 +51,7 @@ export function WorkspaceDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspace', name] })
       queryClient.invalidateQueries({ queryKey: ['workspaces'] })
-      setViewMode('overview')
+      setTerminalView(false)
     },
   })
 
@@ -90,32 +96,30 @@ export function WorkspaceDetail() {
     )
   }
 
-  if (viewMode === 'terminal' && workspace.status === 'running') {
+  if (isTerminalView && workspace.status === 'running') {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => setViewMode('overview')}>
+      <div className="flex flex-col h-full">
+        <div className="flex items-center gap-4 px-2 py-2 flex-shrink-0">
+          <Button variant="ghost" size="sm" onClick={() => setTerminalView(false)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
           <div className="flex-1">
-            <h1 className="text-xl font-semibold">{workspace.name} - Terminal</h1>
+            <span className="text-sm font-medium text-muted-foreground">{workspace.name}</span>
           </div>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => stopMutation.mutate()}
             disabled={stopMutation.isPending}
           >
             <Square className="mr-2 h-4 w-4" />
-            {stopMutation.isPending ? 'Stopping...' : 'Stop Workspace'}
+            {stopMutation.isPending ? 'Stopping...' : 'Stop'}
           </Button>
         </div>
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <Terminal workspaceName={workspace.name} />
-          </CardContent>
-        </Card>
+        <div className="flex-1 min-h-0">
+          <Terminal workspaceName={workspace.name} />
+        </div>
       </div>
     )
   }
@@ -165,7 +169,7 @@ export function WorkspaceDetail() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           <button
-            onClick={() => setViewMode('terminal')}
+            onClick={() => setTerminalView(true)}
             className="group text-left"
           >
             <Card className="h-full transition-colors hover:bg-accent/50 hover:border-primary/30">

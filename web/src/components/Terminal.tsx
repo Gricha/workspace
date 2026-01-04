@@ -74,6 +74,7 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
     term.loadAddon(fitAddon)
 
     term.open(terminalRef.current)
+    term.write('\x1b[?25l')
 
     requestAnimationFrame(() => {
       fitAddon.fit()
@@ -85,7 +86,6 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
 
     ws.onopen = () => {
       setIsConnected(true)
-      term.writeln('\x1b[38;5;245mConnecting to workspace...\x1b[0m')
       const { cols, rows } = term
       ws.send(JSON.stringify({ type: 'resize', cols, rows }))
 
@@ -179,24 +179,21 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
   }, [connect])
 
   return (
-    <div className="relative flex flex-col h-full w-full min-h-[500px]">
+    <div className="relative h-full w-full bg-[#0d1117] rounded-lg overflow-hidden">
       <div
         ref={terminalRef}
-        className="flex-1 w-full bg-[#0d1117] rounded-lg overflow-hidden"
-        style={{
-          padding: '12px',
-          minHeight: '500px',
-        }}
+        className="absolute inset-0"
+        style={{ padding: '8px' }}
         onClick={() => termRef.current?.focus()}
       />
       {!isInitialized && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#0d1117] rounded-lg">
-          <span className="text-muted-foreground text-sm">Loading terminal...</span>
+        <div className="absolute inset-0 flex items-center justify-center bg-[#0d1117]">
+          <span className="text-zinc-500 text-sm">Loading terminal...</span>
         </div>
       )}
       {isInitialized && !isConnected && (
         <div className="absolute bottom-3 right-3">
-          <span className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+          <span className="text-xs text-zinc-500 bg-zinc-900/80 px-2 py-1 rounded">
             Disconnected
           </span>
         </div>
