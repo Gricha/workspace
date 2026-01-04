@@ -1,161 +1,159 @@
-# Workspace CLI
+# Workspace
 
 [![Tests](https://github.com/subroutinecom/workspace/actions/workflows/test.yml/badge.svg)](https://github.com/subroutinecom/workspace/actions/workflows/test.yml)
 [![npm version](https://badge.fury.io/js/@subroutinecom%2Fworkspace.svg)](https://www.npmjs.com/package/@subroutinecom/workspace)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Containerized development environments with Docker-in-Docker, SSH access, and persistent storage.
+Isolated, self-hosted workspaces accessible over Tailscale. AI coding agents, web UI, and remote terminal access.
 
-## Install
+## Features
+
+- **AI Coding Agents** - Claude Code, OpenCode, GitHub Copilot pre-installed
+- **Self-Hosted** - Run on your own hardware, full control
+- **Remote Access** - Use from anywhere via Tailscale, CLI, web, or SSH
+- **Web UI** - Manage workspaces from your browser
+- **Isolated Environments** - Each workspace runs in its own container
+
+## Setup
+
+### Install
 
 ```bash
 npm install -g @subroutinecom/workspace
 ```
 
-## Quick Start
+Or with curl:
 
 ```bash
-# Initialize in your project
-cd myproject
-workspace init
-
-# Edit .workspace.yml, then start
-workspace start
-workspace shell        # SSH into container
-workspace proxy        # Port forwarding (separate terminal)
+curl -fsSL https://workspace.subroutine.com/install.sh | sh
 ```
+
+### Build Base Image
+
+```bash
+ws build
+```
+
+### Start Agent
+
+```bash
+ws agent start
+```
+
+Web UI: **http://localhost:7391**
+
+The agent runs on port 7391 by default. For remote access:
+
+```bash
+ws agent start --host 0.0.0.0
+```
+
+### Create & Use Workspaces
+
+**Via CLI:**
+
+```bash
+# Create workspace
+ws create myproject
+
+# Or clone a repo
+ws create myproject --clone git@github.com:user/repo.git
+
+# SSH into workspace
+ws list  # Find SSH port
+ssh -p 2201 workspace@localhost
+
+# Manage workspaces
+ws start myproject
+ws stop myproject
+ws delete myproject
+```
+
+**Via Web UI:**
+
+Open http://localhost:7391 and click "+" to create a workspace.
+
+## Security
+
+Workspace is designed for use within **secure networks** like [Tailscale](https://tailscale.com). The web UI and API have no authentication, making them ideal for private networks where you can safely access workspaces remotely without additional security concerns.
+
+For public internet exposure, place behind a reverse proxy with authentication.
 
 ## Configuration
 
-### Project Configuration
-
-`.workspace.yml` in your project:
+Configure credentials and environment variables via Web UI → Settings or edit `~/.workspace-agent/config.yaml`:
 
 ```yaml
-repo:
-  remote: git@github.com:user/repo.git
-  branch: main
-
-bootstrap:
-  scripts:
-    - scripts/install-deps.sh
-
-forwards:
-  - 3000
-  - 5173
-  - "8000-8010"
-
-mounts:
-  - ./local:/home/workspace/otherLocalData
-  - ~/data:/data:ro
+credentials:
+  env:
+    ANTHROPIC_API_KEY: "sk-ant-..."
+    OPENAI_API_KEY: "sk-..."
+    GITHUB_TOKEN: "ghp_..."
+  files:
+    ~/.ssh/id_ed25519: ~/.ssh/id_ed25519
+    ~/.gitconfig: ~/.gitconfig
 ```
 
-### User Configuration
+Restart workspaces to apply changes.
 
-`~/.workspaces/config.yml` for user-specific settings across all workspaces:
+## What's Inside Each Workspace
 
-```yaml
-ssh:
-  # Default SSH key (optional - uses heuristic if not specified)
-  defaultKey: ~/.ssh/id_ed25519
-
-  # Per-repository key overrides (supports wildcards)
-  repos:
-    "git@github.com:user/private-repo.git": ~/.ssh/id_github_personal
-    "git@github.com:company/*": ~/.ssh/id_github_work
-
-bootstrap:
-  scripts:
-    - userscripts # Directory: runs all executable files alphabetically
-```
-
-User config is automatically created on first run with `userscripts` directory reference. Paths are relative to `~/.workspaces/`. Directories auto-expand to run all executable files. Configuration is merged with project config - user bootstrap scripts run **after** project scripts.
-
-**SSH Configuration:**
-
-- All SSH keys from `~/.ssh/` are copied to containers
-- Specify `defaultKey` to set which key is used by default for git operations
-- Per-repository overrides support exact matches and wildcard patterns
-- If no `defaultKey` is specified, the CLI uses SSH agent keys or falls back to `id_ed25519`, `id_ecdsa`, or `id_rsa`
-- The selected key is automatically configured in git and SSH config inside containers
-
-**Bootstrap scripts** run as `workspace` user with passwordless sudo.
-
-**Mounts** format: `source:target[:mode]`. Relative paths resolve from config directory. Tilde expands to home. By default workspace mounts your host $HOME at `/host/home` (read-only).
-
-**Forwards** creates SSH tunnels when running `workspace proxy <name>`.
+- Ubuntu 24.04 LTS
+- Node.js 22, Python 3, Go
+- Docker (for containerized development)
+- Neovim + LazyVim
+- Git, GitHub CLI, ripgrep, fd-find, jq
+- Claude Code, OpenCode, Codex CLI
 
 ## Commands
 
 ```bash
-# Lifecycle
-workspace start [name]             # Start workspace (auto-builds image)
-workspace stop [name]              # Stop workspace
-workspace destroy [name...] [-f]   # Remove container + volumes
-workspace status [name]            # Show state (CPU, memory, ports)
+# Agent
+ws agent start [--port PORT] [--host HOST]
+ws agent stop
+ws agent status
 
-# Development
-workspace shell [name] [-c "cmd"]  # SSH into container
-workspace proxy [name]             # Port forwarding tunnel
-workspace logs [name] [-f]         # Container logs
+# Workspaces
+ws create <name> [--clone URL]
+ws start <name>
+ws stop <name>
+ws delete <name>
+ws list
+ws logs <name> [-f]
 
-# Discovery
-workspace list                     # Find all .workspace.yml files
-workspace config [name]            # Show resolved configuration
-workspace doctor                   # Check prerequisites
-
-# Image/BuildKit
-workspace build [--no-cache]       # Build base image
-workspace buildkit [--status]      # Manage shared BuildKit
+# Build
+ws build [--no-cache]
+ws doctor
 ```
 
-Commands run from project directory use that workspace. Or specify name from anywhere.
+## Documentation
 
-## What's Inside
+Full docs at https://workspace.subroutine.com/docs
 
-- **OS**: Ubuntu 24.04 LTS
-- **Docker**: CE + Compose + BuildKit
-- **Languages**: Node.js 22, Python 3
-- **Editor**: Neovim v0.11.4 + LazyVim
-- **Tools**: Git, GitHub CLI, ripgrep, fd-find, jq, curl, wget, rsync
-- **User**: `workspace` with passwordless sudo
-
-## User Scripts
-
-Add executable scripts to `~/.workspaces/userscripts/` - they run automatically in all workspaces:
-
-```yaml
-# ~/.workspaces/config.yml (auto-created on first run)
-bootstrap:
-  scripts:
-    - userscripts # Runs all executable files in directory
-```
-
-Example script:
+Or run locally:
 
 ```bash
-# ~/.workspaces/userscripts/setup-shell.sh
-#!/bin/bash
-echo "Setting up shell configuration..."
-cp /host/home/.zshrc ~/.zshrc
+cd docs
+npm install
+npm start
 ```
 
-Make scripts executable: `chmod +x ~/.workspaces/userscripts/setup-shell.sh`
-
-**Directory expansion**: Point at a directory to run all executable files alphabetically. Or specify individual scripts for precise control.
-
-User scripts execute after project bootstrap scripts in the order listed.
-
-## Testing
+## Development
 
 ```bash
-npm test
+git clone https://github.com/subroutinecom/workspace.git
+cd workspace
+bun install
+bun run build
 ```
 
-## Prerequisites
+Run tests:
 
-- Docker Desktop or Engine
-- SSH client + ssh-keygen
-- Node.js 18+
+```bash
+bun run validate  # Lint, typecheck, build, test
+bun run test      # Tests only
+```
 
-Run `workspace doctor` to verify.
+## License
+
+MIT

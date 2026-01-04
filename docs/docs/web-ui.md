@@ -4,7 +4,7 @@ sidebar_position: 6
 
 # Web UI
 
-Access: `http://localhost:8420`
+Access: `http://localhost:7391`
 
 ## Features
 

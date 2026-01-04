@@ -31,7 +31,7 @@ bun link
 ws build
 ```
 
-Takes 5-10 minutes. Only needed once.
+Builds the Ubuntu 24.04 base image with dev tools. Takes 5-10 minutes, only needed once.
 
 ## Verify
 

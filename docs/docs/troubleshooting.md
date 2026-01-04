@@ -200,9 +200,9 @@ docker volume rm workspace-<name>
 
 1. **Check if port is in use:**
    ```bash
-   lsof -i :8420
+   lsof -i :7391
    # or
-   netstat -tuln | grep 8420
+   netstat -tuln | grep 7391
    ```
 
 2. **Use a different port:**
@@ -239,19 +239,19 @@ docker volume rm workspace-<name>
 1. **Verify agent is running:**
    ```bash
    ws agent status
-   # Should show "Agent is running on port 8420"
+   # Should show "Agent is running on port 7391"
    ```
 
 2. **Test API directly:**
    ```bash
-   curl http://localhost:8420/rpc
+   curl http://localhost:7391/rpc
    # Should return JSON response
    ```
 
 3. **Check firewall (Linux):**
    ```bash
    sudo ufw status
-   sudo ufw allow 8420
+   sudo ufw allow 7391
    ```
 
 4. **Try different browser:**

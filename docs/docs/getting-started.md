@@ -10,7 +10,7 @@ sidebar_position: 3
 ws agent start
 ```
 
-Web UI: `http://localhost:8420`
+Web UI: `http://localhost:7391`
 
 Options:
 ```bash
@@ -27,7 +27,7 @@ ws create myproject --clone git@github.com:user/repo.git
 ```
 
 Web UI:
-1. Open `http://localhost:8420`
+1. Open `http://localhost:7391`
 2. Click "+"
 3. Enter name
 4. Create

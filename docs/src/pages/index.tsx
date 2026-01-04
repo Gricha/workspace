@@ -54,34 +54,34 @@ function HomepageFeatures(): ReactNode {
       <div className="container">
         <div className="row">
           <Feature
-            icon="🐳"
-            title="Docker-in-Docker"
-            description="Each workspace runs Docker inside a container, enabling full container development workflows and CI/CD testing."
-          />
-          <Feature
             icon="🤖"
             title="AI-Ready"
             description="Pre-installed Claude Code, OpenCode, and GitHub Copilot. Configure credentials once, use in all workspaces."
           />
           <Feature
+            icon="🏠"
+            title="Self-Hosted"
+            description="Run on your own hardware. Full control over your development environment and data."
+          />
+          <Feature
             icon="🌍"
-            title="Access Anywhere"
-            description="Manage workspaces via Web UI, CLI, or TUI. SSH access from any machine. Work from laptop, desktop, or mobile."
+            title="Remote Access"
+            description="Use over Tailscale from anywhere. Web UI, CLI, SSH, or TUI. Work from laptop, desktop, or mobile."
           />
           <Feature
             icon="⚡"
             title="Fast Setup"
-            description="One command to install, one to build, one to create a workspace. Start coding in minutes, not hours."
+            description="One command to install, one to build, one to create a workspace. Start coding in minutes."
           />
           <Feature
             icon="🔒"
-            title="Isolated & Safe"
-            description="Complete isolation between workspaces. Experiment freely without affecting your host system or other projects."
+            title="Isolated"
+            description="Each workspace runs in its own container. Experiment freely without affecting your host system."
           />
           <Feature
             icon="💾"
-            title="Persistent Storage"
-            description="Your code and data persist across restarts. Docker volumes ensure nothing is lost when containers stop."
+            title="Persistent"
+            description="Your code and data persist across restarts. Nothing is lost when containers stop."
           />
         </div>
       </div>
@@ -97,11 +97,11 @@ function CodeExample(): ReactNode {
           <div className="col col--6">
             <Heading as="h2">Simple, Powerful CLI</Heading>
             <p>
-              Workspace provides a clean command-line interface for managing development environments.
+              Clean command-line interface for managing isolated development environments.
               Create, start, stop, and delete workspaces with simple commands.
             </p>
             <p>
-              Each workspace is a complete Ubuntu environment with Docker, Node.js, Python, and all
+              Each workspace is a complete Ubuntu environment with Node.js, Python, Go, and all
               your favorite tools pre-installed.
             </p>
           </div>

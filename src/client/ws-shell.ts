@@ -17,7 +17,10 @@ export interface DockerExecOptions {
 }
 
 export function isLocalWorker(worker: string): boolean {
-  const host = worker.replace(/^https?:\/\//, '').split(':')[0].toLowerCase();
+  const host = worker
+    .replace(/^https?:\/\//, '')
+    .split(':')[0]
+    .toLowerCase();
   return host === 'localhost' || host === '127.0.0.1';
 }
 
@@ -28,8 +31,10 @@ export async function openDockerExec(options: DockerExecOptions): Promise<void> 
     const args = [
       'exec',
       '-it',
-      '-u', 'workspace',
-      '-e', 'TERM=xterm-256color',
+      '-u',
+      'workspace',
+      '-e',
+      'TERM=xterm-256color',
       containerName,
       '/bin/bash',
       '-l',
