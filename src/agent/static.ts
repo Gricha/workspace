@@ -20,7 +20,15 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 function getWebDir(): string {
-  return path.join(__dirname, 'web');
+  const distWeb = path.join(__dirname, 'web');
+  const rootDistWeb = path.resolve(__dirname, '../../dist/agent/web');
+
+  try {
+    require('fs').accessSync(path.join(distWeb, 'index.html'));
+    return distWeb;
+  } catch {
+    return rootDistWeb;
+  }
 }
 
 export async function serveStatic(
