@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -10,12 +11,25 @@ import {
   MessageSquare,
   Info,
   ChevronRight,
+  AlertTriangle,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Terminal } from '@/components/Terminal'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 export function WorkspaceDetail() {
   const { name } = useParams<{ name: string }>()
@@ -23,6 +37,8 @@ export function WorkspaceDetail() {
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const isTerminalView = searchParams.get('terminal') === 'true'
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirmName, setDeleteConfirmName] = useState('')
 
   const setTerminalView = (show: boolean) => {
     if (show) {
@@ -62,6 +78,22 @@ export function WorkspaceDetail() {
       navigate('/workspaces')
     },
   })
+
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true)
+    setDeleteConfirmName('')
+  }
+
+  const handleDeleteConfirm = () => {
+    if (deleteConfirmName === workspace?.name) {
+      deleteMutation.mutate()
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setShowDeleteDialog(false)
+    setDeleteConfirmName('')
+  }
 
   if (isLoading) {
     return (
@@ -218,79 +250,120 @@ export function WorkspaceDetail() {
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Info className="h-4 w-4 text-muted-foreground" />
-              Workspace Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b border-border/50">
-              <span className="text-sm text-muted-foreground">Container ID</span>
-              <span className="font-mono text-sm">{workspace.containerId.slice(0, 12)}</span>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Info className="h-4 w-4 text-muted-foreground" />
+            Workspace Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex justify-between items-center py-2 border-b border-border/50">
+            <span className="text-sm text-muted-foreground">Container ID</span>
+            <span className="font-mono text-sm">{workspace.containerId.slice(0, 12)}</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-border/50">
+            <span className="text-sm text-muted-foreground">SSH Port</span>
+            <span className="font-mono text-sm">{workspace.ports.ssh}</span>
+          </div>
+          {workspace.repo && (
+            <div className="flex justify-between items-start py-2 border-b border-border/50">
+              <span className="text-sm text-muted-foreground">Repository</span>
+              <span className="text-sm text-right break-all max-w-[60%]">{workspace.repo}</span>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-border/50">
-              <span className="text-sm text-muted-foreground">SSH Port</span>
-              <span className="font-mono text-sm">{workspace.ports.ssh}</span>
-            </div>
-            {workspace.repo && (
-              <div className="flex justify-between items-start py-2 border-b border-border/50">
-                <span className="text-sm text-muted-foreground">Repository</span>
-                <span className="text-sm text-right break-all max-w-[60%]">{workspace.repo}</span>
-              </div>
-            )}
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm text-muted-foreground">Created</span>
-              <span className="text-sm">{new Date(workspace.created).toLocaleString()}</span>
-            </div>
-          </CardContent>
-        </Card>
+          )}
+          <div className="flex justify-between items-center py-2">
+            <span className="text-sm text-muted-foreground">Created</span>
+            <span className="text-sm">{new Date(workspace.created).toLocaleString()}</span>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Workspace Actions</CardTitle>
-            <CardDescription>Manage your workspace lifecycle</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {isRunning ? (
+      <Card className="border-destructive/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            Danger Zone
+          </CardTitle>
+          <CardDescription>
+            Destructive actions that cannot be undone
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isRunning && (
+            <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
+              <div>
+                <p className="font-medium text-sm">Stop Workspace</p>
+                <p className="text-sm text-muted-foreground">
+                  Stop the running container. You can restart it later.
+                </p>
+              </div>
               <Button
                 variant="outline"
-                className="w-full justify-start"
                 onClick={() => stopMutation.mutate()}
                 disabled={stopMutation.isPending}
               >
                 <Square className="mr-2 h-4 w-4" />
-                {stopMutation.isPending ? 'Stopping...' : 'Stop Workspace'}
+                {stopMutation.isPending ? 'Stopping...' : 'Stop'}
               </Button>
-            ) : (
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => startMutation.mutate()}
-                disabled={startMutation.isPending}
-              >
-                <Play className="mr-2 h-4 w-4" />
-                {startMutation.isPending ? 'Starting...' : 'Start Workspace'}
-              </Button>
-            )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+            <div>
+              <p className="font-medium text-sm">Delete Workspace</p>
+              <p className="text-sm text-muted-foreground">
+                Permanently delete this workspace and all its data.
+              </p>
+            </div>
             <Button
               variant="destructive"
-              className="w-full justify-start"
-              onClick={() => {
-                if (confirm(`Delete workspace "${workspace.name}"? This action cannot be undone.`)) {
-                  deleteMutation.mutate()
-                }
-              }}
+              onClick={handleDeleteClick}
               disabled={deleteMutation.isPending}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete Workspace'}
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
             </Button>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={(open) => !open && handleDeleteCancel()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Workspace</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the workspace
+              <span className="font-mono font-semibold text-foreground"> {workspace.name}</span> and
+              all its data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="confirm-name" className="text-sm text-muted-foreground">
+              Type <span className="font-mono font-semibold text-foreground">{workspace.name}</span> to confirm
+            </Label>
+            <Input
+              id="confirm-name"
+              value={deleteConfirmName}
+              onChange={(e) => setDeleteConfirmName(e.target.value)}
+              placeholder="Enter workspace name"
+              className="mt-2"
+              autoComplete="off"
+              data-testid="delete-confirm-input"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDeleteCancel}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleteConfirmName !== workspace.name || deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete Workspace'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

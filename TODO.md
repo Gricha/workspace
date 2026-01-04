@@ -19,12 +19,6 @@
 ### UI Feedback Round 1
 
 #### Settings Pages
-- [ ] **Move delete/stop actions to a dedicated "Danger Zone" tab**
-  - Files: Settings pages in `web/src/pages/settings/`
-  - Currently destructive actions are inline with other settings
-  - Create a separate tab at the end for delete/stop operations
-  - Use red/warning styling to indicate danger
-
 - [ ] **Standardize layout widths across all settings pages**
   - Files: `web/src/pages/settings/Environment.tsx`, `Agents.tsx`, `Files.tsx`
   - Currently env vars, coding agents, credential files pages have inconsistent widths
