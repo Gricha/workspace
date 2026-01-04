@@ -146,7 +146,7 @@ export async function startTuiTest(
     WS_CONFIG_DIR: configDir,
   };
 
-  const harness = await createTuiHarness('bun', ['run', tuiPath, 'tui'], { env });
+  const harness = await createTuiHarness('bun', ['run', tuiPath], { env });
 
   return {
     ...harness,

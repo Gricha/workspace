@@ -1,5 +1,31 @@
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import path from 'path';
+
+async function cleanupOrphanedResources() {
+  console.log('\n🧹 Cleaning up orphaned test resources...\n');
+
+  try {
+    const containers = execSync(
+      'docker ps -aq --filter "name=workspace-test-" 2>/dev/null || true',
+      { encoding: 'utf-8' }
+    ).trim();
+
+    if (containers) {
+      execSync(`docker rm -f ${containers.split('\n').join(' ')} 2>/dev/null || true`);
+      console.log('   Removed orphaned containers');
+    }
+
+    const volumes = execSync(
+      'docker volume ls -q --filter "name=workspace-test-" 2>/dev/null || true',
+      { encoding: 'utf-8' }
+    ).trim();
+
+    if (volumes) {
+      execSync(`docker volume rm -f ${volumes.split('\n').join(' ')} 2>/dev/null || true`);
+      console.log('   Removed orphaned volumes');
+    }
+  } catch {}
+}
 
 async function buildImage() {
   return new Promise((resolve, reject) => {
@@ -23,6 +49,7 @@ async function buildImage() {
 }
 
 export async function setup() {
+  await cleanupOrphanedResources();
   await buildImage();
 }
 
