@@ -17,7 +17,12 @@ npm install
 npm start
 ```
 
-This starts a local development server at `http://localhost:3000` with live reload.
+This starts a development server at `http://0.0.0.0:3000` (accessible remotely) with live reload.
+
+To use a different port:
+```bash
+npm start -- --port 3001
+```
 
 ### Build for Production
 

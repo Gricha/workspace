@@ -72,12 +72,6 @@ const config: Config = {
           label: 'Docs',
         },
         {
-          type: 'docSidebar',
-          sidebarId: 'apiSidebar',
-          position: 'left',
-          label: 'API',
-        },
-        {
           href: 'https://github.com/subroutinecom/workspace',
           label: 'GitHub',
           position: 'right',
@@ -96,16 +90,16 @@ const config: Config = {
           title: 'Documentation',
           items: [
             {
+              label: 'Installation',
+              to: '/docs/installation',
+            },
+            {
               label: 'Getting Started',
               to: '/docs/getting-started',
             },
             {
               label: 'Configuration',
               to: '/docs/configuration/overview',
-            },
-            {
-              label: 'API Reference',
-              to: '/docs/api/overview',
             },
           ],
         },

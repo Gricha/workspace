@@ -19,14 +19,14 @@ function HomepageHeader() {
         <div className={styles.buttons}>
           <Link
             className="button button--primary button--lg"
-            to="/docs/quick-start">
-            Get Started in 5 Minutes →
+            to="/docs/installation">
+            Install →
           </Link>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/introduction"
+            to="/docs/getting-started"
             style={{marginLeft: '1rem'}}>
-            Learn More
+            Get Started
           </Link>
         </div>
       </div>
@@ -147,14 +147,14 @@ function CallToAction(): ReactNode {
             <div className={styles.buttons}>
               <Link
                 className="button button--primary button--lg"
-                to="/docs/quick-start">
-                Quick Start Guide →
+                to="/docs/installation">
+                Install →
               </Link>
               <Link
                 className="button button--secondary button--lg"
                 to="https://github.com/subroutinecom/workspace"
                 style={{marginLeft: '1rem'}}>
-                View on GitHub
+                GitHub
               </Link>
             </div>
           </div>
