@@ -1,7 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { Terminal as XTerm } from '@xterm/xterm'
-import { FitAddon } from '@xterm/addon-fit'
-import '@xterm/xterm/css/xterm.css'
+import { init, Terminal as GhosttyTerminal, FitAddon } from 'ghostty-web'
 import { getTerminalUrl } from '@/lib/api'
 
 interface TerminalProps {
@@ -9,31 +7,41 @@ interface TerminalProps {
   initialCommand?: string
 }
 
+let ghosttyInitialized = false
+let ghosttyInitPromise: Promise<void> | null = null
+
+async function ensureGhosttyInit(): Promise<void> {
+  if (ghosttyInitialized) return
+  if (ghosttyInitPromise) return ghosttyInitPromise
+
+  ghosttyInitPromise = init().then(() => {
+    ghosttyInitialized = true
+  })
+  return ghosttyInitPromise
+}
+
 export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null)
-  const xtermRef = useRef<XTerm | null>(null)
+  const termRef = useRef<GhosttyTerminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const initialCommandSent = useRef(false)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const [isConnected, setIsConnected] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!terminalRef.current) return
 
-    const xterm = new XTerm({
+    await ensureGhosttyInit()
+    setIsInitialized(true)
+
+    const term = new GhosttyTerminal({
       cursorBlink: true,
       cursorStyle: 'block',
       fontSize: 14,
       fontFamily: 'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-      fontWeight: 'normal',
-      fontWeightBold: 'bold',
-      lineHeight: 1.2,
-      letterSpacing: 0,
-      allowProposedApi: true,
       scrollback: 10000,
-      scrollOnUserInput: true,
-      convertEol: true,
       theme: {
         background: '#0d1117',
         foreground: '#c9d1d9',
@@ -41,7 +49,6 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
         cursorAccent: '#0d1117',
         selectionBackground: '#264f78',
         selectionForeground: '#ffffff',
-        selectionInactiveBackground: '#264f7855',
         black: '#484f58',
         red: '#ff7b72',
         green: '#3fb950',
@@ -60,27 +67,26 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
         brightWhite: '#f0f6fc',
       },
     })
-    xtermRef.current = xterm
+    termRef.current = term
 
     const fitAddon = new FitAddon()
     fitAddonRef.current = fitAddon
-    xterm.loadAddon(fitAddon)
+    term.loadAddon(fitAddon)
 
-    xterm.open(terminalRef.current)
+    term.open(terminalRef.current)
 
     requestAnimationFrame(() => {
       fitAddon.fit()
     })
 
     const wsUrl = getTerminalUrl(workspaceName)
-
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 
     ws.onopen = () => {
       setIsConnected(true)
-      xterm.writeln('\x1b[38;5;245mConnecting to workspace...\x1b[0m')
-      const { cols, rows } = xterm
+      term.writeln('\x1b[38;5;245mConnecting to workspace...\x1b[0m')
+      const { cols, rows } = term
       ws.send(JSON.stringify({ type: 'resize', cols, rows }))
 
       if (initialCommand && !initialCommandSent.current) {
@@ -94,52 +100,52 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
     ws.onmessage = (event) => {
       if (event.data instanceof Blob) {
         event.data.text().then((text) => {
-          xterm.write(text)
+          term.write(text)
         })
       } else if (event.data instanceof ArrayBuffer) {
-        xterm.write(new Uint8Array(event.data))
+        term.write(new Uint8Array(event.data))
       } else {
-        xterm.write(event.data)
+        term.write(event.data)
       }
     }
 
     ws.onclose = (event) => {
       setIsConnected(false)
-      xterm.writeln('')
+      term.writeln('')
       if (event.code === 1000) {
-        xterm.writeln('\x1b[38;5;245mSession ended\x1b[0m')
+        term.writeln('\x1b[38;5;245mSession ended\x1b[0m')
       } else if (event.code === 404 || event.reason?.includes('not found')) {
-        xterm.writeln('\x1b[31mWorkspace not found or not running\x1b[0m')
+        term.writeln('\x1b[31mWorkspace not found or not running\x1b[0m')
       } else {
-        xterm.writeln(`\x1b[31mDisconnected (code: ${event.code})\x1b[0m`)
+        term.writeln(`\x1b[31mDisconnected (code: ${event.code})\x1b[0m`)
       }
     }
 
     ws.onerror = () => {
       setIsConnected(false)
-      xterm.writeln('\x1b[31mConnection error - is the workspace running?\x1b[0m')
+      term.writeln('\x1b[31mConnection error - is the workspace running?\x1b[0m')
     }
 
-    xterm.onData((data) => {
+    term.onData((data) => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(data)
       }
     })
 
-    xterm.onResize(({ cols, rows }) => {
+    term.onResize(({ cols, rows }) => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'resize', cols, rows }))
       }
     })
 
-    xterm.focus()
+    term.focus()
   }, [workspaceName, initialCommand])
 
   useEffect(() => {
     connect()
 
     const handleFit = () => {
-      if (fitAddonRef.current && xtermRef.current) {
+      if (fitAddonRef.current && termRef.current) {
         try {
           fitAddonRef.current.fit()
         } catch {
@@ -166,8 +172,8 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
       if (wsRef.current) {
         wsRef.current.close()
       }
-      if (xtermRef.current) {
-        xtermRef.current.dispose()
+      if (termRef.current) {
+        termRef.current.dispose()
       }
     }
   }, [connect])
@@ -181,9 +187,14 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
           padding: '12px',
           minHeight: '500px',
         }}
-        onClick={() => xtermRef.current?.focus()}
+        onClick={() => termRef.current?.focus()}
       />
-      {!isConnected && (
+      {!isInitialized && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#0d1117] rounded-lg">
+          <span className="text-muted-foreground text-sm">Loading terminal...</span>
+        </div>
+      )}
+      {isInitialized && !isConnected && (
         <div className="absolute bottom-3 right-3">
           <span className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
             Disconnected

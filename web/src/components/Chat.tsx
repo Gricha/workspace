@@ -1,12 +1,25 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Send, StopCircle, Bot, User, Sparkles, Wrench } from 'lucide-react'
+import { Send, StopCircle, Bot, User, Sparkles, Wrench, ChevronDown, ChevronRight } from 'lucide-react'
 import Markdown from 'react-markdown'
 import { getChatUrl } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
+interface ToolCall {
+  toolName: string
+  toolId: string
+  content: string
+}
+
 interface ChatMessage {
+  type: 'user' | 'assistant' | 'system' | 'error'
+  content: string
+  timestamp: string
+  toolCalls?: ToolCall[]
+}
+
+interface RawMessage {
   type: 'user' | 'assistant' | 'system' | 'tool_use' | 'tool_result' | 'error' | 'done' | 'connected'
   content: string
   timestamp: string
@@ -18,6 +31,40 @@ interface ChatProps {
   workspaceName: string
   sessionId?: string
   onSessionId?: (sessionId: string) => void
+}
+
+function ToolCallsSection({ toolCalls }: { toolCalls: ToolCall[] }) {
+  const [expanded, setExpanded] = useState(false)
+
+  if (toolCalls.length === 0) return null
+
+  return (
+    <div className="mb-3">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 transition-colors"
+      >
+        {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        <Wrench className="h-3 w-3" />
+        <span>{toolCalls.length} tool call{toolCalls.length > 1 ? 's' : ''}</span>
+      </button>
+      {expanded && (
+        <div className="mt-2 space-y-2 pl-4 border-l-2 border-amber-500/20">
+          {toolCalls.map((tool, idx) => (
+            <div key={idx} className="text-xs">
+              <span className="font-mono font-medium text-amber-600">{tool.toolName}</span>
+              {tool.content && (
+                <pre className="mt-1 p-2 bg-muted/50 rounded text-xs overflow-x-auto max-h-24 overflow-y-auto border border-border/50">
+                  {tool.content.slice(0, 300)}
+                  {tool.content.length > 300 && '...'}
+                </pre>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function MessageBubble({ message }: { message: ChatMessage }) {
@@ -37,27 +84,6 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         <span className="text-xs text-destructive bg-destructive/10 px-3 py-1 rounded-full">
           {message.content}
         </span>
-      </div>
-    )
-  }
-
-  if (message.type === 'tool_use') {
-    return (
-      <div className="flex gap-3">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
-          <Wrench className="h-3 w-3" />
-        </div>
-        <div className="flex-1">
-          <div className="text-xs text-muted-foreground">
-            <span className="font-mono font-medium">{message.toolName}</span>
-          </div>
-          {message.content && (
-            <pre className="mt-1 p-2 bg-muted/50 rounded text-xs overflow-x-auto max-h-32 overflow-y-auto border border-border/50">
-              {message.content.slice(0, 500)}
-              {message.content.length > 500 && '...'}
-            </pre>
-          )}
-        </div>
       </div>
     )
   }
@@ -87,27 +113,39 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         {isUser ? (
           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-pre:bg-background/50 prose-pre:border prose-code:text-xs prose-code:before:content-none prose-code:after:content-none">
-            <Markdown>{message.content}</Markdown>
-          </div>
+          <>
+            {message.toolCalls && message.toolCalls.length > 0 && (
+              <ToolCallsSection toolCalls={message.toolCalls} />
+            )}
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-pre:bg-background/50 prose-pre:border prose-code:text-xs prose-code:before:content-none prose-code:after:content-none">
+              <Markdown>{message.content}</Markdown>
+            </div>
+          </>
         )}
       </div>
     </div>
   )
 }
 
-function TypingIndicator() {
+function StreamingMessage({ content, toolCalls }: { content: string; toolCalls: ToolCall[] }) {
   return (
     <div className="flex gap-3">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 text-violet-600">
         <Sparkles className="h-4 w-4" />
       </div>
-      <div className="bg-muted/50 border border-border/50 rounded-2xl rounded-tl-sm px-4 py-3">
-        <div className="flex gap-1">
-          <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-        </div>
+      <div className="max-w-[85%] bg-muted/50 border border-border/50 rounded-2xl rounded-tl-sm px-4 py-3">
+        {toolCalls.length > 0 && <ToolCallsSection toolCalls={toolCalls} />}
+        {content ? (
+          <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-pre:bg-background/50 prose-pre:border prose-code:text-xs prose-code:before:content-none prose-code:after:content-none">
+            <Markdown>{content}</Markdown>
+          </div>
+        ) : (
+          <div className="flex gap-1">
+            <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -118,8 +156,12 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
   const [input, setInput] = useState('')
   const [isConnected, setIsConnected] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
-  const [streamingContent, setStreamingContent] = useState('')
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId)
+
+  const streamingContentRef = useRef('')
+  const streamingToolCallsRef = useRef<ToolCall[]>([])
+  const [streamingState, setStreamingState] = useState({ content: '', toolCalls: [] as ToolCall[] })
+
   const wsRef = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -130,7 +172,26 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, streamingContent, scrollToBottom])
+  }, [messages, streamingState, scrollToBottom])
+
+  const finalizeStreaming = useCallback(() => {
+    const content = streamingContentRef.current
+    const toolCalls = [...streamingToolCallsRef.current]
+
+    if (content || toolCalls.length > 0) {
+      setMessages(prev => [...prev, {
+        type: 'assistant',
+        content: content || '(No text response)',
+        timestamp: new Date().toISOString(),
+        toolCalls,
+      }])
+    }
+
+    streamingContentRef.current = ''
+    streamingToolCallsRef.current = []
+    setStreamingState({ content: '', toolCalls: [] })
+    setIsStreaming(false)
+  }, [])
 
   const connect = useCallback(() => {
     const wsUrl = getChatUrl(workspaceName)
@@ -143,30 +204,37 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
 
     ws.onmessage = (event) => {
       try {
-        const msg: ChatMessage & { workspaceName?: string } = JSON.parse(event.data)
+        const msg: RawMessage = JSON.parse(event.data)
 
         if (msg.type === 'connected') {
           return
         }
 
+        if (msg.type === 'tool_use') {
+          const toolCall: ToolCall = {
+            toolName: msg.toolName || 'unknown',
+            toolId: msg.toolId || '',
+            content: msg.content,
+          }
+          streamingToolCallsRef.current = [...streamingToolCallsRef.current, toolCall]
+          setStreamingState(prev => ({
+            ...prev,
+            toolCalls: [...streamingToolCallsRef.current],
+          }))
+          return
+        }
+
         if (msg.type === 'assistant') {
-          setIsStreaming(true)
-          setStreamingContent(prev => prev + msg.content)
+          streamingContentRef.current += msg.content
+          setStreamingState(prev => ({
+            ...prev,
+            content: streamingContentRef.current,
+          }))
           return
         }
 
         if (msg.type === 'done') {
-          setStreamingContent(prev => {
-            if (prev) {
-              setMessages(msgs => [...msgs, {
-                type: 'assistant',
-                content: prev,
-                timestamp: new Date().toISOString(),
-              }])
-            }
-            return ''
-          })
-          setIsStreaming(false)
+          finalizeStreaming()
           return
         }
 
@@ -185,7 +253,22 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
           }
         }
 
-        setMessages(prev => [...prev, msg])
+        if (msg.type === 'error') {
+          setMessages(prev => [...prev, {
+            type: 'error',
+            content: msg.content,
+            timestamp: msg.timestamp,
+          }])
+          return
+        }
+
+        if (msg.type === 'system') {
+          setMessages(prev => [...prev, {
+            type: 'system',
+            content: msg.content,
+            timestamp: msg.timestamp,
+          }])
+        }
       } catch (err) {
         console.error('Failed to parse message:', err)
       }
@@ -193,17 +276,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
 
     ws.onclose = () => {
       setIsConnected(false)
-      setStreamingContent(prev => {
-        if (prev) {
-          setMessages(msgs => [...msgs, {
-            type: 'assistant',
-            content: prev,
-            timestamp: new Date().toISOString(),
-          }])
-        }
-        return ''
-      })
-      setIsStreaming(false)
+      finalizeStreaming()
     }
 
     ws.onerror = (error) => {
@@ -216,7 +289,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
     }
 
     return ws
-  }, [workspaceName, onSessionId])
+  }, [workspaceName, onSessionId, finalizeStreaming])
 
   useEffect(() => {
     const ws = connect()
@@ -247,7 +320,9 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
 
     setInput('')
     setIsStreaming(true)
-    setStreamingContent('')
+    streamingContentRef.current = ''
+    streamingToolCallsRef.current = []
+    setStreamingState({ content: '', toolCalls: [] })
   }, [input, sessionId])
 
   const interrupt = useCallback(() => {
@@ -307,20 +382,12 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
           <MessageBubble key={idx} message={msg} />
         ))}
 
-        {isStreaming && streamingContent && (
-          <div className="flex gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 text-violet-600">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <div className="max-w-[85%] bg-muted/50 border border-border/50 rounded-2xl rounded-tl-sm px-4 py-3">
-              <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-pre:bg-background/50 prose-pre:border prose-code:text-xs prose-code:before:content-none prose-code:after:content-none">
-                <Markdown>{streamingContent}</Markdown>
-              </div>
-            </div>
-          </div>
+        {isStreaming && (
+          <StreamingMessage
+            content={streamingState.content}
+            toolCalls={streamingState.toolCalls}
+          />
         )}
-
-        {isStreaming && !streamingContent && <TypingIndicator />}
 
         <div ref={messagesEndRef} />
       </div>
