@@ -1,3 +1,17 @@
 node_modules
 dist
 packages/test-*
+
+# Lock files (only bun.lock is used)
+yarn.lock
+package-lock.json
+**/package-lock.json
+
+# Test artifacts
+test-results/
+playwright-report/
+**/test-results/
+**/playwright-report/
+
+# Generated files
+web/src/lib/types.ts

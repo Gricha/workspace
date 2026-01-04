@@ -12,6 +12,7 @@ import { createApiClient, ApiClientError, type ApiClient } from '../client/api';
 import { getWorker, setWorker } from '../client/config';
 import { openShell } from '../client/shell';
 import type { WorkspaceInfo } from '../shared/types';
+import { DEFAULT_AGENT_PORT } from '../shared/constants';
 
 type View = 'list' | 'detail';
 
@@ -76,7 +77,7 @@ export class WorkspaceTui {
     console.log('');
 
     const hostname = await new Promise<string>((resolve) => {
-      rl.question('Enter worker hostname (e.g., my-desktop:7391): ', (answer) => {
+      rl.question(`Enter worker hostname (e.g., my-desktop:${DEFAULT_AGENT_PORT}): `, (answer) => {
         rl.close();
         resolve(answer.trim());
       });
@@ -87,7 +88,7 @@ export class WorkspaceTui {
       process.exit(1);
     }
 
-    const workerUrl = hostname.includes(':') ? hostname : `${hostname}:7391`;
+    const workerUrl = hostname.includes(':') ? hostname : `${hostname}:${DEFAULT_AGENT_PORT}`;
 
     console.log(`Connecting to ${workerUrl}...`);
 

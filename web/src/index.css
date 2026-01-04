@@ -114,15 +114,6 @@ input:focus, textarea:focus {
   margin: 1rem 0;
 }
 
-/* Card hover */
-.card-interactive {
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-
-.card-interactive:hover {
-  border-color: hsl(222 15% 25%);
-}
-
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -219,12 +210,4 @@ input:focus, textarea:focus {
 
 .agent-input {
   margin-top: 0.75rem;
-}
-
-/* Subtle grid background for command center feel */
-.bg-grid {
-  background-image:
-    linear-gradient(hsl(222 15% 12%) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(222 15% 12%) 1px, transparent 1px);
-  background-size: 24px 24px;
 }

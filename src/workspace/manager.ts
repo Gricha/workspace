@@ -8,11 +8,12 @@ import { StateManager } from './state';
 import { expandPath } from '../config/loader';
 import * as docker from '../docker';
 import { getContainerName } from '../docker';
-
-const VOLUME_PREFIX = 'workspace-';
-const WORKSPACE_IMAGE = 'workspace:latest';
-const SSH_PORT_RANGE_START = 2200;
-const SSH_PORT_RANGE_END = 2400;
+import {
+  VOLUME_PREFIX,
+  WORKSPACE_IMAGE,
+  SSH_PORT_RANGE_START,
+  SSH_PORT_RANGE_END,
+} from '../shared/constants';
 
 async function findAvailablePort(start: number, end: number): Promise<number> {
   for (let port = start; port <= end; port++) {
@@ -126,14 +127,25 @@ export class WorkspaceManager {
     }
 
     const configContent = JSON.stringify({ hasCompletedOnboarding: true });
-    await docker.execInContainer(
-      containerName,
-      ['bash', '-c', `echo '${configContent}' > /home/workspace/.claude.json`],
-      { user: 'workspace' }
-    );
-    await docker.execInContainer(containerName, ['chmod', '644', '/home/workspace/.claude.json'], {
-      user: 'workspace',
-    });
+    const tempFile = path.join(os.tmpdir(), `ws-claude-config-${Date.now()}.json`);
+    try {
+      await fs.writeFile(tempFile, configContent);
+      await docker.copyToContainer(containerName, tempFile, '/home/workspace/.claude.json');
+      await docker.execInContainer(
+        containerName,
+        ['chown', 'workspace:workspace', '/home/workspace/.claude.json'],
+        { user: 'root' }
+      );
+      await docker.execInContainer(
+        containerName,
+        ['chmod', '644', '/home/workspace/.claude.json'],
+        {
+          user: 'workspace',
+        }
+      );
+    } finally {
+      await fs.unlink(tempFile).catch(() => {});
+    }
   }
 
   private async copyClaudeCredentials(containerName: string): Promise<void> {

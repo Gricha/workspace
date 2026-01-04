@@ -9,7 +9,7 @@
   "scripts": {
     "build": "rm -rf ./dist && bun run build:ts && bun run build:web && bun link",
     "build:ts": "tsc && chmod +x dist/index.js",
-    "build:web": "cd web && bun run build && cp -r dist ../dist/agent/web",
+    "build:web": "cp src/shared/client-types.ts web/src/lib/types.ts && cd web && bun run build && cp -r dist ../dist/agent/web",
     "test": "vitest run",
     "test:web": "playwright test",
     "test:tui": "vitest run --config vitest.tui.config.js",
@@ -29,9 +29,7 @@
     "@orpc/server": "^1.13.2",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
-    "ora": "^5.4.1",
     "proper-lockfile": "^4.1.2",
-    "update-notifier": "^7.3.1",
     "ws": "^8.18.3",
     "yaml": "^2.3.4",
     "zod": "^4.3.4"
@@ -42,7 +40,6 @@
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.8.1",
     "@types/proper-lockfile": "^4.1.4",
-    "@types/update-notifier": "^6.0.8",
     "@types/ws": "^8.18.1",
     "oxfmt": "^0.21.0",
     "oxlint": "^1.36.0",

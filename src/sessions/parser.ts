@@ -175,7 +175,8 @@ export async function getSessionMetadata(
       firstPrompt: firstPrompt ? firstPrompt.slice(0, 200) : null,
       filePath,
     };
-  } catch {
+  } catch (err) {
+    console.error(`[sessions] Failed to get metadata for ${filePath}:`, err);
     return null;
   }
 }
@@ -210,7 +211,8 @@ export async function listClaudeCodeSessions(homeDir: string): Promise<SessionMe
     );
 
     return sessions;
-  } catch {
+  } catch (err) {
+    console.error(`[sessions] Failed to list Claude Code sessions:`, err);
     return [];
   }
 }
@@ -271,7 +273,8 @@ async function getClaudeCodeSessionDetail(
     }
 
     return null;
-  } catch {
+  } catch (err) {
+    console.error(`[sessions] Failed to get Claude Code session ${sessionId}:`, err);
     return null;
   }
 }
@@ -324,7 +327,8 @@ async function parseOpenCodeMessages(messageDir: string): Promise<SessionMessage
         continue;
       }
     }
-  } catch {
+  } catch (err) {
+    console.error(`[sessions] Failed to parse OpenCode messages in ${messageDir}:`, err);
     return [];
   }
 
@@ -384,7 +388,8 @@ export async function listOpenCodeSessions(homeDir: string): Promise<SessionMeta
     );
 
     return sessions;
-  } catch {
+  } catch (err) {
+    console.error(`[sessions] Failed to list OpenCode sessions:`, err);
     return [];
   }
 }
@@ -433,7 +438,8 @@ async function getOpenCodeSessionDetail(
     }
 
     return null;
-  } catch {
+  } catch (err) {
+    console.error(`[sessions] Failed to get OpenCode session ${sessionId}:`, err);
     return null;
   }
 }
@@ -509,7 +515,8 @@ async function parseCodexSessionFile(filePath: string): Promise<{
     }
 
     return { meta, messages };
-  } catch {
+  } catch (err) {
+    console.error(`[sessions] Failed to parse Codex session file ${filePath}:`, err);
     return { meta: null, messages: [] };
   }
 }
@@ -551,7 +558,8 @@ export async function listCodexSessions(homeDir: string): Promise<SessionMetadat
           }
         }
       }
-    } catch {
+    } catch (err) {
+      console.error(`[sessions] Failed to scan Codex directory ${dir}:`, err);
       return;
     }
   }

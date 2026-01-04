@@ -119,7 +119,12 @@ export class ChatSession {
       }
 
       const exitCode = await proc.exited;
-      console.log('[chat] Process exited with code:', exitCode, 'receivedOutput:', receivedAnyOutput);
+      console.log(
+        '[chat] Process exited with code:',
+        exitCode,
+        'receivedOutput:',
+        receivedAnyOutput
+      );
 
       const stderrText = await stderrPromise;
       if (stderrText) {

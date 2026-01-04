@@ -342,7 +342,9 @@ export function createRouter(ctx: RouterContext) {
             const count = parseInt(wcOutput.trim().split(' ')[0], 10) || 0;
 
             const id = file.split('/').pop()?.replace('.jsonl', '') || '';
-            const projPath = file.replace('/home/workspace/.codex/sessions/', '').replace(/\/[^/]+$/, '');
+            const projPath = file
+              .replace('/home/workspace/.codex/sessions/', '')
+              .replace(/\/[^/]+$/, '');
 
             rawSessions.push({
               id,
@@ -431,18 +433,23 @@ export function createRouter(ctx: RouterContext) {
       };
 
       if (!input.agentType || input.agentType === 'claude-code') {
+        const safeSessionId = input.sessionId.replace(/[^a-zA-Z0-9_-]/g, '');
         const findResult = await execInContainer(
           containerName,
           [
-            'bash',
-            '-c',
-            `find /home/workspace/.claude/projects -name "${input.sessionId}.jsonl" -type f 2>/dev/null | head -1`,
+            'find',
+            '/home/workspace/.claude/projects',
+            '-name',
+            `${safeSessionId}.jsonl`,
+            '-type',
+            'f',
           ],
           { user: 'workspace' }
         );
 
-        if (findResult.exitCode === 0 && findResult.stdout.trim()) {
-          const filePath = findResult.stdout.trim();
+        const foundPath = findResult.stdout.trim().split('\n')[0];
+        if (findResult.exitCode === 0 && foundPath) {
+          const filePath = foundPath;
           const catResult = await execInContainer(containerName, ['cat', filePath], {
             user: 'workspace',
           });

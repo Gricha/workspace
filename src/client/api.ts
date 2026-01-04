@@ -3,6 +3,7 @@ import { RPCLink } from '@orpc/client/fetch';
 import type { RouterClient } from '@orpc/server';
 import type { AppRouter } from '../agent/router';
 import type { WorkspaceInfo, CreateWorkspaceRequest, InfoResponse } from '../shared/types';
+import { DEFAULT_AGENT_PORT } from '../shared/constants';
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -149,7 +150,7 @@ export function createApiClient(worker: string, port?: number): ApiClient {
   } else if (worker.includes(':')) {
     baseUrl = `http://${worker}`;
   } else {
-    const effectivePort = port || 7391;
+    const effectivePort = port || DEFAULT_AGENT_PORT;
     baseUrl = `http://${worker}:${effectivePort}`;
   }
 

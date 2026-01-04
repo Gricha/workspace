@@ -10,6 +10,7 @@ import { openShell } from './client/shell';
 import { startProxy, parsePortForward, formatPortForwards } from './client/proxy';
 import { loadAgentConfig, getConfigDir, ensureConfigDir } from './config/loader';
 import { buildImage } from './docker';
+import { DEFAULT_AGENT_PORT, WORKSPACE_IMAGE } from './shared/constants';
 
 const program = new Command();
 
@@ -77,7 +78,7 @@ agentCmd
 
 async function checkLocalAgent(): Promise<boolean> {
   try {
-    const response = await fetch('http://localhost:7391/health', {
+    const response = await fetch(`http://localhost:${DEFAULT_AGENT_PORT}/health`, {
       signal: AbortSignal.timeout(1000),
     });
     return response.ok;
@@ -92,7 +93,7 @@ async function getClient() {
   if (!worker) {
     const localRunning = await checkLocalAgent();
     if (localRunning) {
-      worker = 'localhost:7391';
+      worker = `localhost:${DEFAULT_AGENT_PORT}`;
     } else {
       console.error('No worker configured. Run: workspace config worker <hostname>');
       process.exit(1);
@@ -280,7 +281,7 @@ async function getWorkerWithFallback(): Promise<string> {
   if (!worker) {
     const localRunning = await checkLocalAgent();
     if (localRunning) {
-      worker = 'localhost:7391';
+      worker = `localhost:${DEFAULT_AGENT_PORT}`;
     } else {
       console.error('No worker configured. Run: workspace config worker <hostname>');
       process.exit(1);
@@ -404,13 +405,12 @@ program
   .description('Build the workspace Docker image')
   .option('--no-cache', 'Build without cache')
   .action(async (options) => {
-    const imageTag = 'workspace:latest';
     const buildContext = './workspace';
 
-    console.log(`Building workspace image ${imageTag}...`);
+    console.log(`Building workspace image ${WORKSPACE_IMAGE}...`);
 
     try {
-      await buildImage(imageTag, buildContext, {
+      await buildImage(WORKSPACE_IMAGE, buildContext, {
         noCache: options.noCache === false ? false : !options.cache,
       });
       console.log('Build complete.');

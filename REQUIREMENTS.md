@@ -1,3 +1,8 @@
-On web, sessions never load and have a shimmer. It's confusing experience and would benefit from frontend-design skill improvements. I think the problem is that I already have like 200 sessions for some reason, or so it displays and loading took a very very long time. most of them if i click in have a few empty bubbles. We should fix that and we should make the actual sessions full screen once you click into them (like full body of the website).
-I'd like to have a mobile app in react native. Let's scaffold that and start working on a parity between web and mobile - settings, workspaces and sessions. We should make sure that the parity goal is visible inside AGENTS.md
-For the mobile app - make sure we have a way to e2e test the app.
+# Developer Feedback
+
+> Items here are raw feedback that needs to be converted into TODO.md tasks.
+> Once converted to tasks, remove from this file.
+
+---
+
+(No pending feedback - all items converted to tasks)

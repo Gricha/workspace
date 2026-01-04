@@ -1,7 +1,8 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { RPCHandler } from '@orpc/server/node';
 import { loadAgentConfig, getConfigDir, ensureConfigDir } from '../config/loader';
-import { DEFAULT_PORT, type AgentConfig } from '../shared/types';
+import type { AgentConfig } from '../shared/types';
+import { DEFAULT_AGENT_PORT } from '../shared/constants';
 import { WorkspaceManager } from '../workspace/manager';
 import { containerRunning, getContainerName } from '../docker';
 import { TerminalWebSocketServer } from '../terminal/websocket';
@@ -119,7 +120,7 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
 
   const config = await loadAgentConfig(configDir);
   const port =
-    options.port || parseInt(process.env.WS_PORT || '', 10) || config.port || DEFAULT_PORT;
+    options.port || parseInt(process.env.WS_PORT || '', 10) || config.port || DEFAULT_AGENT_PORT;
 
   console.log(`[agent] Config directory: ${configDir}`);
   console.log(`[agent] Starting on port ${port}...`);

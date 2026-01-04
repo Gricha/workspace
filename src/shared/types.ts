@@ -75,7 +75,6 @@ export interface InfoResponse {
   terminalConnections: number;
 }
 
-export const DEFAULT_PORT = 7391;
 export const DEFAULT_CONFIG_DIR =
   process.env.WS_CONFIG_DIR || `${process.env.HOME}/.config/workspace`;
 export const STATE_FILE = 'state.json';

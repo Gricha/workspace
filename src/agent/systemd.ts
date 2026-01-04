@@ -2,7 +2,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
-import { DEFAULT_PORT, DEFAULT_CONFIG_DIR } from '../shared/types';
+import { DEFAULT_CONFIG_DIR } from '../shared/types';
+import { DEFAULT_AGENT_PORT } from '../shared/constants';
 
 const SERVICE_NAME = 'workspace-agent';
 const SERVICE_DESCRIPTION = 'Workspace Agent Daemon';
@@ -21,7 +22,7 @@ interface InstallOptions {
 }
 
 export function generateServiceFile(options: InstallOptions = {}): string {
-  const port = options.port || DEFAULT_PORT;
+  const port = options.port || DEFAULT_AGENT_PORT;
   const configDir = options.configDir || DEFAULT_CONFIG_DIR;
 
   const nodePath = process.execPath;
