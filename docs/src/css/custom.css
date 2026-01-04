@@ -1,0 +1,34 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* Custom color scheme inspired by Docker and modern dev tools */
+:root {
+  --ifm-color-primary: #667eea;
+  --ifm-color-primary-dark: #4c63e6;
+  --ifm-color-primary-darker: #3f54e4;
+  --ifm-color-primary-darkest: #2638d8;
+  --ifm-color-primary-light: #8099ee;
+  --ifm-color-primary-lighter: #93a8f0;
+  --ifm-color-primary-lightest: #bac8f5;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(102, 126, 234, 0.15);
+  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --ifm-heading-font-weight: 700;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #8099ee;
+  --ifm-color-primary-dark: #667eea;
+  --ifm-color-primary-darker: #5470e8;
+  --ifm-color-primary-darkest: #3f54e4;
+  --ifm-color-primary-light: #93a8f0;
+  --ifm-color-primary-lighter: #a6b6f2;
+  --ifm-color-primary-lightest: #bac8f5;
+  --docusaurus-highlighted-code-line-bg: rgba(128, 153, 238, 0.2);
+  --ifm-background-color: #1a1a1a;
+  --ifm-background-surface-color: #242424;
+}

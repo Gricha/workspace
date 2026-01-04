@@ -15,3 +15,9 @@ playwright-report/
 
 # Generated files
 web/src/lib/types.ts
+
+# Docusaurus
+docs/.docusaurus/
+docs/build/
+docs/.cache-loader/
+docs/node_modules/

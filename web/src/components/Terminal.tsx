@@ -74,10 +74,10 @@ export function Terminal({ workspaceName, initialCommand }: TerminalProps) {
     term.loadAddon(fitAddon)
 
     term.open(terminalRef.current)
-    term.write('\x1b[?25l')
 
     requestAnimationFrame(() => {
       fitAddon.fit()
+      term.clear()
     })
 
     const wsUrl = getTerminalUrl(workspaceName)
