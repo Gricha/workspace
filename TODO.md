@@ -19,11 +19,6 @@
 ### UI Feedback Round 1
 
 #### Workspaces Page
-- [ ] **Add settings button/tab to access workspace details from sessions view**
-  - File: `web/src/pages/Sessions.tsx`
-  - Add a "Settings" or gear icon button that links to workspace details/config
-  - User should be able to access workspace settings without going back to list
-
 - [ ] **Add confirmation dialog for workspace deletion**
   - File: `web/src/pages/WorkspaceDetails.tsx` (wherever delete button exists)
   - Use shadcn AlertDialog component

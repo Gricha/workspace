@@ -22,6 +22,7 @@ import {
   Check,
   Pencil,
   X,
+  Settings,
 } from 'lucide-react'
 import Markdown from 'react-markdown'
 import { api, type SessionInfo, type SessionMessage, type AgentType } from '@/lib/api'
@@ -637,7 +638,7 @@ export function Sessions() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate(`/workspaces/${workspaceName}`)}>
+          <Button variant="ghost" onClick={() => navigate('/workspaces')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
@@ -647,6 +648,15 @@ export function Sessions() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/workspaces/${workspaceName}`)}
+            title="Workspace settings"
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
