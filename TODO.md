@@ -19,18 +19,8 @@
 ### UI Feedback Round 1
 
 #### Workspaces Page
-- [ ] **Convert workspaces page from cards to table layout**
-  - File: `web/src/pages/Workspaces.tsx`
-  - Replace card grid with a table showing: name, status, path, created date, actions
-  - Use shadcn Table component for consistency
-
-- [ ] **Change workspace click behavior: navigate to sessions instead of details**
-  - File: `web/src/pages/Workspaces.tsx`
-  - Currently clicking a workspace goes to `/workspaces/{name}` (details page)
-  - Change to navigate to `/workspaces/{name}/sessions` instead
-
 - [ ] **Add settings button/tab to access workspace details from sessions view**
-  - File: `web/src/pages/WorkspaceSessions.tsx` (or create if needed)
+  - File: `web/src/pages/Sessions.tsx`
   - Add a "Settings" or gear icon button that links to workspace details/config
   - User should be able to access workspace settings without going back to list
 
