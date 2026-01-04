@@ -375,8 +375,7 @@ export function createRouter(ctx: RouterContext) {
             const line = JSON.parse(s.prompt);
             if (line.content) {
               const content = Array.isArray(line.content)
-                ? line.content.find((c: { type: string; text?: string }) => c.type === 'text')
-                    ?.text
+                ? line.content.find((c: { type: string; text?: string }) => c.type === 'text')?.text
                 : line.content;
               firstPrompt = typeof content === 'string' ? content.slice(0, 200) : null;
             }
@@ -483,13 +482,13 @@ export function createRouter(ctx: RouterContext) {
                 if (obj.role === 'user' || obj.type === 'user') {
                   messages.push({
                     type: 'user',
-                    content: parseContent(obj.content),
+                    content: parseContent(obj.content ?? obj.message?.content),
                     timestamp: obj.timestamp || null,
                   });
                 } else if (obj.role === 'assistant' || obj.type === 'assistant') {
                   messages.push({
                     type: 'assistant',
-                    content: parseContent(obj.content),
+                    content: parseContent(obj.content ?? obj.message?.content),
                     timestamp: obj.timestamp || null,
                   });
                 }

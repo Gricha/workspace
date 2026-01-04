@@ -16,7 +16,76 @@
 
 ## Tasks
 
-(No pending tasks)
+### UI Feedback Round 1
+
+#### Workspaces Page
+- [ ] **Convert workspaces page from cards to table layout**
+  - File: `web/src/pages/Workspaces.tsx`
+  - Replace card grid with a table showing: name, status, path, created date, actions
+  - Use shadcn Table component for consistency
+
+- [ ] **Change workspace click behavior: navigate to sessions instead of details**
+  - File: `web/src/pages/Workspaces.tsx`
+  - Currently clicking a workspace goes to `/workspaces/{name}` (details page)
+  - Change to navigate to `/workspaces/{name}/sessions` instead
+
+- [ ] **Add settings button/tab to access workspace details from sessions view**
+  - File: `web/src/pages/WorkspaceSessions.tsx` (or create if needed)
+  - Add a "Settings" or gear icon button that links to workspace details/config
+  - User should be able to access workspace settings without going back to list
+
+- [ ] **Add confirmation dialog for workspace deletion**
+  - File: `web/src/pages/WorkspaceDetails.tsx` (wherever delete button exists)
+  - Use shadcn AlertDialog component
+  - Require typing workspace name to confirm (prevents accidental deletion)
+
+#### Settings Pages
+- [ ] **Move delete/stop actions to a dedicated "Danger Zone" tab**
+  - Files: Settings pages in `web/src/pages/settings/`
+  - Currently destructive actions are inline with other settings
+  - Create a separate tab at the end for delete/stop operations
+  - Use red/warning styling to indicate danger
+
+- [ ] **Standardize layout widths across all settings pages**
+  - Files: `web/src/pages/settings/Environment.tsx`, `Agents.tsx`, `Files.tsx`
+  - Currently env vars, coding agents, credential files pages have inconsistent widths
+  - Use same max-width container and card sizing across all
+
+#### Chat Component Cleanup
+- [ ] **Remove vertical connector lines from chat messages**
+  - File: `web/src/components/Chat.tsx`
+  - The `isInTurn` prop adds vertical lines between related messages
+  - Remove the connector line divs (the 0.5px border elements)
+
+- [ ] **Remove agent avatar icon and bubble from assistant text messages**
+  - File: `web/src/components/Chat.tsx`
+  - Assistant text should render directly on background without avatar or bubble wrapper
+  - Keep the message content, just remove visual container
+
+- [ ] **Keep tool calls in bubbles, keep user messages in bubbles**
+  - File: `web/src/components/Chat.tsx`
+  - Tool use/result components (`ToolUseBubble`, `ToolResultBubble`) should stay in bubbles
+  - User messages should stay in bubbles
+  - Only assistant text messages lose their bubble
+
+- [ ] **Remove user avatar icon from chat messages**
+  - File: `web/src/components/Chat.tsx`
+  - User messages currently show an avatar icon
+  - Remove the icon, keep the bubble styling
+
+- [ ] **Fix chat input box to extend to bottom of screen**
+  - File: `web/src/components/Chat.tsx`
+  - Currently there's a gap between chat input and screen bottom
+  - Adjust flex layout or padding to make input touch bottom edge
+
+#### Agent Terminal Integration (Research Required)
+- [ ] **Research: How OpenCode and Codex handle chat/terminal experience**
+  - Document findings in `docs/research/RESEARCH_AGENT_TERMINAL.md`
+  - Questions to answer:
+    - How does OpenCode display its TUI? Does it have a web-viewable terminal?
+    - How does Codex handle interactive terminal sessions?
+    - Can we capture/stream terminal output to web UI?
+    - What's the best UX for non-Claude-Code agents?
 
 ---
 
