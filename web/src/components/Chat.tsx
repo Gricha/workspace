@@ -318,13 +318,20 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const shouldAutoScrollRef = useRef(true)
+  const [containerMounted, setContainerMounted] = useState(false)
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      setContainerMounted(true)
+    }
+  }, [])
 
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => 80,
     overscan: 5,
-    getItemKey: (index) => `msg-${index}-${messages[index]?.turnId ?? index}`,
+    enabled: containerMounted,
   })
 
   const scrollToBottom = useCallback(() => {
@@ -350,6 +357,17 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
   useEffect(() => {
     scrollToBottom()
   }, [messages, streamingParts, scrollToBottom])
+
+  useEffect(() => {
+    if (containerMounted && messages.length > 0 && !isLoadingHistory) {
+      const timer = setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
+        }
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [containerMounted, messages.length, isLoadingHistory])
 
   const finalizeStreaming = useCallback(() => {
     const parts = [...streamingPartsRef.current]
@@ -596,7 +614,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
           </div>
         )}
 
-        {!isLoadingHistory && messages.length > 0 && (
+        {!isLoadingHistory && messages.length > 0 && containerMounted && (
           <div
             style={{
               height: `${virtualizer.getTotalSize()}px`,
@@ -624,6 +642,14 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {!isLoadingHistory && messages.length > 0 && !containerMounted && (
+          <div className="space-y-4 p-4">
+            {messages.map((msg, idx) => (
+              <MessageBubble key={idx} message={msg} />
+            ))}
           </div>
         )}
 
