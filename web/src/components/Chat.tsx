@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Send, StopCircle, Bot, Sparkles, Wrench, ChevronDown, CheckCircle2, Loader2, Code2 } from 'lucide-react'
 import Markdown from 'react-markdown'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { getChatUrl, api, type AgentType } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -314,11 +315,36 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
   const turnIdRef = useRef(0)
 
   const wsRef = useRef<WebSocket | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const shouldAutoScrollRef = useRef(true)
+
+  const virtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 80,
+    overscan: 5,
+    getItemKey: (index) => `msg-${index}-${messages[index]?.turnId ?? index}`,
+  })
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (scrollContainerRef.current && shouldAutoScrollRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
+    }
+  }, [])
+
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+      shouldAutoScrollRef.current = isNearBottom
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
   }, [])
 
   useEffect(() => {
@@ -550,16 +576,16 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         {isLoadingHistory && (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
             <Loader2 className="h-8 w-8 animate-spin mb-4" />
             <p className="text-center">Loading conversation history...</p>
           </div>
         )}
 
         {!isLoadingHistory && messages.length === 0 && !isStreaming && (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
             <Sparkles className="h-12 w-12 mb-4 opacity-20" />
             <p className="text-center">
               Start a conversation with {agentType === 'opencode' ? 'OpenCode' : 'Claude Code'}
@@ -570,15 +596,42 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
           </div>
         )}
 
-        {messages.map((msg, idx) => (
-          <MessageBubble key={idx} message={msg} />
-        ))}
-
-        {isStreaming && (
-          <StreamingMessage parts={streamingParts} />
+        {!isLoadingHistory && messages.length > 0 && (
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const message = messages[virtualRow.index]
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                  className="p-4 pb-0"
+                >
+                  <MessageBubble message={message} />
+                </div>
+              )
+            })}
+          </div>
         )}
 
-        <div ref={messagesEndRef} />
+        {isStreaming && (
+          <div className="p-4 pt-0">
+            <StreamingMessage parts={streamingParts} />
+          </div>
+        )}
       </div>
 
       <div className="border-t p-4 pb-4">
