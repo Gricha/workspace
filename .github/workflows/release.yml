@@ -144,6 +144,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
