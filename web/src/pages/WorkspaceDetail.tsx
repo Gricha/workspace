@@ -22,6 +22,7 @@ import {
   FolderSync,
 } from 'lucide-react'
 import { api, type SessionInfo, type AgentType } from '@/lib/api'
+import { HOST_WORKSPACE_NAME } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -204,11 +205,13 @@ function SessionListItem({ session, onClick }: { session: SessionInfo; onClick: 
 type ChatMode = { type: 'chat'; sessionId?: string; agentType?: AgentType } | { type: 'terminal'; command: string }
 
 export function WorkspaceDetail() {
-  const { name } = useParams<{ name: string }>()
+  const { name: rawName } = useParams<{ name: string }>()
+  const name = rawName ? decodeURIComponent(rawName) : undefined
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
 
+  const isHostWorkspace = name === HOST_WORKSPACE_NAME
   const currentTab = (searchParams.get('tab') as TabType) || 'sessions'
   const [chatMode, setChatMode] = useState<ChatMode | null>(null)
   const [agentFilter, setAgentFilter] = useState<AgentType | 'all'>('all')
@@ -220,16 +223,24 @@ export function WorkspaceDetail() {
     setSearchParams({ tab })
   }
 
-  const { data: workspace, isLoading, error, refetch } = useQuery({
+  const { data: hostInfo, isLoading: hostLoading } = useQuery({
+    queryKey: ['hostInfo'],
+    queryFn: api.getHostInfo,
+    enabled: isHostWorkspace,
+  })
+
+  const { data: workspace, isLoading: workspaceLoading, error, refetch } = useQuery({
     queryKey: ['workspace', name],
     queryFn: () => api.getWorkspace(name!),
-    enabled: !!name,
+    enabled: !!name && !isHostWorkspace,
   })
+
+  const isLoading = isHostWorkspace ? hostLoading : workspaceLoading
 
   const { data: sessionsData, isLoading: sessionsLoading } = useQuery({
     queryKey: ['sessions', name, agentFilter],
     queryFn: () => api.listSessions(name!, agentFilter === 'all' ? undefined : agentFilter, 50, 0),
-    enabled: !!name && workspace?.status === 'running',
+    enabled: !!name && ((isHostWorkspace && hostInfo?.enabled) || (!isHostWorkspace && workspace?.status === 'running')),
   })
 
   const sessions = sessionsData?.sessions || []
@@ -298,7 +309,23 @@ export function WorkspaceDetail() {
     )
   }
 
-  if (error || !workspace) {
+  if (isHostWorkspace) {
+    if (!hostInfo?.enabled) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4">
+          <AlertTriangle className="h-12 w-12 text-amber-500" />
+          <p className="text-xl font-medium">Host Access Disabled</p>
+          <p className="text-muted-foreground text-center max-w-md">
+            Enable host access from the dashboard to use terminal and agents on your host machine.
+          </p>
+          <Button variant="outline" onClick={() => navigate('/workspaces')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </div>
+      )
+    }
+  } else if (error || !workspace) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <p className="text-destructive">{error ? (error as Error).message : 'Workspace not found'}</p>
@@ -316,14 +343,20 @@ export function WorkspaceDetail() {
     )
   }
 
-  const isRunning = workspace.status === 'running'
-  const isError = workspace.status === 'error'
+  const isRunning = isHostWorkspace ? (hostInfo?.enabled ?? false) : workspace?.status === 'running'
+  const isError = isHostWorkspace ? false : workspace?.status === 'error'
+  const displayName = isHostWorkspace ? (hostInfo?.hostname || 'Host') : workspace?.name
 
-  const tabs = [
-    { id: 'sessions' as const, label: 'Sessions', icon: MessageSquare },
-    { id: 'terminal' as const, label: 'Terminal', icon: TerminalIcon },
-    { id: 'settings' as const, label: 'Settings', icon: Settings },
-  ]
+  const tabs = isHostWorkspace
+    ? [
+        { id: 'sessions' as const, label: 'Sessions', icon: MessageSquare },
+        { id: 'terminal' as const, label: 'Terminal', icon: TerminalIcon },
+      ]
+    : [
+        { id: 'sessions' as const, label: 'Sessions', icon: MessageSquare },
+        { id: 'terminal' as const, label: 'Terminal', icon: TerminalIcon },
+        { id: 'settings' as const, label: 'Settings', icon: Settings },
+      ]
 
   const renderStartPrompt = () => (
     <div className="flex-1 flex flex-col items-center justify-center">
@@ -377,8 +410,12 @@ export function WorkspaceDetail() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="font-semibold truncate">{workspace.name}</span>
-          {isRunning ? (
+          <span className="font-semibold truncate">{displayName}</span>
+          {isHostWorkspace ? (
+            <Badge variant="secondary" className="text-xs flex-shrink-0 bg-amber-500/10 text-amber-600 border-amber-500/20">
+              host
+            </Badge>
+          ) : isRunning ? (
             <span className="h-2 w-2 rounded-full bg-success animate-pulse flex-shrink-0" title="Running" />
           ) : isError ? (
             <Badge variant="destructive" className="text-xs flex-shrink-0">error</Badge>
@@ -386,38 +423,40 @@ export function WorkspaceDetail() {
             <Badge variant="muted" className="text-xs flex-shrink-0">stopped</Badge>
           )}
         </div>
-        {isRunning ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => stopMutation.mutate()}
-            disabled={stopMutation.isPending}
-            className="text-muted-foreground hover:text-destructive h-9 px-2 sm:px-3 flex-shrink-0"
-          >
-            <Square className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">{stopMutation.isPending ? 'Stopping...' : 'Stop'}</span>
-          </Button>
-        ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => startMutation.mutate()}
-            disabled={startMutation.isPending}
-            className="h-9 px-2 sm:px-3 flex-shrink-0"
-          >
-            {startMutation.isPending ? (
-              <Loader2 className="h-4 w-4 sm:mr-1 animate-spin" />
-            ) : isError ? (
-              <RefreshCw className="h-4 w-4 sm:mr-1" />
-            ) : (
-              <Play className="h-4 w-4 sm:mr-1" />
-            )}
-            <span className="hidden sm:inline">
-              {startMutation.isPending
-                ? isError ? 'Recovering...' : 'Starting...'
-                : isError ? 'Recover' : 'Start'}
-            </span>
-          </Button>
+        {!isHostWorkspace && (
+          isRunning ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => stopMutation.mutate()}
+              disabled={stopMutation.isPending}
+              className="text-muted-foreground hover:text-destructive h-9 px-2 sm:px-3 flex-shrink-0"
+            >
+              <Square className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">{stopMutation.isPending ? 'Stopping...' : 'Stop'}</span>
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => startMutation.mutate()}
+              disabled={startMutation.isPending}
+              className="h-9 px-2 sm:px-3 flex-shrink-0"
+            >
+              {startMutation.isPending ? (
+                <Loader2 className="h-4 w-4 sm:mr-1 animate-spin" />
+              ) : isError ? (
+                <RefreshCw className="h-4 w-4 sm:mr-1" />
+              ) : (
+                <Play className="h-4 w-4 sm:mr-1" />
+              )}
+              <span className="hidden sm:inline">
+                {startMutation.isPending
+                  ? isError ? 'Recovering...' : 'Starting...'
+                  : isError ? 'Recover' : 'Start'}
+              </span>
+            </Button>
+          )
         )}
       </div>
 
@@ -600,12 +639,12 @@ export function WorkspaceDetail() {
             {!isRunning ? (
               renderStartPrompt()
             ) : (
-              <Terminal key={workspace.name} workspaceName={workspace.name} />
+              <Terminal key={isHostWorkspace ? HOST_WORKSPACE_NAME : workspace!.name} workspaceName={isHostWorkspace ? HOST_WORKSPACE_NAME : workspace!.name} />
             )}
           </div>
         )}
 
-        {currentTab === 'settings' && (
+        {currentTab === 'settings' && !isHostWorkspace && workspace && (
           <div className="h-full overflow-y-auto p-6">
             <div className="max-w-2xl space-y-6">
               <Card>
@@ -766,45 +805,47 @@ export function WorkspaceDetail() {
         )}
       </div>
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={(open) => !open && setShowDeleteDialog(false)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Workspace</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the workspace
-              <span className="font-mono font-semibold text-foreground"> {workspace.name}</span> and all its data.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4">
-            <Label htmlFor="confirm-name" className="text-sm text-muted-foreground">
-              Type <span className="font-mono font-semibold text-foreground">{workspace.name}</span> to confirm
-            </Label>
-            <Input
-              id="confirm-name"
-              value={deleteConfirmName}
-              onChange={(e) => setDeleteConfirmName(e.target.value)}
-              placeholder="Enter workspace name"
-              className="mt-2"
-              autoComplete="off"
-              data-testid="delete-confirm-input"
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (deleteConfirmName === workspace.name) {
-                  deleteMutation.mutate()
-                }
-              }}
-              disabled={deleteConfirmName !== workspace.name || deleteMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete Workspace'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {workspace && (
+        <AlertDialog open={showDeleteDialog} onOpenChange={(open) => !open && setShowDeleteDialog(false)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Workspace</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the workspace
+                <span className="font-mono font-semibold text-foreground"> {workspace.name}</span> and all its data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4">
+              <Label htmlFor="confirm-name" className="text-sm text-muted-foreground">
+                Type <span className="font-mono font-semibold text-foreground">{workspace.name}</span> to confirm
+              </Label>
+              <Input
+                id="confirm-name"
+                value={deleteConfirmName}
+                onChange={(e) => setDeleteConfirmName(e.target.value)}
+                placeholder="Enter workspace name"
+                className="mt-2"
+                autoComplete="off"
+                data-testid="delete-confirm-input"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (deleteConfirmName === workspace.name) {
+                    deleteMutation.mutate()
+                  }
+                }}
+                disabled={deleteConfirmName !== workspace.name || deleteMutation.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete Workspace'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   )
 }

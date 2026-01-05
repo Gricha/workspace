@@ -25,7 +25,10 @@ export interface AgentConfig {
   credentials: WorkspaceCredentials;
   scripts: WorkspaceScripts;
   agents?: CodingAgents;
+  allowHostAccess?: boolean;
 }
+
+export const HOST_WORKSPACE_NAME = '@host';
 
 export interface ClientConfig {
   worker: string;

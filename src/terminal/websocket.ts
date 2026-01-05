@@ -1,37 +1,57 @@
 import { WebSocket } from 'ws';
 import { BaseWebSocketServer, type BaseConnection } from '../shared/base-websocket';
 import { createTerminalSession, TerminalSession } from './handler';
+import { createHostTerminalSession, HostTerminalSession } from './host-handler';
 import { isControlMessage } from './types';
+import { HOST_WORKSPACE_NAME } from '../shared/types';
+
+type AnyTerminalSession = TerminalSession | HostTerminalSession;
 
 interface TerminalConnection extends BaseConnection {
-  session: TerminalSession;
+  session: AnyTerminalSession;
 }
 
 export class TerminalWebSocketServer extends BaseWebSocketServer<TerminalConnection> {
   private getContainerName: (workspaceName: string) => string;
+  private isHostAccessAllowed: () => boolean;
 
   constructor(options: {
     getContainerName: (workspaceName: string) => string;
     isWorkspaceRunning: (workspaceName: string) => Promise<boolean>;
+    isHostAccessAllowed?: () => boolean;
   }) {
     super({ isWorkspaceRunning: options.isWorkspaceRunning });
     this.getContainerName = options.getContainerName;
+    this.isHostAccessAllowed = options.isHostAccessAllowed || (() => false);
   }
 
   protected handleConnection(ws: WebSocket, workspaceName: string): void {
-    const containerName = this.getContainerName(workspaceName);
-    let session: TerminalSession | null = null;
+    const isHostMode = workspaceName === HOST_WORKSPACE_NAME;
+
+    if (isHostMode && !this.isHostAccessAllowed()) {
+      ws.close(4003, 'Host access is disabled');
+      return;
+    }
+
+    let session: AnyTerminalSession | null = null;
     let started = false;
 
     const startSession = (cols: number, rows: number) => {
       if (started) return;
       started = true;
 
-      session = createTerminalSession({
-        containerName,
-        user: 'workspace',
-        size: { cols, rows },
-      });
+      if (isHostMode) {
+        session = createHostTerminalSession({
+          size: { cols, rows },
+        });
+      } else {
+        const containerName = this.getContainerName(workspaceName);
+        session = createTerminalSession({
+          containerName,
+          user: 'workspace',
+          size: { cols, rows },
+        });
+      }
 
       const connection: TerminalConnection = {
         ws,

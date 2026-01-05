@@ -12,6 +12,7 @@ import type {
   SessionInfoWithWorkspace,
   SessionMessage,
   SessionDetail,
+  HostInfo,
 } from './types'
 
 export type {
@@ -26,6 +27,7 @@ export type {
   SessionInfoWithWorkspace,
   SessionMessage,
   SessionDetail,
+  HostInfo,
 }
 
 function getRpcUrl(): string {
@@ -67,6 +69,10 @@ const client = createORPCClient<{
     clearName: (input: { workspaceName: string; sessionId: string }) => Promise<{ success: boolean }>
   }
   info: () => Promise<InfoResponse>
+  host: {
+    info: () => Promise<HostInfo>
+    updateAccess: (input: { enabled: boolean }) => Promise<HostInfo>
+  }
   config: {
     credentials: {
       get: () => Promise<Credentials>
@@ -109,6 +115,8 @@ export const api = {
   updateScripts: (data: Scripts) => client.config.scripts.update(data),
   getAgents: () => client.config.agents.get(),
   updateAgents: (data: CodingAgents) => client.config.agents.update(data),
+  getHostInfo: () => client.host.info(),
+  updateHostAccess: (enabled: boolean) => client.host.updateAccess({ enabled }),
 }
 
 export function getTerminalUrl(name: string): string {

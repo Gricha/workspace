@@ -1,11 +1,15 @@
 import { WebSocket } from 'ws';
 import { BaseWebSocketServer, type BaseConnection } from '../shared/base-websocket';
 import { createChatSession, type ChatSession, type ChatMessage } from './handler';
+import { createHostChatSession, type HostChatSession } from './host-handler';
 import { getContainerName } from '../docker';
 import type { AgentConfig } from '../shared/types';
+import { HOST_WORKSPACE_NAME } from '../shared/types';
+
+type AnyChatSession = ChatSession | HostChatSession;
 
 interface ChatConnection extends BaseConnection {
-  session: ChatSession | null;
+  session: AnyChatSession | null;
 }
 
 interface IncomingChatMessage {
@@ -17,17 +21,26 @@ interface IncomingChatMessage {
 interface ChatWebSocketOptions {
   isWorkspaceRunning: (workspaceName: string) => Promise<boolean>;
   getConfig: () => AgentConfig;
+  isHostAccessAllowed?: () => boolean;
 }
 
 export class ChatWebSocketServer extends BaseWebSocketServer<ChatConnection> {
   private getConfig: () => AgentConfig;
+  private isHostAccessAllowed: () => boolean;
 
   constructor(options: ChatWebSocketOptions) {
     super(options);
     this.getConfig = options.getConfig;
+    this.isHostAccessAllowed = options.isHostAccessAllowed || (() => false);
   }
 
   protected handleConnection(ws: WebSocket, workspaceName: string): void {
+    const isHostMode = workspaceName === HOST_WORKSPACE_NAME;
+
+    if (isHostMode && !this.isHostAccessAllowed()) {
+      ws.close(4003, 'Host access is disabled');
+      return;
+    }
     const connection: ChatConnection = {
       ws,
       session: null,
@@ -57,8 +70,6 @@ export class ChatWebSocketServer extends BaseWebSocketServer<ChatConnection> {
         }
 
         if (message.type === 'message' && message.content) {
-          const containerName = getContainerName(workspaceName);
-
           const onMessage = (chatMessage: ChatMessage) => {
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify(chatMessage));
@@ -68,15 +79,27 @@ export class ChatWebSocketServer extends BaseWebSocketServer<ChatConnection> {
           if (!connection.session) {
             const config = this.getConfig();
             const model = config.agents?.claude_code?.model;
-            connection.session = createChatSession(
-              {
-                containerName,
-                workDir: '/workspace',
-                sessionId: message.sessionId,
-                model,
-              },
-              onMessage
-            );
+
+            if (isHostMode) {
+              connection.session = createHostChatSession(
+                {
+                  sessionId: message.sessionId,
+                  model,
+                },
+                onMessage
+              );
+            } else {
+              const containerName = getContainerName(workspaceName);
+              connection.session = createChatSession(
+                {
+                  containerName,
+                  workDir: '/workspace',
+                  sessionId: message.sessionId,
+                  model,
+                },
+                onMessage
+              );
+            }
           }
 
           await connection.session.sendMessage(message.content);

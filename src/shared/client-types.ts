@@ -74,3 +74,12 @@ export interface SessionDetail {
   agentType?: AgentType;
   messages: SessionMessage[];
 }
+
+export const HOST_WORKSPACE_NAME = '@host';
+
+export interface HostInfo {
+  enabled: boolean;
+  hostname: string;
+  username: string;
+  homeDir: string;
+}

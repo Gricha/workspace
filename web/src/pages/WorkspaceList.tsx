@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Plus, RefreshCw, Boxes, ChevronRight, Sparkles } from 'lucide-react'
-import { api, type WorkspaceInfo, type CreateWorkspaceRequest } from '@/lib/api'
+import { Plus, RefreshCw, Boxes, ChevronRight, Sparkles, Monitor, AlertTriangle, Shield } from 'lucide-react'
+import { api, type WorkspaceInfo, type CreateWorkspaceRequest, type HostInfo } from '@/lib/api'
+import { HOST_WORKSPACE_NAME } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -70,6 +71,90 @@ function WorkspaceRow({ workspace, onClick }: { workspace: WorkspaceInfo; onClic
   )
 }
 
+function HostSection({ hostInfo, onNavigate, onToggle, isToggling }: {
+  hostInfo: HostInfo
+  onNavigate: () => void
+  onToggle: () => void
+  isToggling: boolean
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+          Host Machine
+        </h2>
+        {hostInfo.enabled && (
+          <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+            <AlertTriangle className="h-3 w-3" />
+            Direct access enabled
+          </span>
+        )}
+      </div>
+
+      <div className={cn(
+        "rounded-lg border overflow-hidden transition-colors",
+        hostInfo.enabled
+          ? "border-amber-500/50 bg-amber-500/5"
+          : "border-border/50 bg-card/50"
+      )}>
+        {hostInfo.enabled ? (
+          <button
+            onClick={onNavigate}
+            className="w-full flex items-center gap-4 px-4 py-4 hover:bg-accent/50 transition-colors text-left group"
+          >
+            <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <Monitor className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-foreground">{hostInfo.hostname}</span>
+                <span className="text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-medium">
+                  Active
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {hostInfo.username}@{hostInfo.hostname} &middot; {hostInfo.homeDir}
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
+          </button>
+        ) : (
+          <div className="px-4 py-4">
+            <div className="flex items-start gap-4">
+              <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center flex-shrink-0">
+                <Shield className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-foreground">Host Access Disabled</div>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Enable to run agents and terminals directly on {hostInfo.hostname}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className={cn(
+          "px-4 py-3 border-t flex items-center justify-between",
+          hostInfo.enabled ? "border-amber-500/30 bg-amber-500/5" : "border-border/50 bg-muted/20"
+        )}>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            <span>Commands run directly on your machine without isolation</span>
+          </div>
+          <Button
+            variant={hostInfo.enabled ? "outline" : "default"}
+            size="sm"
+            onClick={onToggle}
+            disabled={isToggling}
+          >
+            {isToggling ? 'Updating...' : hostInfo.enabled ? 'Disable' : 'Enable'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function WorkspaceList() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -80,6 +165,18 @@ export function WorkspaceList() {
   const { data: workspaces, isLoading, error, refetch } = useQuery({
     queryKey: ['workspaces'],
     queryFn: api.listWorkspaces,
+  })
+
+  const { data: hostInfo } = useQuery({
+    queryKey: ['hostInfo'],
+    queryFn: api.getHostInfo,
+  })
+
+  const hostToggleMutation = useMutation({
+    mutationFn: (enabled: boolean) => api.updateHostAccess(enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hostInfo'] })
+    },
   })
 
   const createMutation = useMutation({
@@ -149,6 +246,16 @@ export function WorkspaceList() {
           <StatCard value={totalCount - runningCount} label="Stopped" />
           <StatCard value="—" label="Sessions" />
         </div>
+      )}
+
+      {/* Host Section */}
+      {hostInfo && (
+        <HostSection
+          hostInfo={hostInfo}
+          onNavigate={() => navigate(`/workspaces/${encodeURIComponent(HOST_WORKSPACE_NAME)}`)}
+          onToggle={() => hostToggleMutation.mutate(!hostInfo.enabled)}
+          isToggling={hostToggleMutation.isPending}
+        />
       )}
 
       {/* Create form */}

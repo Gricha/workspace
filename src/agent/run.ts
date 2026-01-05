@@ -2,6 +2,7 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { RPCHandler } from '@orpc/server/node';
 import { loadAgentConfig, getConfigDir, ensureConfigDir } from '../config/loader';
 import type { AgentConfig } from '../shared/types';
+import { HOST_WORKSPACE_NAME } from '../shared/types';
 import { DEFAULT_AGENT_PORT } from '../shared/constants';
 import { WorkspaceManager } from '../workspace/manager';
 import { containerRunning, getContainerName } from '../docker';
@@ -23,24 +24,28 @@ function createAgentServer(configDir: string, config: AgentConfig) {
   let currentConfig = config;
   const workspaces = new WorkspaceManager(configDir, currentConfig);
 
+  const isWorkspaceRunning = async (name: string) => {
+    if (name === HOST_WORKSPACE_NAME) {
+      return currentConfig.allowHostAccess === true;
+    }
+    return containerRunning(getContainerName(name));
+  };
+
   const terminalServer = new TerminalWebSocketServer({
     getContainerName,
-    isWorkspaceRunning: async (name) => {
-      return containerRunning(getContainerName(name));
-    },
+    isWorkspaceRunning,
+    isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
   });
 
   const chatServer = new ChatWebSocketServer({
-    isWorkspaceRunning: async (name) => {
-      return containerRunning(getContainerName(name));
-    },
+    isWorkspaceRunning,
     getConfig: () => currentConfig,
+    isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
   });
 
   const opencodeServer = new OpencodeWebSocketServer({
-    isWorkspaceRunning: async (name) => {
-      return containerRunning(getContainerName(name));
-    },
+    isWorkspaceRunning,
+    isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
   });
 
   const router = createRouter({

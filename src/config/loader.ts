@@ -39,6 +39,7 @@ export async function loadAgentConfig(configDir?: string): Promise<AgentConfig> 
       },
       scripts: config.scripts || {},
       agents: config.agents || {},
+      allowHostAccess: config.allowHostAccess || false,
     };
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
