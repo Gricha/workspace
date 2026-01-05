@@ -19,11 +19,16 @@ jobs:
         node-version: '22'
         cache: 'npm'
 
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
+
     - name: Install dependencies
-      run: npm ci
+      run: |
+        bun install
+        cd web && bun install
 
     - name: Build
-      run: npm run build
+      run: bun run build
 
     - name: Run tests
-      run: npm test
+      run: bun run test
