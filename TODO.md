@@ -16,17 +16,6 @@
 
 ## Tasks
 
-### Code Duplication
-
-#### Abstract shared terminal handler logic
-**Files**: `src/terminal/handler.ts`, `src/terminal/host-handler.ts`
-
-Near-identical implementations of terminal session management. Only difference is whether it's container or host terminal.
-
-**Fix**: Create shared base class or extract common helper functions. Keep target-specific spawn logic separate.
-
----
-
 ### Code Bifurcation
 
 #### Refactor listSessionsCore() agent-specific logic
