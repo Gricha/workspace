@@ -211,8 +211,7 @@ export function SessionChatScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets()
   const { workspaceName, sessionId: initialSessionId, agentType = 'claude-code', isNew } = route.params
 
-  const [allMessages, setAllMessages] = useState<ChatMessage[]>([])
-  const [displayCount, setDisplayCount] = useState(MESSAGES_PER_PAGE)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [connected, setConnected] = useState(false)
@@ -220,10 +219,14 @@ export function SessionChatScreen({ route, navigation }: any) {
   const [initialScrollDone, setInitialScrollDone] = useState(false)
   const [streamingParts, setStreamingParts] = useState<MessagePart[]>([])
   const [keyboardVisible, setKeyboardVisible] = useState(false)
+  const [hasMoreMessages, setHasMoreMessages] = useState(false)
+  const [messageOffset, setMessageOffset] = useState(0)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
   const flatListRef = useRef<FlatList>(null)
   const streamingPartsRef = useRef<MessagePart[]>([])
   const messageIdCounter = useRef(0)
+  const hasLoadedInitial = useRef(false)
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardWillShow', () => setKeyboardVisible(true))
@@ -234,65 +237,94 @@ export function SessionChatScreen({ route, navigation }: any) {
     }
   }, [])
 
-  const { data: sessionData, isLoading: sessionLoading } = useQuery({
-    queryKey: ['session', workspaceName, initialSessionId],
-    queryFn: () => api.getSession(workspaceName, initialSessionId, agentType),
-    enabled: !!initialSessionId && !isNew,
-  })
-
   const generateId = useCallback(() => {
     messageIdCounter.current += 1
     return `msg-${messageIdCounter.current}`
   }, [])
 
-  useEffect(() => {
-    if (sessionData?.messages) {
-      const converted: ChatMessage[] = []
-      let currentParts: MessagePart[] = []
+  const parseMessages = useCallback((rawMessages: any[]): ChatMessage[] => {
+    const converted: ChatMessage[] = []
+    let currentParts: MessagePart[] = []
 
-      const flushParts = () => {
-        if (currentParts.length > 0) {
-          const textContent = currentParts
-            .filter(p => p.type === 'text')
-            .map(p => p.content)
-            .join('')
-          converted.push({
-            role: 'assistant',
-            content: textContent || '',
-            id: generateId(),
-            parts: [...currentParts],
-          })
-          currentParts = []
-        }
+    const flushParts = () => {
+      if (currentParts.length > 0) {
+        const textContent = currentParts
+          .filter(p => p.type === 'text')
+          .map(p => p.content)
+          .join('')
+        converted.push({
+          role: 'assistant',
+          content: textContent || '',
+          id: generateId(),
+          parts: [...currentParts],
+        })
+        currentParts = []
       }
-
-      for (const m of sessionData.messages) {
-        if (m.type === 'user' && m.content) {
-          flushParts()
-          converted.push({ role: 'user', content: m.content, id: generateId() })
-        } else if (m.type === 'assistant' && m.content) {
-          currentParts.push({ type: 'text', content: m.content })
-        } else if (m.type === 'tool_use') {
-          currentParts.push({
-            type: 'tool_use',
-            content: m.toolInput || '',
-            toolName: m.toolName,
-            toolId: m.toolId,
-          })
-        } else if (m.type === 'tool_result') {
-          currentParts.push({
-            type: 'tool_result',
-            content: m.content || '',
-            toolId: m.toolId,
-          })
-        }
-      }
-      flushParts()
-
-      setAllMessages(converted)
-      setInitialScrollDone(false)
     }
-  }, [sessionData, generateId])
+
+    for (const m of rawMessages) {
+      if (m.type === 'user' && m.content) {
+        flushParts()
+        converted.push({ role: 'user', content: m.content, id: generateId() })
+      } else if (m.type === 'assistant' && m.content) {
+        currentParts.push({ type: 'text', content: m.content })
+      } else if (m.type === 'tool_use') {
+        currentParts.push({
+          type: 'tool_use',
+          content: m.toolInput || '',
+          toolName: m.toolName,
+          toolId: m.toolId,
+        })
+      } else if (m.type === 'tool_result') {
+        currentParts.push({
+          type: 'tool_result',
+          content: m.content || '',
+          toolId: m.toolId,
+        })
+      }
+    }
+    flushParts()
+
+    return converted
+  }, [generateId])
+
+  const { data: sessionData, isLoading: sessionLoading } = useQuery({
+    queryKey: ['session', workspaceName, initialSessionId, 'initial'],
+    queryFn: () => api.getSession(workspaceName, initialSessionId, agentType, MESSAGES_PER_PAGE, 0),
+    enabled: !!initialSessionId && !isNew,
+  })
+
+  useEffect(() => {
+    if (sessionData?.messages && !hasLoadedInitial.current) {
+      hasLoadedInitial.current = true
+      const converted = parseMessages(sessionData.messages)
+      setMessages(converted)
+      setHasMoreMessages(sessionData.hasMore || false)
+      setMessageOffset(sessionData.messages.length)
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false })
+      }, 150)
+    }
+  }, [sessionData, parseMessages])
+
+  const loadMoreMessages = useCallback(async () => {
+    if (!hasMoreMessages || isLoadingMore || !initialSessionId) return
+
+    setIsLoadingMore(true)
+    try {
+      const moreData = await api.getSession(workspaceName, initialSessionId, agentType, MESSAGES_PER_PAGE, messageOffset)
+      if (moreData?.messages) {
+        const olderMessages = parseMessages(moreData.messages)
+        setMessages(prev => [...olderMessages, ...prev])
+        setHasMoreMessages(moreData.hasMore || false)
+        setMessageOffset(prev => prev + moreData.messages.length)
+      }
+    } catch (err) {
+      console.error('Failed to load more messages:', err)
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }, [hasMoreMessages, isLoadingMore, initialSessionId, workspaceName, agentType, messageOffset, parseMessages])
 
   const connect = useCallback(() => {
     const url = getChatUrl(workspaceName, agentType as AgentType)
@@ -373,7 +405,7 @@ export function SessionChatScreen({ route, navigation }: any) {
               .filter(p => p.type === 'text')
               .map(p => p.content)
               .join('')
-            setAllMessages((prev) => [...prev, {
+            setMessages((prev) => [...prev, {
               role: 'assistant',
               content: textContent || '',
               id: `msg-done-${Date.now()}`,
@@ -387,7 +419,7 @@ export function SessionChatScreen({ route, navigation }: any) {
         }
 
         if (msg.type === 'error') {
-          setAllMessages((prev) => [...prev, { role: 'system', content: `Error: ${msg.content || msg.message}`, id: `msg-err-${Date.now()}` }])
+          setMessages((prev) => [...prev, { role: 'system', content: `Error: ${msg.content || msg.message}`, id: `msg-err-${Date.now()}` }])
           setIsStreaming(false)
           return
         }
@@ -405,7 +437,7 @@ export function SessionChatScreen({ route, navigation }: any) {
     ws.onerror = () => {
       setConnected(false)
       setIsStreaming(false)
-      setAllMessages((prev) => [...prev, { role: 'system', content: 'Connection error', id: `msg-conn-err-${Date.now()}` }])
+      setMessages((prev) => [...prev, { role: 'system', content: 'Connection error', id: `msg-conn-err-${Date.now()}` }])
     }
 
     return () => ws.close()
@@ -416,35 +448,18 @@ export function SessionChatScreen({ route, navigation }: any) {
     return cleanup
   }, [connect])
 
-  useEffect(() => {
-    if (allMessages.length > 0 && !initialScrollDone) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false })
-        setInitialScrollDone(true)
-      }, 100)
+  const handleScroll = useCallback((event: any) => {
+    const { contentOffset } = event.nativeEvent
+    if (contentOffset.y < 100 && hasMoreMessages && !isLoadingMore) {
+      loadMoreMessages()
     }
-  }, [allMessages, initialScrollDone])
-
-  const displayedMessages = useMemo(() => {
-    if (allMessages.length <= displayCount) {
-      return allMessages
-    }
-    return allMessages.slice(-displayCount)
-  }, [allMessages, displayCount])
-
-  const hasMoreMessages = allMessages.length > displayCount
-
-  const loadMoreMessages = useCallback(() => {
-    if (hasMoreMessages) {
-      setDisplayCount((prev) => prev + MESSAGES_PER_PAGE)
-    }
-  }, [hasMoreMessages])
+  }, [hasMoreMessages, isLoadingMore, loadMoreMessages])
 
   const sendMessage = () => {
     if (!input.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
 
     const msg = input.trim()
-    setAllMessages((prev) => [...prev, { role: 'user', content: msg, id: `msg-user-${Date.now()}` }])
+    setMessages((prev) => [...prev, { role: 'user', content: msg, id: `msg-user-${Date.now()}` }])
     setInput('')
     setIsStreaming(true)
     streamingPartsRef.current = []
@@ -504,15 +519,17 @@ export function SessionChatScreen({ route, navigation }: any) {
 
       <FlatList
         ref={flatListRef}
-        data={displayedMessages}
+        data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <MessageBubble message={item} />}
         contentContainerStyle={styles.messageList}
+        onScroll={handleScroll}
+        scrollEventThrottle={100}
         ListHeaderComponent={
-          hasMoreMessages ? (
-            <TouchableOpacity style={styles.loadMoreBtn} onPress={loadMoreMessages}>
-              <Text style={styles.loadMoreText}>Load older messages</Text>
-            </TouchableOpacity>
+          isLoadingMore ? (
+            <View style={styles.loadingMore}>
+              <ActivityIndicator size="small" color="#0a84ff" />
+            </View>
           ) : null
         }
         ListFooterComponent={
@@ -528,6 +545,7 @@ export function SessionChatScreen({ route, navigation }: any) {
           ) : null
         }
         onScrollToIndexFailed={() => {}}
+        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
       />
 
       <View style={[styles.inputContainer, { paddingBottom: keyboardVisible ? 8 : insets.bottom + 8 }]}>
@@ -740,15 +758,9 @@ const styles = StyleSheet.create({
   dot3: {
     opacity: 0.8,
   },
-  loadMoreBtn: {
+  loadingMore: {
     alignItems: 'center',
-    paddingVertical: 12,
-    marginBottom: 8,
-  },
-  loadMoreText: {
-    fontSize: 14,
-    color: '#0a84ff',
-    fontWeight: '500',
+    paddingVertical: 16,
   },
   emptyChat: {
     flex: 1,
