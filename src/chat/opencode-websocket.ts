@@ -64,6 +64,7 @@ export class OpencodeWebSocketServer extends BaseWebSocketServer<OpencodeConnect
         if (message.type === 'interrupt') {
           if (connection.session) {
             await connection.session.interrupt();
+            connection.session = null;
           }
           return;
         }

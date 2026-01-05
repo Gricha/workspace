@@ -65,6 +65,7 @@ export class ChatWebSocketServer extends BaseWebSocketServer<ChatConnection> {
         if (message.type === 'interrupt') {
           if (connection.session) {
             await connection.session.interrupt();
+            connection.session = null;
           }
           return;
         }
