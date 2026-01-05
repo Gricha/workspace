@@ -6,11 +6,13 @@ import {
 } from './base-chat-websocket';
 import { createOpencodeSession } from './opencode-handler';
 import { createHostOpencodeSession } from './host-opencode-handler';
+import { createOpenCodeServerSession } from './opencode-server';
 import type { ChatMessage } from './handler';
 
 type AnyOpencodeSession =
   | ReturnType<typeof createOpencodeSession>
-  | ReturnType<typeof createHostOpencodeSession>;
+  | ReturnType<typeof createHostOpencodeSession>
+  | ReturnType<typeof createOpenCodeServerSession>;
 
 interface OpencodeConnection extends BaseChatConnection {
   session: AnyOpencodeSession | null;
@@ -39,7 +41,7 @@ export class OpencodeWebSocketServer extends BaseChatWebSocketServer<OpencodeCon
     sessionId: string | undefined,
     onMessage: (message: ChatMessage) => void
   ): ChatSessionInterface {
-    return createOpencodeSession(
+    return createOpenCodeServerSession(
       {
         containerName,
         workDir: '/home/workspace',
