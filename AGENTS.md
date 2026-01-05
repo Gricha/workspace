@@ -46,7 +46,7 @@ bun run test      # Run tests (requires Docker)
 
 ## Project Overview
 
-Workspace creates isolated Docker-in-Docker development environments. Distributed architecture: agent daemon, oRPC API, multiple clients (CLI, TUI, Web UI, Mobile).
+Workspace creates isolated Docker-in-Docker development environments. Distributed architecture: agent daemon, oRPC API, multiple clients (CLI, Web UI, Mobile).
 
 **Runtime**: Bun (not Node.js)
 **Language**: TypeScript with ES modules
@@ -60,7 +60,6 @@ Workspace creates isolated Docker-in-Docker development environments. Distribute
 - **State**: `~/.workspaces/state/state.json` with file locking (`proper-lockfile`)
 - **API**: oRPC server (`src/agent/`), client (`src/client/api.ts`)
 - **Web UI**: React + Vite + shadcn/ui (`web/`)
-- **TUI**: OpenTUI (`src/tui/`)
 - **Docs**: Docusaurus (`docs/`)
 
 ## Code Style
@@ -89,22 +88,19 @@ Workspace creates isolated Docker-in-Docker development environments. Distribute
 - E2E: `test/e2e/`
 - Integration: `test/integration/`
 - Web UI: Playwright (`web/e2e/`)
-- TUI: Harness (`test/tui/`)
 
 If modifying Dockerfile/init scripts, run `workspace build` first.
 
 ### UI Testing
 
-**Critical**: UI (Web, TUI, mobile) MUST have e2e tests. Unit/integration tests miss rendering bugs, event binding issues, and framework regressions.
+**Critical**: UI (Web, mobile) MUST have e2e tests. Unit/integration tests miss rendering bugs, event binding issues, and framework regressions.
 
 **Required coverage:**
 - Web: Playwright
-- TUI: Process harness
 - Mobile: Appium/Detox
 
 ## Known Issues
 
-**OpenTUI types**: Module resolution issues. Workaround: local declarations in `src/tui/opentui.d.ts`
 **Web UI oRPC**: Browser needs absolute URL. See `web/src/lib/api.ts`
 
 ## Don't

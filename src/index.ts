@@ -19,9 +19,8 @@ program
   .name('workspace')
   .description('Distributed development environment orchestrator')
   .version(pkg.version)
-  .action(async () => {
-    const { startTui } = await import('./tui/index.js');
-    await startTui();
+  .action(() => {
+    program.outputHelp();
   });
 
 const agentCmd = program.command('agent').description('Manage the workspace agent daemon');
