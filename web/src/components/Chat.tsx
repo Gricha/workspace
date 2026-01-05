@@ -301,9 +301,13 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
     return historicalMessages
   }, [])
 
+  const hasLoadedHistoryRef = useRef(false)
+
   useEffect(() => {
     if (!initialSessionId || !workspaceName) return
+    if (hasLoadedHistoryRef.current) return
 
+    hasLoadedHistoryRef.current = true
     setIsLoadingHistory(true)
     api.getSession(workspaceName, initialSessionId, agentType, MESSAGES_PER_PAGE, 0)
       .then((detail) => {
