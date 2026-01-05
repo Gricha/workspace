@@ -660,6 +660,7 @@ export function createRouter(ctx: RouterContext) {
             try {
               const session = JSON.parse(catResult.stdout) as { id: string };
               const msgDir = `/home/workspace/.local/share/opencode/storage/message/${session.id}`;
+              const partDir = `/home/workspace/.local/share/opencode/storage/part`;
 
               const listMsgsResult = await execInContainer(
                 containerName,
@@ -676,19 +677,77 @@ export function createRouter(ctx: RouterContext) {
                   if (msgResult.exitCode === 0) {
                     try {
                       const msg = JSON.parse(msgResult.stdout) as {
+                        id?: string;
                         role?: string;
-                        content?: unknown;
                         time?: { created?: number };
                       };
-                      if (msg.role === 'user' || msg.role === 'assistant') {
-                        const parsedContent = extractContent(msg.content);
-                        messages.push({
-                          type: msg.role,
-                          content: parsedContent || undefined,
-                          timestamp: msg.time?.created
-                            ? new Date(msg.time.created).toISOString()
-                            : undefined,
-                        });
+                      if (!msg.id || (msg.role !== 'user' && msg.role !== 'assistant')) continue;
+
+                      const timestamp = msg.time?.created
+                        ? new Date(msg.time.created).toISOString()
+                        : undefined;
+
+                      const listPartsResult = await execInContainer(
+                        containerName,
+                        [
+                          'bash',
+                          '-c',
+                          `ls -1 "${partDir}/${msg.id}"/prt_*.json 2>/dev/null | sort`,
+                        ],
+                        { user: 'workspace' }
+                      );
+
+                      if (listPartsResult.exitCode === 0 && listPartsResult.stdout.trim()) {
+                        const partFiles = listPartsResult.stdout.trim().split('\n').filter(Boolean);
+                        for (const partFile of partFiles) {
+                          const partResult = await execInContainer(
+                            containerName,
+                            ['cat', partFile],
+                            { user: 'workspace' }
+                          );
+                          if (partResult.exitCode === 0) {
+                            try {
+                              const part = JSON.parse(partResult.stdout) as {
+                                type: string;
+                                text?: string;
+                                tool?: string;
+                                callID?: string;
+                                id?: string;
+                                state?: {
+                                  input?: Record<string, unknown>;
+                                  output?: string;
+                                  title?: string;
+                                };
+                              };
+                              if (part.type === 'text' && part.text) {
+                                messages.push({
+                                  type: msg.role as 'user' | 'assistant',
+                                  content: part.text,
+                                  timestamp,
+                                });
+                              } else if (part.type === 'tool' && part.tool) {
+                                messages.push({
+                                  type: 'tool_use',
+                                  content: undefined,
+                                  toolName: part.state?.title || part.tool,
+                                  toolId: part.callID || part.id,
+                                  toolInput: JSON.stringify(part.state?.input, null, 2),
+                                  timestamp,
+                                });
+                                if (part.state?.output) {
+                                  messages.push({
+                                    type: 'tool_result',
+                                    content: part.state.output,
+                                    toolId: part.callID || part.id,
+                                    timestamp,
+                                  });
+                                }
+                              }
+                            } catch {
+                              continue;
+                            }
+                          }
+                        }
                       }
                     } catch {
                       continue;

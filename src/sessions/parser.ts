@@ -353,13 +353,55 @@ interface OpenCodeMessage {
   id?: string;
   sessionID?: string;
   role?: 'user' | 'assistant' | 'system';
-  content?: string | Array<{ type: string; text?: string }>;
   time?: {
     created?: number;
   };
 }
 
-async function parseOpenCodeMessages(messageDir: string): Promise<SessionMessage[]> {
+interface OpenCodePart {
+  id?: string;
+  sessionID?: string;
+  messageID?: string;
+  type: string;
+  text?: string;
+  tool?: string;
+  callID?: string;
+  state?: {
+    input?: Record<string, unknown>;
+    output?: string;
+    title?: string;
+  };
+}
+
+async function getMessageParts(partDir: string, messageId: string): Promise<OpenCodePart[]> {
+  const parts: OpenCodePart[] = [];
+  const msgPartDir = join(partDir, messageId);
+
+  try {
+    const files = await readdir(msgPartDir);
+    const partFiles = files.filter((f) => f.startsWith('prt_') && f.endsWith('.json'));
+    partFiles.sort();
+
+    for (const file of partFiles) {
+      try {
+        const content = await readFile(join(msgPartDir, file), 'utf-8');
+        const part = JSON.parse(content) as OpenCodePart;
+        parts.push(part);
+      } catch {
+        continue;
+      }
+    }
+  } catch {
+    return [];
+  }
+
+  return parts;
+}
+
+async function parseOpenCodeMessages(
+  messageDir: string,
+  partDir: string
+): Promise<SessionMessage[]> {
   const messages: SessionMessage[] = [];
 
   try {
@@ -372,13 +414,37 @@ async function parseOpenCodeMessages(messageDir: string): Promise<SessionMessage
         const content = await readFile(join(messageDir, file), 'utf-8');
         const msg = JSON.parse(content) as OpenCodeMessage;
 
-        if (msg.role === 'user' || msg.role === 'assistant') {
-          const textContent = extractContent(msg.content);
-          messages.push({
-            type: msg.role,
-            content: textContent || undefined,
-            timestamp: msg.time?.created ? new Date(msg.time.created).toISOString() : undefined,
-          });
+        if (!msg.id || !msg.role) continue;
+        if (msg.role !== 'user' && msg.role !== 'assistant') continue;
+
+        const parts = await getMessageParts(partDir, msg.id);
+        const timestamp = msg.time?.created ? new Date(msg.time.created).toISOString() : undefined;
+
+        for (const part of parts) {
+          if (part.type === 'text' && part.text) {
+            messages.push({
+              type: msg.role,
+              content: part.text,
+              timestamp,
+            });
+          } else if (part.type === 'tool' && part.tool) {
+            messages.push({
+              type: 'tool_use',
+              content: undefined,
+              toolName: part.state?.title || part.tool,
+              toolId: part.callID || part.id,
+              toolInput: JSON.stringify(part.state?.input, null, 2),
+              timestamp,
+            });
+            if (part.state?.output) {
+              messages.push({
+                type: 'tool_result',
+                content: part.state.output,
+                toolId: part.callID || part.id,
+                timestamp,
+              });
+            }
+          }
         }
       } catch {
         continue;
@@ -417,7 +483,8 @@ export async function listOpenCodeSessions(homeDir: string): Promise<SessionMeta
           const fileStat = await stat(filePath);
 
           const messageDir = join(openCodeDir, 'message', session.id);
-          const messages = await parseOpenCodeMessages(messageDir);
+          const partDir = join(openCodeDir, 'part');
+          const messages = await parseOpenCodeMessages(messageDir, partDir);
 
           const userMessages = messages.filter((m) => m.type === 'user');
           const firstPrompt = userMessages.length > 0 ? userMessages[0].content || null : null;
@@ -471,7 +538,8 @@ async function getOpenCodeSessionDetail(
         const fileStat = await stat(filePath);
 
         const messageDir = join(openCodeDir, 'message', sessionId);
-        const messages = await parseOpenCodeMessages(messageDir);
+        const partDir = join(openCodeDir, 'part');
+        const messages = await parseOpenCodeMessages(messageDir, partDir);
 
         const userMessages = messages.filter((m) => m.type === 'user');
         const firstPrompt = userMessages.length > 0 ? userMessages[0].content || null : null;

@@ -246,7 +246,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
     if (!initialSessionId || !workspaceName) return
 
     setIsLoadingHistory(true)
-    api.getSession(workspaceName, initialSessionId, 'claude-code')
+    api.getSession(workspaceName, initialSessionId, agentType)
       .then((detail) => {
         if (detail?.messages) {
           const historicalMessages: ChatMessage[] = []
@@ -307,7 +307,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
       .finally(() => {
         setIsLoadingHistory(false)
       })
-  }, [initialSessionId, workspaceName])
+  }, [initialSessionId, workspaceName, agentType])
 
   const streamingPartsRef = useRef<ChatMessagePart[]>([])
   const [streamingParts, setStreamingParts] = useState<ChatMessagePart[]>([])

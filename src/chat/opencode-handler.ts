@@ -17,9 +17,14 @@ interface OpencodeStreamEvent {
     messageID?: string;
     type: string;
     text?: string;
-    name?: string;
-    input?: unknown;
-    output?: string;
+    tool?: string;
+    callID?: string;
+    state?: {
+      status?: string;
+      input?: Record<string, unknown>;
+      output?: string;
+      title?: string;
+    };
     reason?: string;
   };
 }
@@ -167,7 +172,7 @@ export class OpencodeSession {
         this.sessionId = event.sessionID;
         this.onMessage({
           type: 'system',
-          content: `Session: ${this.sessionId.slice(0, 8)}...`,
+          content: `Session started ${this.sessionId}`,
           timestamp,
         });
       }
@@ -183,28 +188,33 @@ export class OpencodeSession {
       return;
     }
 
-    if (event.type === 'tool_call' && event.part) {
+    if (event.type === 'tool_use' && event.part) {
+      const toolName = event.part.tool || 'unknown';
+      const toolId = event.part.callID || event.part.id;
+      const input = event.part.state?.input;
+      const output = event.part.state?.output;
+      const title =
+        event.part.state?.title || (input as { description?: string })?.description || toolName;
+
+      console.log('[opencode] Tool use:', toolName, title);
+
       this.onMessage({
         type: 'tool_use',
-        content: JSON.stringify(event.part.input, null, 2),
-        toolName: event.part.name || 'unknown',
-        toolId: event.part.id,
+        content: JSON.stringify(input, null, 2),
+        toolName: title || toolName,
+        toolId,
         timestamp,
       });
-      return;
-    }
 
-    if (event.type === 'tool_result' && event.part) {
-      this.onMessage({
-        type: 'tool_result',
-        content:
-          typeof event.part.output === 'string'
-            ? event.part.output
-            : JSON.stringify(event.part.output),
-        toolName: event.part.name || 'unknown',
-        toolId: event.part.id,
-        timestamp,
-      });
+      if (output) {
+        this.onMessage({
+          type: 'tool_result',
+          content: output,
+          toolName,
+          toolId,
+          timestamp,
+        });
+      }
       return;
     }
   }
