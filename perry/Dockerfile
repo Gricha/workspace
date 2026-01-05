@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Workspace Ubuntu Noble Dockerfile
 # Provides a reusable Docker-in-Docker environment with SSH access.
 # Migrated from Alpine to Ubuntu Noble (24.04 LTS)
@@ -8,11 +9,13 @@ FROM ubuntu:noble
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisites for adding Docker repository
-RUN apt-get update && apt-get install -y \
-  ca-certificates \
-  curl \
-  gnupg \
-  lsb-release
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
 
 # Add Docker's official GPG key and repository
 RUN install -m 0755 -d /etc/apt/keyrings \
@@ -22,46 +25,44 @@ RUN install -m 0755 -d /etc/apt/keyrings \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 # Install Docker Engine, CLI, and development tools
-RUN apt-get update && apt-get install -y \
-  docker-ce \
-  docker-ce-cli \
-  containerd.io \
-  docker-buildx-plugin \
-  docker-compose-plugin \
-  bash \
-  sudo \
-  openssh-server \
-  git \
-  curl \
-  wget \
-  tzdata \
-  python3 \
-  python3-pip \
-  jq \
-  rsync \
-  unzip \
-  zip \
-  nano \
-  vim \
-  iproute2 \
-  iptables \
-  kmod \
-  openssl \
-  procps \
-  ripgrep \
-  fd-find \
-  fzf \
-  zsh \
-  luarocks \
-  imagemagick
-
-# Install build dependencies for Neovim
-RUN apt-get update && apt-get install -y \
-  ninja-build \
-  gettext \
-  cmake \
-  unzip \
-  build-essential
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io \
+    docker-buildx-plugin \
+    docker-compose-plugin \
+    bash \
+    sudo \
+    openssh-server \
+    git \
+    curl \
+    wget \
+    tzdata \
+    python3 \
+    python3-pip \
+    jq \
+    rsync \
+    unzip \
+    zip \
+    nano \
+    vim \
+    iproute2 \
+    iptables \
+    kmod \
+    openssl \
+    procps \
+    ripgrep \
+    fd-find \
+    fzf \
+    zsh \
+    luarocks \
+    imagemagick \
+    ninja-build \
+    gettext \
+    cmake \
+    build-essential
 
 # Build Neovim v0.11.4 from source
 RUN git clone --depth 1 --branch v0.11.4 https://github.com/neovim/neovim.git /tmp/neovim \
@@ -145,9 +146,9 @@ RUN ARCH=$(dpkg --print-architecture) \
   && lazygit --version
 
 RUN ARCH=$(dpkg --print-architecture) \
-  && if [ "$ARCH" = "amd64" ]; then TECTONIC_ARCH="x86_64-unknown-linux-gnu"; elif [ "$ARCH" = "arm64" ]; then TECTONIC_ARCH="aarch64-unknown-linux-gnu"; else TECTONIC_ARCH="$ARCH"; fi \
+  && if [ "$ARCH" = "amd64" ]; then TECTONIC_ARCH="x86_64-unknown-linux-gnu"; elif [ "$ARCH" = "arm64" ]; then TECTONIC_ARCH="aarch64-unknown-linux-musl"; else TECTONIC_ARCH="$ARCH"; fi \
   && TECTONIC_VERSION=$(curl -s "https://api.github.com/repos/tectonic-typesetting/tectonic/releases/latest" | grep -Po '"tag_name": "tectonic@\K[^"]*') \
-  && curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/latest/download/tectonic-${TECTONIC_VERSION}-${TECTONIC_ARCH}.tar.gz" -o /tmp/tectonic.tar.gz \
+  && curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%40${TECTONIC_VERSION}/tectonic-${TECTONIC_VERSION}-${TECTONIC_ARCH}.tar.gz" -o /tmp/tectonic.tar.gz \
   && tar -C /usr/local/bin -xzf /tmp/tectonic.tar.gz \
   && rm /tmp/tectonic.tar.gz \
   && tectonic --version
