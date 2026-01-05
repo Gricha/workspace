@@ -1,5 +1,5 @@
 import { WebSocket } from 'ws';
-import { BaseWebSocketServer, type BaseConnection } from '../shared/base-websocket';
+import { BaseWebSocketServer, type BaseConnection, safeSend } from '../shared/base-websocket';
 import { createChatSession, type ChatSession, type ChatMessage } from './handler';
 import { createHostChatSession, type HostChatSession } from './host-handler';
 import { getContainerName } from '../docker';
@@ -48,7 +48,8 @@ export class ChatWebSocketServer extends BaseWebSocketServer<ChatConnection> {
     };
     this.connections.set(ws, connection);
 
-    ws.send(
+    safeSend(
+      ws,
       JSON.stringify({
         type: 'connected',
         workspaceName,
@@ -72,9 +73,7 @@ export class ChatWebSocketServer extends BaseWebSocketServer<ChatConnection> {
 
         if (message.type === 'message' && message.content) {
           const onMessage = (chatMessage: ChatMessage) => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify(chatMessage));
-            }
+            safeSend(ws, JSON.stringify(chatMessage));
           };
 
           if (!connection.session) {
@@ -106,7 +105,8 @@ export class ChatWebSocketServer extends BaseWebSocketServer<ChatConnection> {
           await connection.session.sendMessage(message.content);
         }
       } catch (err) {
-        ws.send(
+        safeSend(
+          ws,
           JSON.stringify({
             type: 'error',
             content: (err as Error).message,

@@ -18,13 +18,6 @@
 
 ### Race Conditions & Stability
 
-#### Fix WebSocket send-after-close race condition
-**File**: `src/shared/base-websocket.ts` (line ~76)
-
-Current code checks `ws.readyState === WebSocket.OPEN` then sends, but socket can close between check and send. Need to wrap in try-catch or use a queue pattern.
-
-**Fix**: Add try-catch around `ws.send()` calls and handle CLOSING/CLOSED states gracefully.
-
 #### Add container health check before exec operations
 **Files**: `src/workspace/manager.ts` (lines ~444-453, ~529-538)
 

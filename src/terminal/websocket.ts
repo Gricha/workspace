@@ -1,5 +1,5 @@
 import { WebSocket } from 'ws';
-import { BaseWebSocketServer, type BaseConnection } from '../shared/base-websocket';
+import { BaseWebSocketServer, type BaseConnection, safeSend } from '../shared/base-websocket';
 import { createTerminalSession, TerminalSession } from './handler';
 import { createHostTerminalSession, HostTerminalSession } from './host-handler';
 import { isControlMessage } from './types';
@@ -61,9 +61,7 @@ export class TerminalWebSocketServer extends BaseWebSocketServer<TerminalConnect
       this.connections.set(ws, connection);
 
       session.setOnData((data) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(data);
-        }
+        safeSend(ws, data);
       });
 
       session.setOnExit((code) => {

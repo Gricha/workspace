@@ -7,6 +7,18 @@ export interface BaseConnection {
   workspaceName: string;
 }
 
+export function safeSend(ws: WebSocket, data: string | Buffer): boolean {
+  if (ws.readyState !== WebSocket.OPEN) {
+    return false;
+  }
+  try {
+    ws.send(data);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export abstract class BaseWebSocketServer<TConnection extends BaseConnection> {
   protected wss: WebSocketServer;
   protected connections: Map<WebSocket, TConnection> = new Map();

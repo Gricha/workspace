@@ -1,5 +1,5 @@
 import { WebSocket } from 'ws';
-import { BaseWebSocketServer, type BaseConnection } from '../shared/base-websocket';
+import { BaseWebSocketServer, type BaseConnection, safeSend } from '../shared/base-websocket';
 import { createOpencodeSession, type OpencodeSession } from './opencode-handler';
 import { createHostOpencodeSession, type HostOpencodeSession } from './host-opencode-handler';
 import type { ChatMessage } from './handler';
@@ -46,7 +46,8 @@ export class OpencodeWebSocketServer extends BaseWebSocketServer<OpencodeConnect
     };
     this.connections.set(ws, connection);
 
-    ws.send(
+    safeSend(
+      ws,
       JSON.stringify({
         type: 'connected',
         workspaceName,
@@ -71,9 +72,7 @@ export class OpencodeWebSocketServer extends BaseWebSocketServer<OpencodeConnect
 
         if (message.type === 'message' && message.content) {
           const onMessage = (chatMessage: ChatMessage) => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify(chatMessage));
-            }
+            safeSend(ws, JSON.stringify(chatMessage));
           };
 
           if (!connection.session) {
@@ -100,7 +99,8 @@ export class OpencodeWebSocketServer extends BaseWebSocketServer<OpencodeConnect
           await connection.session.sendMessage(message.content);
         }
       } catch (err) {
-        ws.send(
+        safeSend(
+          ws,
           JSON.stringify({
             type: 'error',
             content: (err as Error).message,

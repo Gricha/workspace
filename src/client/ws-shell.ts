@@ -77,9 +77,21 @@ export async function openWSShell(options: WSShellOptions): Promise<void> {
     const stdin = process.stdin as ReadStream;
     const stdout = process.stdout as WriteStream;
 
+    const safeSend = (data: string | Buffer): boolean => {
+      if (ws.readyState !== WebSocket.OPEN) {
+        return false;
+      }
+      try {
+        ws.send(data);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
     const sendResize = () => {
-      if (ws.readyState === WebSocket.OPEN && stdout.columns && stdout.rows) {
-        ws.send(JSON.stringify({ type: 'resize', cols: stdout.columns, rows: stdout.rows }));
+      if (stdout.columns && stdout.rows) {
+        safeSend(JSON.stringify({ type: 'resize', cols: stdout.columns, rows: stdout.rows }));
       }
     };
 
@@ -124,9 +136,7 @@ export async function openWSShell(options: WSShellOptions): Promise<void> {
     });
 
     stdin.on('data', (data: Buffer) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
-      }
+      safeSend(data);
     });
 
     stdout.on('resize', sendResize);
