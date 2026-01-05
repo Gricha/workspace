@@ -6,8 +6,10 @@ appId: com.subroutine.workspace
 - launchApp:
     clearState: true
 
-# Verify main screen loads
-- assertVisible: "Workspaces"
+# Wait for app to fully load
+- extendedWaitUntil:
+    visible: "Workspaces"
+    timeout: 10000
 
 # Verify bottom navigation is visible
 - assertVisible: "Sessions"

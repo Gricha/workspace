@@ -6,8 +6,10 @@ appId: com.subroutine.workspace
 - launchApp:
     clearState: true
 
-# Verify we start on Workspaces tab
-- assertVisible: "Workspaces"
+# Wait for app to fully load
+- extendedWaitUntil:
+    visible: "Workspaces"
+    timeout: 10000
 
 # Navigate to Sessions tab
 - tapOn: "Sessions"

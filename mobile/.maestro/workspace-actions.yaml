@@ -6,7 +6,10 @@ appId: com.subroutine.workspace
 - launchApp:
     clearState: true
 
-- assertVisible: "Workspaces"
+# Wait for app to fully load
+- extendedWaitUntil:
+    visible: "Workspaces"
+    timeout: 10000
 
 # If no workspaces exist, the test gracefully handles empty state
 - runFlow:

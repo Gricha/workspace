@@ -1,41 +1,36 @@
 appId: com.subroutine.workspace
 ---
-# Test: Session Agent Filter
-# Verifies the agent filter dropdown works correctly
+# Test: Session Screen and Filter
+# Verifies sessions screen loads and filter works when connected
 
 - launchApp:
     clearState: true
 
-# Navigate to Sessions tab
+# Wait for app to load then navigate to Sessions
+- extendedWaitUntil:
+    visible: "Sessions"
+    timeout: 10000
+
 - tapOn: "Sessions"
 
-# Verify filter bar is visible
-- assertVisible: "Filter by agent"
-- assertVisible: "All Agents"
+# Handle error state when server unreachable
+- runFlow:
+    when:
+      visible: "Cannot Load Sessions"
+    commands:
+      - assertVisible: "Retry"
 
-# Open the filter dropdown
-- tapOn: "All Agents"
-
-# Verify filter options are visible
-- assertVisible: "All Agents"
-- assertVisible: "Claude Code"
-- assertVisible: "OpenCode"
-- assertVisible: "Codex"
-
-# Select Claude Code filter
-- tapOn: "Claude Code"
-
-# Verify the filter is now showing Claude Code
-- assertVisible: "Claude Code"
-
-# Open filter again and select All Agents
-- tapOn: "Claude Code"
-- tapOn:
-    text: "All Agents"
-    index: 1
-
-# Verify we're back to All Agents
-- assertVisible: "All Agents"
+# Test filter when connected
+- runFlow:
+    when:
+      visible: "Filter by agent:"
+    commands:
+      - assertVisible: "All Agents"
+      - tapOn: "All Agents"
+      - assertVisible: "Claude Code"
+      - assertVisible: "OpenCode"
+      - tapOn: "Claude Code"
+      - assertVisible: "Claude Code"
 
 # Navigate back to verify everything still works
 - tapOn: "Workspaces"

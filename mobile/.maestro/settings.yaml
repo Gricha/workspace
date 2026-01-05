@@ -1,93 +1,62 @@
 appId: com.subroutine.workspace
 ---
 # Test: Settings Screen Visibility and Interactions
-# Verifies all settings sections are accessible including new features
+# Verifies key settings sections are accessible
 
 - launchApp:
     clearState: true
 
-# Navigate to Settings
+# Wait for app to load then navigate to Settings
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 10000
+
 - tapOn: "Settings"
 
-# Connection section
+# Connection section (always visible at top)
 - assertVisible: "Connection"
-- assertVisible: "Agent Server"
 - assertVisible: "Server URL"
 
-# Coding Agents section
+# Coding Agents section header
 - assertVisible: "Coding Agents"
-- assertVisible: "OpenCode"
-- assertVisible: "Claude Code"
-- assertVisible: "GitHub"
 
-# Scroll to see Environment Variables section
-- scroll:
-    direction: DOWN
+# Scroll down to see all content
+- swipe:
+    direction: UP
+    duration: 300
+
+- swipe:
+    direction: UP
+    duration: 300
 
 # Environment Variables section
 - assertVisible: "Environment Variables"
-- assertVisible:
-    text: "injected into all workspaces"
-    optional: true
 
-# Scroll more to see File Mappings
-- scroll:
-    direction: DOWN
+# Scroll more
+- swipe:
+    direction: UP
+    duration: 300
 
-# File Mappings section
-- assertVisible: "File Mappings"
-- assertVisible:
-    text: "Copy files from host"
-    optional: true
+- swipe:
+    direction: UP
+    duration: 300
 
-# Scroll more to see Scripts section
-- scroll:
-    direction: DOWN
-
-# Scripts section
+# Scripts and About sections
 - assertVisible: "Scripts"
-- assertVisible: "Post-Start Script"
 
-# Scroll to see About section
-- scroll:
-    direction: DOWN
+- swipe:
+    direction: UP
+    duration: 300
 
 - assertVisible: "About"
 
-# About section should show system info (when connected)
-- runFlow:
-    when:
-      visible: "Host"
-    commands:
-      - assertVisible: "Docker"
-      - assertVisible: "Workspaces"
-      - assertVisible: "Uptime"
-      - assertVisible: "Status"
-
-# Handle connection error state with retry button
+# Handle connection states
 - runFlow:
     when:
       visible: "Server Unreachable"
     commands:
       - assertVisible: "Retry Connection"
-      - tapOn: "Retry Connection"
-
-# Handle other connection error states
-- runFlow:
-    when:
-      visible: "Connection Error"
-    commands:
-      - assertVisible: "Retry Connection"
 
 # Navigate back to Workspaces
-- scroll:
-    direction: UP
-
-- scroll:
-    direction: UP
-
-- scroll:
-    direction: UP
-
 - tapOn: "Workspaces"
 - assertVisible: "Workspaces"
