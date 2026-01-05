@@ -18,13 +18,6 @@
 
 ### Code Duplication
 
-#### Create base class for chat WebSocket handlers
-**Files**: `src/chat/websocket.ts`, `src/chat/opencode-websocket.ts`
-
-These files are ~95% identical with same connection handling, message routing, and error handling. Only difference is which session factory they call.
-
-**Fix**: Create `src/chat/base-chat-websocket.ts` with shared logic, then have both handlers extend it and override only the session creation method.
-
 #### Abstract shared terminal handler logic
 **Files**: `src/terminal/handler.ts`, `src/terminal/host-handler.ts`
 
