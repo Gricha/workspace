@@ -16,20 +16,6 @@
 
 ## Tasks
 
-### Code Bifurcation
-
-#### Refactor getSession() agent-specific logic
-**File**: `src/agent/router.ts` (lines ~567-780)
-
-The `getSession` handler still has bifurcated code paths for each agent type. The `getSessionMessages` function already exists in `src/sessions/agents/` but isn't being used.
-
-**Fix**:
-1. Update `getSession` handler to use `getSessionMessages(containerName, sessionId, agentType, exec)`
-2. Handle the case where `agentType` is not provided (try all agents, return first match)
-3. Remove the inline parsing logic for each agent type
-
----
-
 ### OpenCode Integration
 
 #### Load existing messages when reopening OpenCode session
