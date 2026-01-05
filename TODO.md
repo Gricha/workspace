@@ -102,6 +102,38 @@ Two different `WorkspaceState` type definitions exist. Consolidate into single s
 
 ---
 
+### OpenCode Integration
+
+#### Load existing messages when reopening OpenCode session
+**Files**: `src/chat/opencode-handler.ts`, `web/src/pages/WorkspaceDetail.tsx`
+
+When reopening an existing OpenCode session via `--session <id>`, the web UI shows an empty chat. Previous messages should be loaded and displayed before accepting new input.
+
+**Fix**:
+1. When session ID is provided, first fetch session history from OpenCode storage
+2. Parse existing messages from session file (check `~/.local/share/opencode/storage/`)
+3. Send historical messages to web client before enabling input
+4. Use existing session parser logic from `src/sessions/parser.ts` if applicable
+
+#### Implement OpenCode Server API for real-time streaming
+**Files**: `src/chat/opencode-handler.ts`, possibly new `src/chat/opencode-server.ts`
+
+Current implementation uses `opencode run --format json` which works but spawns a new process per message. OpenCode has a built-in server (`opencode serve`) with SSE streaming that would provide:
+- Persistent sessions across page reloads
+- Real-time status updates
+- More efficient connection (single long-lived connection vs process-per-message)
+
+**Fix**:
+1. Research: Check if `opencode serve` can run in container and expose API
+2. Start `opencode serve` on container startup or on-demand
+3. Create new handler that connects to OpenCode's HTTP API
+4. Use SSE for streaming responses instead of parsing stdout
+5. Keep CLI fallback for environments where server can't run
+
+Reference: [docs/research/RESEARCH_AGENT_TERMINAL.md](./docs/research/RESEARCH_AGENT_TERMINAL.md)
+
+---
+
 ### Performance
 
 #### Virtualize long chat session rendering
@@ -136,15 +168,6 @@ This makes typecheck failures more visible in CI output.
 ## Considerations
 
 > Add items here to discuss with project owner before promoting to tasks.
-
-### OpenCode Server API Integration (Optional Enhancement)
-
-Research document: [docs/research/RESEARCH_AGENT_TERMINAL.md](./docs/research/RESEARCH_AGENT_TERMINAL.md)
-
-OpenCode chat is now implemented using CLI passthrough (`opencode run --format json`). This works well and matches the Claude Code integration pattern. Future enhancement could use OpenCode's built-in server API (`opencode serve`) for:
-- Persistent sessions across page reloads
-- Real-time status updates via SSE
-- More granular message streaming
 
 ### Design Document Updates (Pending Review)
 
