@@ -97,8 +97,12 @@ async function checkLocalAgent(): Promise<boolean> {
 }
 
 async function getClient() {
-  let worker = await getWorker();
+  const worker = await getWorkerWithFallback();
+  return createApiClient(worker);
+}
 
+async function getWorkerWithFallback(): Promise<string> {
+  let worker = await getWorker();
   if (!worker) {
     const localRunning = await checkLocalAgent();
     if (localRunning) {
@@ -108,8 +112,7 @@ async function getClient() {
       process.exit(1);
     }
   }
-
-  return createApiClient(worker);
+  return worker;
 }
 
 program
@@ -310,20 +313,6 @@ program
       handleError(err);
     }
   });
-
-async function getWorkerWithFallback(): Promise<string> {
-  let worker = await getWorker();
-  if (!worker) {
-    const localRunning = await checkLocalAgent();
-    if (localRunning) {
-      worker = `localhost:${DEFAULT_AGENT_PORT}`;
-    } else {
-      console.error('No worker configured. Run: perry config worker <hostname>');
-      process.exit(1);
-    }
-  }
-  return worker;
-}
 
 program
   .command('proxy <name> [ports...]')
