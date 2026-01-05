@@ -36,15 +36,6 @@ Three divergent code paths for Claude/OpenCode/Codex session listing. Bug fixes 
 
 ---
 
-### Type Safety
-
-#### Consolidate duplicate WorkspaceState type definitions
-**Files**: `src/workspace/types.ts`, `src/shared/types.ts`
-
-Two different `WorkspaceState` type definitions exist. Consolidate into single source of truth in `src/shared/types.ts` and update all imports.
-
----
-
 ### OpenCode Integration
 
 #### Load existing messages when reopening OpenCode session
@@ -90,21 +81,6 @@ Opening a long chat session (1000+ messages) freezes the browser because all mes
 3. Load more messages on scroll up
 4. Unload messages when scrolling away to keep DOM size manageable
 5. Keep scroll position stable when loading older messages
-
----
-
-### CI
-
-#### Add explicit typecheck step to test workflow
-**File**: `.github/workflows/test.yml`
-
-Build implies typecheck but doesn't make it explicit. Add separate step:
-```yaml
-- name: Typecheck
-  run: bun x tsc --noEmit
-```
-
-This makes typecheck failures more visible in CI output.
 
 ---
 
