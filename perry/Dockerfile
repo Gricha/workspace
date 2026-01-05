@@ -146,7 +146,7 @@ RUN ARCH=$(dpkg --print-architecture) \
   && lazygit --version
 
 RUN ARCH=$(dpkg --print-architecture) \
-  && if [ "$ARCH" = "amd64" ]; then TECTONIC_ARCH="x86_64-unknown-linux-gnu"; elif [ "$ARCH" = "arm64" ]; then TECTONIC_ARCH="aarch64-unknown-linux-musl"; else TECTONIC_ARCH="$ARCH"; fi \
+  && if [ "$ARCH" = "amd64" ]; then TECTONIC_ARCH="x86_64-unknown-linux-musl"; elif [ "$ARCH" = "arm64" ]; then TECTONIC_ARCH="aarch64-unknown-linux-musl"; else TECTONIC_ARCH="$ARCH"; fi \
   && TECTONIC_VERSION=$(curl -s "https://api.github.com/repos/tectonic-typesetting/tectonic/releases/latest" | grep -Po '"tag_name": "tectonic@\K[^"]*') \
   && curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%40${TECTONIC_VERSION}/tectonic-${TECTONIC_VERSION}-${TECTONIC_ARCH}.tar.gz" -o /tmp/tectonic.tar.gz \
   && tar -C /usr/local/bin -xzf /tmp/tectonic.tar.gz \
