@@ -406,13 +406,11 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
   useEffect(() => {
     if (containerMounted && messages.length > 0 && !isLoadingHistory) {
       const timer = setTimeout(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
-        }
+        virtualizer.scrollToIndex(messages.length - 1, { align: 'end' })
       }, 50)
       return () => clearTimeout(timer)
     }
-  }, [containerMounted, messages.length, isLoadingHistory])
+  }, [containerMounted, messages.length, isLoadingHistory, virtualizer])
 
   const finalizeStreaming = useCallback(() => {
     const parts = [...streamingPartsRef.current]
