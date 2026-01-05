@@ -213,6 +213,63 @@ export class WorkspaceManager {
     });
   }
 
+  private async setupOpencodeConfig(containerName: string): Promise<void> {
+    const zenToken = this.config.agents?.opencode?.zen_token;
+    if (!zenToken) {
+      return;
+    }
+
+    const config = {
+      provider: {
+        opencode: {
+          options: {
+            apiKey: zenToken,
+          },
+        },
+      },
+      model: 'opencode/claude-sonnet-4',
+    };
+
+    const configJson = JSON.stringify(config, null, 2);
+    const tempFile = `/tmp/ws-opencode-config-${Date.now()}.json`;
+
+    await fs.writeFile(tempFile, configJson, 'utf-8');
+
+    try {
+      await docker.execInContainer(
+        containerName,
+        ['mkdir', '-p', '/home/workspace/.config/opencode'],
+        {
+          user: 'workspace',
+        }
+      );
+
+      await docker.copyToContainer(
+        containerName,
+        tempFile,
+        '/home/workspace/.config/opencode/opencode.json'
+      );
+
+      await docker.execInContainer(
+        containerName,
+        ['chown', 'workspace:workspace', '/home/workspace/.config/opencode/opencode.json'],
+        { user: 'root' }
+      );
+
+      await docker.execInContainer(
+        containerName,
+        ['chmod', '600', '/home/workspace/.config/opencode/opencode.json'],
+        { user: 'workspace' }
+      );
+    } finally {
+      try {
+        await fs.unlink(tempFile);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  }
+
   private async copyGitConfig(containerName: string): Promise<void> {
     await copyCredentialToContainer({
       source: '~/.gitconfig',
@@ -334,12 +391,6 @@ export class WorkspaceManager {
         ...env,
       };
 
-      if (this.config.agents?.opencode?.api_key) {
-        containerEnv.OPENAI_API_KEY = this.config.agents.opencode.api_key;
-      }
-      if (this.config.agents?.opencode?.api_base_url) {
-        containerEnv.OPENAI_BASE_URL = this.config.agents.opencode.api_base_url;
-      }
       if (this.config.agents?.github?.token) {
         containerEnv.GITHUB_TOKEN = this.config.agents.github.token;
       }
@@ -376,6 +427,7 @@ export class WorkspaceManager {
       await this.copyCredentialFiles(containerName);
       await this.setupClaudeCodeConfig(containerName);
       await this.copyCodexCredentials(containerName);
+      await this.setupOpencodeConfig(containerName);
 
       workspace.status = 'running';
       await this.state.setWorkspace(workspace);
@@ -415,12 +467,6 @@ export class WorkspaceManager {
         ...this.config.credentials.env,
       };
 
-      if (this.config.agents?.opencode?.api_key) {
-        containerEnv.OPENAI_API_KEY = this.config.agents.opencode.api_key;
-      }
-      if (this.config.agents?.opencode?.api_base_url) {
-        containerEnv.OPENAI_BASE_URL = this.config.agents.opencode.api_base_url;
-      }
       if (this.config.agents?.github?.token) {
         containerEnv.GITHUB_TOKEN = this.config.agents.github.token;
       }
@@ -465,6 +511,7 @@ export class WorkspaceManager {
     await this.copyCredentialFiles(containerName);
     await this.setupClaudeCodeConfig(containerName);
     await this.copyCodexCredentials(containerName);
+    await this.setupOpencodeConfig(containerName);
 
     workspace.status = 'running';
     await this.state.setWorkspace(workspace);
@@ -556,5 +603,6 @@ export class WorkspaceManager {
     await this.copyCredentialFiles(containerName);
     await this.setupClaudeCodeConfig(containerName);
     await this.copyCodexCredentials(containerName);
+    await this.setupOpencodeConfig(containerName);
   }
 }

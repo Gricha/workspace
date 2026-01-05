@@ -67,10 +67,13 @@ export class TerminalSession {
 
   resize(size: TerminalSize): void {
     this.size = size;
+    console.log('[terminal] Resize request:', size.cols, 'x', size.rows);
     if (!this.terminal) {
+      console.log('[terminal] No terminal yet, storing size for later');
       return;
     }
     this.terminal.resize(size.cols, size.rows);
+    console.log('[terminal] Resized terminal to', size.cols, 'x', size.rows);
   }
 
   setOnData(callback: (data: Buffer) => void): void {

@@ -42,8 +42,7 @@ const ScriptsSchema = z.object({
 const CodingAgentsSchema = z.object({
   opencode: z
     .object({
-      api_key: z.string().optional(),
-      api_base_url: z.string().optional(),
+      zen_token: z.string().optional(),
     })
     .optional(),
   github: z
@@ -54,6 +53,7 @@ const CodingAgentsSchema = z.object({
   claude_code: z
     .object({
       oauth_token: z.string().optional(),
+      model: z.string().optional(),
     })
     .optional(),
 });

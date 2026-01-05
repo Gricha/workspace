@@ -7,6 +7,7 @@ import { WorkspaceManager } from '../workspace/manager';
 import { containerRunning, getContainerName } from '../docker';
 import { TerminalWebSocketServer } from '../terminal/websocket';
 import { ChatWebSocketServer } from '../chat/websocket';
+import { OpencodeWebSocketServer } from '../chat/opencode-websocket';
 import { createRouter } from './router';
 import { serveStatic } from './static';
 import pkg from '../../package.json';
@@ -34,6 +35,12 @@ function createAgentServer(configDir: string, config: AgentConfig) {
       return containerRunning(getContainerName(name));
     },
     getConfig: () => currentConfig,
+  });
+
+  const opencodeServer = new OpencodeWebSocketServer({
+    isWorkspaceRunning: async (name) => {
+      return containerRunning(getContainerName(name));
+    },
   });
 
   const router = createRouter({
@@ -95,6 +102,7 @@ function createAgentServer(configDir: string, config: AgentConfig) {
     const url = new URL(request.url || '/', 'http://localhost');
     const terminalMatch = url.pathname.match(/^\/rpc\/terminal\/([^/]+)$/);
     const chatMatch = url.pathname.match(/^\/rpc\/chat\/([^/]+)$/);
+    const opencodeMatch = url.pathname.match(/^\/rpc\/opencode\/([^/]+)$/);
 
     if (terminalMatch) {
       const workspaceName = decodeURIComponent(terminalMatch[1]);
@@ -102,13 +110,16 @@ function createAgentServer(configDir: string, config: AgentConfig) {
     } else if (chatMatch) {
       const workspaceName = decodeURIComponent(chatMatch[1]);
       await chatServer.handleUpgrade(request, socket, head, workspaceName);
+    } else if (opencodeMatch) {
+      const workspaceName = decodeURIComponent(opencodeMatch[1]);
+      await opencodeServer.handleUpgrade(request, socket, head, workspaceName);
     } else {
       socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
       socket.destroy();
     }
   });
 
-  return { server, terminalServer, chatServer };
+  return { server, terminalServer, chatServer, opencodeServer };
 }
 
 export interface StartAgentOptions {
@@ -149,7 +160,10 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
   console.log(`[agent] Config directory: ${configDir}`);
   console.log(`[agent] Starting on port ${port}...`);
 
-  const { server, terminalServer, chatServer } = createAgentServer(configDir, config);
+  const { server, terminalServer, chatServer, opencodeServer } = createAgentServer(
+    configDir,
+    config
+  );
 
   server.on('error', async (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
@@ -170,12 +184,14 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
     console.log(`[agent] Agent running at http://localhost:${port}`);
     console.log(`[agent] oRPC endpoint: http://localhost:${port}/rpc`);
     console.log(`[agent] WebSocket terminal: ws://localhost:${port}/rpc/terminal/:name`);
-    console.log(`[agent] WebSocket chat: ws://localhost:${port}/rpc/chat/:name`);
+    console.log(`[agent] WebSocket chat (Claude): ws://localhost:${port}/rpc/chat/:name`);
+    console.log(`[agent] WebSocket chat (OpenCode): ws://localhost:${port}/rpc/opencode/:name`);
   });
 
   const shutdown = () => {
     console.log('[agent] Shutting down...');
     chatServer.close();
+    opencodeServer.close();
     terminalServer.close();
     server.close(() => {
       console.log('[agent] Server closed');

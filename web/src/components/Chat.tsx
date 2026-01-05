@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Send, StopCircle, Bot, Sparkles, Wrench, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react'
+import { Send, StopCircle, Bot, Sparkles, Wrench, ChevronDown, CheckCircle2, Loader2, Code2 } from 'lucide-react'
 import Markdown from 'react-markdown'
-import { getChatUrl, api } from '@/lib/api'
+import { getChatUrl, api, type AgentType } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
@@ -33,6 +33,7 @@ interface ChatProps {
   workspaceName: string
   sessionId?: string
   onSessionId?: (sessionId: string) => void
+  agentType?: AgentType
 }
 
 function getToolSummary(toolName: string, content: string): string | null {
@@ -233,7 +234,7 @@ function StreamingMessage({ parts }: { parts: ChatMessagePart[] }) {
   )
 }
 
-export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }: ChatProps) {
+export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, agentType = 'claude-code' }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isConnected, setIsConnected] = useState(false)
@@ -348,7 +349,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
   }, [])
 
   const connect = useCallback(() => {
-    const wsUrl = getChatUrl(workspaceName)
+    const wsUrl = getChatUrl(workspaceName, agentType)
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 
@@ -465,7 +466,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
     }
 
     return ws
-  }, [workspaceName, onSessionId, finalizeStreaming])
+  }, [workspaceName, agentType, onSessionId, finalizeStreaming])
 
   useEffect(() => {
     const ws = connect()
@@ -520,8 +521,14 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
     <div className="flex flex-col h-full bg-background">
       <div className="flex items-center justify-between px-4 py-2 border-b">
         <div className="flex items-center gap-2">
-          <Bot className="h-5 w-5 text-orange-500" />
-          <span className="font-medium">Claude Code</span>
+          {agentType === 'opencode' ? (
+            <Code2 className="h-5 w-5 text-blue-500" />
+          ) : (
+            <Bot className="h-5 w-5 text-orange-500" />
+          )}
+          <span className="font-medium">
+            {agentType === 'opencode' ? 'OpenCode' : 'Claude Code'}
+          </span>
           {sessionId && (
             <span className="text-xs text-muted-foreground font-mono">
               {sessionId.slice(0, 8)}...
@@ -555,7 +562,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId }
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <Sparkles className="h-12 w-12 mb-4 opacity-20" />
             <p className="text-center">
-              Start a conversation with Claude Code
+              Start a conversation with {agentType === 'opencode' ? 'OpenCode' : 'Claude Code'}
             </p>
             <p className="text-sm text-center mt-1">
               Ask questions, request code changes, or get help with your project

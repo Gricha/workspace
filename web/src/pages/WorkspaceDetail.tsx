@@ -201,7 +201,7 @@ function SessionListItem({ session, onClick }: { session: SessionInfo; onClick: 
   )
 }
 
-type ChatMode = { type: 'chat'; sessionId?: string } | { type: 'terminal'; command: string }
+type ChatMode = { type: 'chat'; sessionId?: string; agentType?: AgentType } | { type: 'terminal'; command: string }
 
 export function WorkspaceDetail() {
   const { name } = useParams<{ name: string }>()
@@ -265,8 +265,8 @@ export function WorkspaceDetail() {
   })
 
   const handleResume = (sessionId: string, agentType: AgentType) => {
-    if (agentType === 'claude-code') {
-      setChatMode({ type: 'chat', sessionId })
+    if (agentType === 'claude-code' || agentType === 'opencode') {
+      setChatMode({ type: 'chat', sessionId, agentType })
     } else {
       const commands: Record<AgentType, string> = {
         'claude-code': `claude -r ${sessionId}`,
@@ -278,8 +278,8 @@ export function WorkspaceDetail() {
   }
 
   const handleNewChat = (agentType: AgentType = 'claude-code') => {
-    if (agentType === 'claude-code') {
-      setChatMode({ type: 'chat' })
+    if (agentType === 'claude-code' || agentType === 'opencode') {
+      setChatMode({ type: 'chat', agentType })
     } else {
       const commands: Record<AgentType, string> = {
         'claude-code': 'claude',
@@ -453,10 +453,16 @@ export function WorkspaceDetail() {
                       <ArrowLeft className="h-4 w-4 mr-1" />
                       Back to Sessions
                     </Button>
-                    <span className="text-sm font-medium">Claude Code</span>
+                    <span className="text-sm font-medium">
+                      {chatMode.agentType === 'opencode' ? 'OpenCode' : 'Claude Code'}
+                    </span>
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <Chat workspaceName={name!} sessionId={chatMode.sessionId} />
+                    <Chat
+                      workspaceName={name!}
+                      sessionId={chatMode.sessionId}
+                      agentType={chatMode.agentType}
+                    />
                   </div>
                 </div>
               ) : (

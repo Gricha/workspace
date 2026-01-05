@@ -9,8 +9,7 @@ export interface WorkspaceScripts {
 
 export interface CodingAgents {
   opencode?: {
-    api_key?: string;
-    api_base_url?: string;
+    zen_token?: string;
   };
   github?: {
     token?: string;

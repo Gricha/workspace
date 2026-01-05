@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Save, RefreshCw, ExternalLink, Sparkles, Github, Code2, ChevronDown } from 'lucide-react'
+import { Save, RefreshCw, ExternalLink, Sparkles, Github, Code2, ChevronDown, Check } from 'lucide-react'
 import { api, type CodingAgents } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,20 +35,24 @@ export function AgentsSettings() {
     queryFn: api.getAgents,
   })
 
-  const [openaiKey, setOpenaiKey] = useState('')
-  const [openaiBaseUrl, setOpenaiBaseUrl] = useState('')
+  const [opencodeZenToken, setOpencodeZenToken] = useState('')
   const [githubToken, setGithubToken] = useState('')
   const [claudeOAuthToken, setClaudeOAuthToken] = useState('')
   const [claudeModel, setClaudeModel] = useState('sonnet')
-  const [openaiHasChanges, setOpenaiHasChanges] = useState(false)
+  const [opencodeHasChanges, setOpencodeHasChanges] = useState(false)
   const [githubHasChanges, setGithubHasChanges] = useState(false)
   const [claudeHasChanges, setClaudeHasChanges] = useState(false)
   const [initialized, setInitialized] = useState(false)
+  const [savedSection, setSavedSection] = useState<'opencode' | 'github' | 'claude' | null>(null)
+
+  const showSaved = useCallback((section: 'opencode' | 'github' | 'claude') => {
+    setSavedSection(section)
+    setTimeout(() => setSavedSection(null), 2000)
+  }, [])
 
   useEffect(() => {
     if (agents && !initialized) {
-      setOpenaiKey(agents.opencode?.api_key || '')
-      setOpenaiBaseUrl(agents.opencode?.api_base_url || '')
+      setOpencodeZenToken(agents.opencode?.zen_token || '')
       setGithubToken(agents.github?.token || '')
       setClaudeOAuthToken(agents.claude_code?.oauth_token || '')
       setClaudeModel(agents.claude_code?.model || 'sonnet')
@@ -60,37 +64,45 @@ export function AgentsSettings() {
     mutationFn: (data: CodingAgents) => api.updateAgents(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents'] })
-      setOpenaiHasChanges(false)
+      setOpencodeHasChanges(false)
       setGithubHasChanges(false)
       setClaudeHasChanges(false)
     },
   })
 
-  const handleSaveOpenai = () => {
-    mutation.mutate({
-      ...agents,
-      opencode: {
-        api_key: openaiKey.trim() || undefined,
-        api_base_url: openaiBaseUrl.trim() || undefined,
+  const handleSaveOpencode = () => {
+    mutation.mutate(
+      {
+        ...agents,
+        opencode: {
+          zen_token: opencodeZenToken.trim() || undefined,
+        },
       },
-    })
+      { onSuccess: () => showSaved('opencode') }
+    )
   }
 
   const handleSaveGithub = () => {
-    mutation.mutate({
-      ...agents,
-      github: { token: githubToken.trim() || undefined },
-    })
+    mutation.mutate(
+      {
+        ...agents,
+        github: { token: githubToken.trim() || undefined },
+      },
+      { onSuccess: () => showSaved('github') }
+    )
   }
 
   const handleSaveClaude = () => {
-    mutation.mutate({
-      ...agents,
-      claude_code: {
-        oauth_token: claudeOAuthToken.trim() || undefined,
-        model: claudeModel,
+    mutation.mutate(
+      {
+        ...agents,
+        claude_code: {
+          oauth_token: claudeOAuthToken.trim() || undefined,
+          model: claudeModel,
+        },
       },
-    })
+      { onSuccess: () => showSaved('claude') }
+    )
   }
 
   if (error) {
@@ -108,7 +120,7 @@ export function AgentsSettings() {
     )
   }
 
-  const openaiConfigured = !!agents?.opencode?.api_key
+  const opencodeConfigured = !!agents?.opencode?.zen_token
   const githubConfigured = !!agents?.github?.token
   const claudeConfigured = !!agents?.claude_code?.oauth_token
 
@@ -153,45 +165,50 @@ export function AgentsSettings() {
           <div className="agent-info">
             <div className="agent-name">
               OpenCode
-              <StatusIndicator configured={openaiConfigured} />
+              <StatusIndicator configured={opencodeConfigured} />
             </div>
             <p className="agent-description">
-              OpenAI-compatible API for AI-assisted coding. Injected as <code className="text-xs bg-secondary px-1 py-0.5 rounded">OPENAI_API_KEY</code> and <code className="text-xs bg-secondary px-1 py-0.5 rounded">OPENAI_BASE_URL</code>
+              Zen token for OpenCode.
+              <a
+                href="https://opencode.ai/auth"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-2 text-primary hover:underline inline-flex items-center gap-1"
+              >
+                Get token
+                <ExternalLink className="h-3 w-3" />
+              </a>
             </p>
-            <div className="space-y-2 mt-2">
-              <div className="agent-input">
-                <Input
-                  type="password"
-                  value={openaiKey}
-                  onChange={(e) => {
-                    setOpenaiKey(e.target.value)
-                    setOpenaiHasChanges(true)
-                  }}
-                  placeholder="sk-... (API key)"
-                  className="w-full font-mono text-sm h-11 sm:h-9"
-                />
-              </div>
-              <div className="agent-input flex flex-col sm:flex-row gap-2">
-                <Input
-                  type="text"
-                  value={openaiBaseUrl}
-                  onChange={(e) => {
-                    setOpenaiBaseUrl(e.target.value)
-                    setOpenaiHasChanges(true)
-                  }}
-                  placeholder="https://api.openai.com/v1 (optional)"
-                  className="flex-1 font-mono text-sm h-11 sm:h-9"
-                />
-                <Button
-                  onClick={handleSaveOpenai}
-                  disabled={mutation.isPending || !openaiHasChanges}
-                  size="sm"
-                  className="h-11 sm:h-9"
-                >
-                  <Save className="mr-1.5 h-3.5 w-3.5" />
-                  Save
-                </Button>
-              </div>
+            <div className="agent-input flex flex-col sm:flex-row gap-2 mt-2">
+              <Input
+                type="password"
+                value={opencodeZenToken}
+                onChange={(e) => {
+                  setOpencodeZenToken(e.target.value)
+                  setOpencodeHasChanges(true)
+                }}
+                placeholder="zen_... (Zen token)"
+                className="flex-1 font-mono text-sm h-11 sm:h-9"
+              />
+              <Button
+                onClick={handleSaveOpencode}
+                disabled={mutation.isPending || !opencodeHasChanges}
+                size="sm"
+                className="h-11 sm:h-9"
+                variant={savedSection === 'opencode' ? 'secondary' : 'default'}
+              >
+                {savedSection === 'opencode' ? (
+                  <>
+                    <Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />
+                    Saved
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-1.5 h-3.5 w-3.5" />
+                    Save
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </div>
@@ -253,9 +270,19 @@ export function AgentsSettings() {
                   disabled={mutation.isPending || !claudeHasChanges}
                   size="sm"
                   className="h-11 sm:h-9"
+                  variant={savedSection === 'claude' ? 'secondary' : 'default'}
                 >
-                  <Save className="mr-1.5 h-3.5 w-3.5" />
-                  Save
+                  {savedSection === 'claude' ? (
+                    <>
+                      <Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />
+                      Saved
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-1.5 h-3.5 w-3.5" />
+                      Save
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -308,9 +335,19 @@ export function AgentsSettings() {
                 disabled={mutation.isPending || !githubHasChanges}
                 size="sm"
                 className="h-11 sm:h-9"
+                variant={savedSection === 'github' ? 'secondary' : 'default'}
               >
-                <Save className="mr-1.5 h-3.5 w-3.5" />
-                Save
+                {savedSection === 'github' ? (
+                  <>
+                    <Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />
+                    Saved
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-1.5 h-3.5 w-3.5" />
+                    Save
+                  </>
+                )}
               </Button>
             </div>
           </div>

@@ -24,16 +24,14 @@ _No active tasks. See Considerations for potential future work._
 
 > Add items here to discuss with project owner before promoting to tasks.
 
-### OpenCode Server Integration
+### OpenCode Server API Integration (Optional Enhancement)
 
 Research document: [docs/research/RESEARCH_AGENT_TERMINAL.md](./docs/research/RESEARCH_AGENT_TERMINAL.md)
 
-OpenCode has a built-in client/server architecture (`opencode serve`) that exposes an API. Could integrate:
-- Start `opencode serve` automatically in workspaces
-- Connect web UI to OpenCode's API via SSE streaming
-- Display structured messages like Claude Code integration
-
-Current approach (terminal PTY passthrough) works but lacks the rich UI of Claude Code chat.
+OpenCode chat is now implemented using CLI passthrough (`opencode run --format json`). This works well and matches the Claude Code integration pattern. Future enhancement could use OpenCode's built-in server API (`opencode serve`) for:
+- Persistent sessions across page reloads
+- Real-time status updates via SSE
+- More granular message streaming
 
 ### Design Document Updates (Pending Review)
 

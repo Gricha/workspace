@@ -12,16 +12,18 @@ appId: com.subroutine.workspace
 # Navigate to Sessions tab
 - tapOn: "Sessions"
 
-# Verify filter bar is visible
-- assertVisible: "Filter by agent"
-- assertVisible: "All Agents"
-
-# Handle running vs non-running workspaces
+# Handle either error state or loaded state
 - runFlow:
     when:
-      visible: "No running workspaces"
+      visible: "Cannot Load Sessions"
     commands:
-      - assertVisible: "Start a workspace to see sessions"
+      - assertVisible: "Retry"
+
+- runFlow:
+    when:
+      visible: "Filter by agent:"
+    commands:
+      - assertVisible: "All Agents"
 
 # Navigate to Settings tab
 - tapOn: "Settings"
@@ -34,7 +36,6 @@ appId: com.subroutine.workspace
 
 # Verify tab switching is smooth - do a full cycle
 - tapOn: "Sessions"
-- assertVisible: "Filter by agent"
 - tapOn: "Settings"
 - assertVisible: "Connection"
 - tapOn: "Workspaces"

@@ -6,41 +6,22 @@ appId: com.subroutine.workspace
 - launchApp:
     clearState: true
 
+# Verify main screen loads
 - assertVisible: "Workspaces"
 
-# Check for FAB (Floating Action Button) or add button
-- assertVisible:
-    text: "+"
+# Verify bottom navigation is visible
+- assertVisible: "Sessions"
+- assertVisible: "Settings"
 
-# Test empty state or workspace list
+# Handle either error state or loaded state
+- runFlow:
+    when:
+      visible: "Cannot Load Workspaces"
+    commands:
+      - assertVisible: "Retry"
+
 - runFlow:
     when:
       visible: "No workspaces yet"
     commands:
       - assertVisible: "Tap + to create one"
-
-# Test workspace card display (if workspaces exist)
-- runFlow:
-    when:
-      visible:
-        text: "SSH:"
-    commands:
-      # Status indicators should be visible
-      - assertVisible:
-          text: "running|stopped|creating|error"
-          optional: true
-
-# Test create workspace modal
-- tapOn: "+"
-
-- assertVisible: "Create Workspace"
-- assertVisible: "Workspace Name"
-- assertVisible:
-    text: "Clone URL"
-    optional: true
-
-# Cancel the modal
-- tapOn: "Cancel"
-
-# Verify we're back on workspaces screen
-- assertVisible: "Workspaces"

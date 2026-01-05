@@ -20,30 +20,47 @@ export class TerminalWebSocketServer extends BaseWebSocketServer<TerminalConnect
 
   protected handleConnection(ws: WebSocket, workspaceName: string): void {
     const containerName = this.getContainerName(workspaceName);
-    const session = createTerminalSession({
-      containerName,
-      user: 'workspace',
-    });
+    let session: TerminalSession | null = null;
+    let started = false;
 
-    const connection: TerminalConnection = {
-      ws,
-      session,
-      workspaceName,
+    const startSession = (cols: number, rows: number) => {
+      if (started) return;
+      started = true;
+
+      session = createTerminalSession({
+        containerName,
+        user: 'workspace',
+        size: { cols, rows },
+      });
+
+      const connection: TerminalConnection = {
+        ws,
+        session,
+        workspaceName,
+      };
+      this.connections.set(ws, connection);
+
+      session.setOnData((data) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(data);
+        }
+      });
+
+      session.setOnExit((code) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close(1000, `Process exited with code ${code}`);
+        }
+        this.connections.delete(ws);
+      });
+
+      try {
+        session.start();
+      } catch (err) {
+        console.error('Failed to start terminal session:', err);
+        ws.close(1011, 'Failed to start terminal');
+        this.connections.delete(ws);
+      }
     };
-    this.connections.set(ws, connection);
-
-    session.setOnData((data) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
-      }
-    });
-
-    session.setOnExit((code) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close(1000, `Process exited with code ${code}`);
-      }
-      this.connections.delete(ws);
-    });
 
     ws.on('message', (data: Buffer | string) => {
       const str = typeof data === 'string' ? data : data.toString();
@@ -52,7 +69,11 @@ export class TerminalWebSocketServer extends BaseWebSocketServer<TerminalConnect
         try {
           const message = JSON.parse(str);
           if (isControlMessage(message)) {
-            session.resize({ cols: message.cols, rows: message.rows });
+            if (!started) {
+              startSession(message.cols, message.rows);
+            } else if (session) {
+              session.resize({ cols: message.cols, rows: message.rows });
+            }
             return;
           }
         } catch {
@@ -60,27 +81,25 @@ export class TerminalWebSocketServer extends BaseWebSocketServer<TerminalConnect
         }
       }
 
-      session.write(data);
+      if (session) {
+        session.write(data);
+      }
     });
 
     ws.on('close', () => {
-      session.kill();
+      if (session) {
+        session.kill();
+      }
       this.connections.delete(ws);
     });
 
     ws.on('error', (err) => {
       console.error('WebSocket error:', err);
-      session.kill();
+      if (session) {
+        session.kill();
+      }
       this.connections.delete(ws);
     });
-
-    try {
-      session.start();
-    } catch (err) {
-      console.error('Failed to start terminal session:', err);
-      ws.close(1011, 'Failed to start terminal');
-      this.connections.delete(ws);
-    }
   }
 
   protected cleanupConnection(connection: TerminalConnection): void {
