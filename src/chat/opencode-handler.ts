@@ -118,11 +118,14 @@ export class OpencodeSession {
 
     const args = [
       'exec',
+      '-i',
       '-u',
       'workspace',
       '-w',
       this.workDir,
       this.containerName,
+      'stdbuf',
+      '-oL',
       'opencode',
       'run',
       '--format',

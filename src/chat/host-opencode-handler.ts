@@ -186,7 +186,7 @@ export class HostOpencodeSession {
       await this.loadHistory();
     }
 
-    const args = ['run', '--format', 'json'];
+    const args = ['-oL', 'opencode', 'run', '--format', 'json'];
 
     if (this.sessionId) {
       args.push('--session', this.sessionId);
@@ -194,7 +194,7 @@ export class HostOpencodeSession {
 
     args.push(userMessage);
 
-    console.log('[host-opencode] Running: opencode', args.join(' '));
+    console.log('[host-opencode] Running: stdbuf', args.join(' '));
 
     this.onMessage({
       type: 'system',
@@ -203,7 +203,7 @@ export class HostOpencodeSession {
     });
 
     try {
-      const proc = Bun.spawn(['opencode', ...args], {
+      const proc = Bun.spawn(['stdbuf', ...args], {
         cwd: this.workDir,
         stdin: 'ignore',
         stdout: 'pipe',
