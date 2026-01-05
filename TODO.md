@@ -16,27 +16,6 @@
 
 ## Tasks
 
-### OpenCode Integration
-
-#### Implement OpenCode Server API for real-time streaming
-**Files**: `src/chat/opencode-handler.ts`, possibly new `src/chat/opencode-server.ts`
-
-Current implementation uses `opencode run --format json` which works but spawns a new process per message. OpenCode has a built-in server (`opencode serve`) with SSE streaming that would provide:
-- Persistent sessions across page reloads
-- Real-time status updates
-- More efficient connection (single long-lived connection vs process-per-message)
-
-**Fix**:
-1. Research: Check if `opencode serve` can run in container and expose API
-2. Start `opencode serve` on container startup or on-demand
-3. Create new handler that connects to OpenCode's HTTP API
-4. Use SSE for streaming responses instead of parsing stdout
-5. Keep CLI fallback for environments where server can't run
-
-Reference: [docs/research/RESEARCH_AGENT_TERMINAL.md](./docs/research/RESEARCH_AGENT_TERMINAL.md)
-
----
-
 ### Performance
 
 #### Virtualize long chat session rendering
@@ -56,6 +35,25 @@ Opening a long chat session (1000+ messages) freezes the browser because all mes
 ## Considerations
 
 > Add items here to discuss with project owner before promoting to tasks.
+
+### OpenCode Server API Integration
+
+Research completed - see [RESEARCH_AGENT_TERMINAL.md](./docs/research/RESEARCH_AGENT_TERMINAL.md)
+
+Current approach uses `opencode run --format json` per message. OpenCode has `opencode serve` with HTTP API and SSE streaming that would be more efficient.
+
+**Challenges:**
+- OpenCode server runs inside container, Perry agent on host
+- Requires either port exposure or docker exec tunneling
+- Port exposure needs container/Dockerfile changes
+- Docker exec approach doesn't provide significant benefits
+
+**Prerequisites for implementation:**
+- Decide on port exposure strategy (add internal port or use SSH tunneling)
+- Determine process lifecycle management (on-demand vs always-on)
+- @opencode-ai/sdk available for TypeScript client
+
+**Recommendation:** Lower priority given working CLI approach with session history loading. Consider when container port exposure strategy is decided.
 
 ### Design Document Updates (Pending Review)
 
