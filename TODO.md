@@ -18,21 +18,15 @@
 
 ### Code Bifurcation
 
-#### Refactor listSessionsCore() agent-specific logic
-**File**: `src/agent/router.ts` (lines ~533-835)
+#### Refactor getSession() agent-specific logic
+**File**: `src/agent/router.ts` (lines ~567-780)
 
-Three divergent code paths for Claude/OpenCode/Codex session listing. Bug fixes in one don't propagate to others.
+The `getSession` handler still has bifurcated code paths for each agent type. The `getSessionMessages` function already exists in `src/sessions/agents/` but isn't being used.
 
 **Fix**:
-1. Create `src/sessions/agents/` directory with `claude.ts`, `opencode.ts`, `codex.ts`
-2. Each exports `listSessions(container)` and `getSession(container, id)` functions
-3. `listSessionsCore()` becomes a dispatcher that calls agent-specific implementations
-4. Shared parsing/formatting stays in router or moves to `src/sessions/utils.ts`
-
-#### Refactor getSession() agent-specific logic
-**File**: `src/agent/router.ts` (lines ~850-1111)
-
-~250 lines across 4 bifurcated paths (host + 3 agent types). Same fix as above - extract agent-specific logic into dedicated modules.
+1. Update `getSession` handler to use `getSessionMessages(containerName, sessionId, agentType, exec)`
+2. Handle the case where `agentType` is not provided (try all agents, return first match)
+3. Remove the inline parsing logic for each agent type
 
 ---
 

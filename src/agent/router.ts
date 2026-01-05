@@ -15,6 +15,12 @@ import {
 } from '../sessions/metadata';
 import { parseClaudeSessionContent } from '../sessions/parser';
 import type { SessionMessage } from '../sessions/types';
+import {
+  discoverAllSessions,
+  getSessionDetails as getAgentSessionDetails,
+  getSessionMessages,
+  findSessionMessages,
+} from '../sessions/agents';
 
 const WorkspaceStatusSchema = z.enum(['running', 'stopped', 'creating', 'error']);
 
@@ -78,41 +84,6 @@ function mapErrorToORPC(err: unknown, defaultMessage: string): never {
     throw new ORPCError('CONFLICT', { message });
   }
   throw new ORPCError('INTERNAL_SERVER_ERROR', { message });
-}
-
-function decodeClaudeProjectPath(encoded: string): string {
-  return encoded.replace(/-/g, '/');
-}
-
-function extractFirstUserPrompt(messages: SessionMessage[]): string | null {
-  const firstPrompt = messages.find(
-    (msg) => msg.type === 'user' && msg.content && msg.content.trim().length > 0
-  );
-  return firstPrompt?.content ? firstPrompt.content.slice(0, 200) : null;
-}
-
-function extractClaudeSessionName(content: string): string | null {
-  const lines = content.split('\n').filter((line) => line.trim());
-  for (const line of lines) {
-    try {
-      const obj = JSON.parse(line) as { type?: string; subtype?: string; name?: string };
-      if (obj.type === 'system' && obj.subtype === 'session_name') {
-        return obj.name || null;
-      }
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-
-function extractContent(content: unknown): string | null {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    const text = content.find((c: { type: string; text?: string }) => c.type === 'text')?.text;
-    return typeof text === 'string' ? text : null;
-  }
-  return null;
 }
 
 export function createRouter(ctx: RouterContext) {
@@ -552,126 +523,8 @@ export function createRouter(ctx: RouterContext) {
     }
 
     const containerName = `workspace-${input.workspaceName}`;
-    const rawSessions: RawSession[] = [];
 
-    const claudeResult = await execInContainer(
-      containerName,
-      [
-        'bash',
-        '-c',
-        'find /home/workspace/.claude/projects -name "*.jsonl" -type f ! -name "agent-*.jsonl" -printf "%p\\t%T@\\t%s\\n" 2>/dev/null || true',
-      ],
-      { user: 'workspace' }
-    );
-
-    if (claudeResult.exitCode === 0 && claudeResult.stdout.trim()) {
-      const lines = claudeResult.stdout.trim().split('\n').filter(Boolean);
-      for (const line of lines) {
-        const parts = line.split('\t');
-        if (parts.length >= 3) {
-          const file = parts[0];
-          const mtime = Math.floor(parseFloat(parts[1]) || 0);
-          const size = parseInt(parts[2], 10) || 0;
-          if (size === 0) continue;
-
-          const id = file.split('/').pop()?.replace('.jsonl', '') || '';
-          const projDir = file.split('/').slice(-2, -1)[0] || '';
-          const projectPath = decodeClaudeProjectPath(projDir);
-          if (!projectPath.startsWith('/workspace') && !projectPath.startsWith('/home/workspace'))
-            continue;
-
-          rawSessions.push({
-            id,
-            agentType: 'claude-code',
-            mtime,
-            projectPath,
-            filePath: file,
-          });
-        }
-      }
-    }
-
-    const opencodeResult = await execInContainer(
-      containerName,
-      [
-        'sh',
-        '-c',
-        'find /home/workspace/.local/share/opencode/storage/session -name "ses_*.json" -type f 2>/dev/null || true',
-      ],
-      { user: 'workspace' }
-    );
-
-    if (opencodeResult.exitCode === 0 && opencodeResult.stdout.trim()) {
-      const files = opencodeResult.stdout.trim().split('\n').filter(Boolean);
-      const catAll = await execInContainer(
-        containerName,
-        ['sh', '-c', `cat ${files.map((f) => `"${f}"`).join(' ')} 2>/dev/null | jq -s '.'`],
-        { user: 'workspace' }
-      );
-
-      if (catAll.exitCode === 0) {
-        try {
-          const sessions = JSON.parse(catAll.stdout) as Array<{
-            id?: string;
-            title?: string;
-            directory?: string;
-            time?: { updated?: number };
-          }>;
-
-          for (let i = 0; i < sessions.length; i++) {
-            const data = sessions[i];
-            const file = files[i];
-            const id = data.id || file.split('/').pop()?.replace('.json', '') || '';
-            const mtime = Math.floor((data.time?.updated || 0) / 1000);
-
-            rawSessions.push({
-              id,
-              agentType: 'opencode',
-              projectPath: data.directory || '',
-              mtime,
-              name: data.title || undefined,
-              filePath: file,
-            });
-          }
-        } catch {
-          // Skip on parse error
-        }
-      }
-    }
-
-    const codexResult = await execInContainer(
-      containerName,
-      [
-        'sh',
-        '-c',
-        'find /home/workspace/.codex/sessions -name "rollout-*.jsonl" -type f -printf "%p\\t%T@\\t" -exec wc -l {} \\; 2>/dev/null || true',
-      ],
-      { user: 'workspace' }
-    );
-
-    if (codexResult.exitCode === 0 && codexResult.stdout.trim()) {
-      const lines = codexResult.stdout.trim().split('\n').filter(Boolean);
-      for (const line of lines) {
-        const parts = line.split('\t');
-        if (parts.length >= 2) {
-          const file = parts[0];
-          const mtime = Math.floor(parseFloat(parts[1]) || 0);
-
-          const id = file.split('/').pop()?.replace('.jsonl', '') || '';
-          const projPath = file
-            .replace('/home/workspace/.codex/sessions/', '')
-            .replace(/\/[^/]+$/, '');
-
-          rawSessions.push({
-            id,
-            agentType: 'codex',
-            projectPath: projPath,
-            mtime,
-            filePath: file,
-          });
-        }
-      }
-    }
+    const rawSessions = await discoverAllSessions(containerName, execInContainer);
 
     const customNames = await getSessionNamesForWorkspace(ctx.stateDir, input.workspaceName);
 
@@ -682,149 +535,14 @@ export function createRouter(ctx: RouterContext) {
     const paginatedRawSessions = filteredSessions.slice(offset, offset + limit);
     const sessions = [];
 
-    for (const session of paginatedRawSessions) {
-      if (session.agentType === 'claude-code') {
-        const catResult = await execInContainer(containerName, ['cat', session.filePath], {
-          user: 'workspace',
-        });
-
-        if (catResult.exitCode !== 0) {
-          continue;
-        }
-
-        const messages = parseClaudeSessionContent(catResult.stdout).filter(
-          (msg) => msg.type !== 'system'
-        );
-        const firstPrompt = extractFirstUserPrompt(messages);
-        const name = extractClaudeSessionName(catResult.stdout);
-
-        if (messages.length === 0) {
-          continue;
-        }
-
+    for (const rawSession of paginatedRawSessions) {
+      const details = await getAgentSessionDetails(containerName, rawSession, execInContainer);
+      if (details) {
         sessions.push({
-          id: session.id,
-          name: customNames[session.id] || name || null,
-          agentType: session.agentType,
-          projectPath: session.projectPath,
-          messageCount: messages.length,
-          lastActivity: new Date(session.mtime * 1000).toISOString(),
-          firstPrompt,
+          ...details,
+          name: customNames[details.id] || details.name,
         });
-        continue;
       }
-
-      if (session.agentType === 'opencode') {
-        const msgDir = `/home/workspace/.local/share/opencode/storage/message/${session.id}`;
-        const listMsgsResult = await execInContainer(
-          containerName,
-          ['bash', '-c', `ls -1 "${msgDir}"/msg_*.json 2>/dev/null | sort`],
-          { user: 'workspace' }
-        );
-
-        const messages: Array<{ type: 'user' | 'assistant'; content?: string }> = [];
-
-        if (listMsgsResult.exitCode === 0 && listMsgsResult.stdout.trim()) {
-          const msgFiles = listMsgsResult.stdout.trim().split('\n').filter(Boolean);
-          for (const msgFile of msgFiles) {
-            const msgResult = await execInContainer(containerName, ['cat', msgFile], {
-              user: 'workspace',
-            });
-            if (msgResult.exitCode !== 0) continue;
-            try {
-              const msg = JSON.parse(msgResult.stdout) as {
-                role?: 'user' | 'assistant';
-                content?: unknown;
-              };
-              if (msg.role === 'user' || msg.role === 'assistant') {
-                const content = extractContent(msg.content);
-                messages.push({ type: msg.role, content: content || undefined });
-              }
-            } catch {
-              continue;
-            }
-          }
-        }
-
-        const firstPrompt = messages.find(
-          (msg) => msg.type === 'user' && msg.content && msg.content.trim().length > 0
-        )?.content;
-
-        if (messages.length === 0) {
-          continue;
-        }
-
-        sessions.push({
-          id: session.id,
-          name: customNames[session.id] || session.name || null,
-          agentType: session.agentType,
-          projectPath: session.projectPath,
-          messageCount: messages.length,
-          lastActivity: new Date(session.mtime * 1000).toISOString(),
-          firstPrompt: firstPrompt ? firstPrompt.slice(0, 200) : null,
-        });
-        continue;
-      }
-
-      const catResult = await execInContainer(containerName, ['cat', session.filePath], {
-        user: 'workspace',
-      });
-
-      if (catResult.exitCode !== 0) {
-        continue;
-      }
-
-      const lines = catResult.stdout.split('\n').filter(Boolean);
-      let sessionId = session.id;
-      if (lines.length > 0) {
-        try {
-          const meta = JSON.parse(lines[0]) as { session_id?: string };
-          if (meta.session_id) {
-            sessionId = meta.session_id;
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      const messages: Array<{ type: 'user' | 'assistant'; content?: string }> = [];
-      for (let i = 1; i < lines.length; i++) {
-        try {
-          const event = JSON.parse(lines[i]) as {
-            payload?: {
-              role?: 'user' | 'assistant';
-              content?: unknown;
-              message?: { role?: 'user' | 'assistant'; content?: unknown };
-            };
-          };
-          const role = event.payload?.role || event.payload?.message?.role;
-          const content = event.payload?.content || event.payload?.message?.content;
-          if (role === 'user' || role === 'assistant') {
-            const textContent = extractContent(content);
-            messages.push({ type: role, content: textContent || undefined });
-          }
-        } catch {
-          continue;
-        }
-      }
-
-      const firstPrompt = messages.find(
-        (msg) => msg.type === 'user' && msg.content && msg.content.trim().length > 0
-      )?.content;
-
-      if (messages.length === 0) {
-        continue;
-      }
-
-      sessions.push({
-        id: sessionId,
-        name: customNames[sessionId] || null,
-        agentType: session.agentType,
-        projectPath: session.projectPath,
-        messageCount: messages.length,
-        lastActivity: new Date(session.mtime * 1000).toISOString(),
-        firstPrompt: firstPrompt ? firstPrompt.slice(0, 200) : null,
-      });
     }
 
     return {
@@ -875,239 +593,16 @@ export function createRouter(ctx: RouterContext) {
       }
 
       const containerName = `workspace-${input.workspaceName}`;
-      const messages: SessionMessage[] = [];
 
-      if (!input.agentType || input.agentType === 'claude-code') {
-        const safeSessionId = input.sessionId.replace(/[^a-zA-Z0-9_-]/g, '');
-        const findResult = await execInContainer(
-          containerName,
-          [
-            'find',
-            '/home/workspace/.claude/projects',
-            '-name',
-            `${safeSessionId}.jsonl`,
-            '-type',
-            'f',
-          ],
-          { user: 'workspace' }
-        );
+      const result = input.agentType
+        ? await getSessionMessages(containerName, input.sessionId, input.agentType, execInContainer)
+        : await findSessionMessages(containerName, input.sessionId, execInContainer);
 
-        const foundPath = findResult.stdout.trim().split('\n')[0];
-        if (findResult.exitCode === 0 && foundPath) {
-          const filePath = foundPath;
-          const catResult = await execInContainer(containerName, ['cat', filePath], {
-            user: 'workspace',
-          });
-
-          if (catResult.exitCode === 0) {
-            const parsed = parseClaudeSessionContent(catResult.stdout)
-              .filter((msg) => msg.type !== 'system')
-              .filter(
-                (msg) =>
-                  msg.type === 'tool_use' ||
-                  msg.type === 'tool_result' ||
-                  (msg.content && msg.content.trim().length > 0)
-              );
-            return { id: input.sessionId, agentType: 'claude-code', messages: parsed };
-          }
-        }
+      if (!result) {
+        throw new ORPCError('NOT_FOUND', { message: 'Session not found' });
       }
 
-      if (!input.agentType || input.agentType === 'opencode') {
-        const findResult = await execInContainer(
-          containerName,
-          [
-            'bash',
-            '-c',
-            `find /home/workspace/.local/share/opencode/storage/session -name "${input.sessionId}.json" -type f 2>/dev/null | head -1`,
-          ],
-          { user: 'workspace' }
-        );
-
-        if (findResult.exitCode === 0 && findResult.stdout.trim()) {
-          const filePath = findResult.stdout.trim();
-          const catResult = await execInContainer(containerName, ['cat', filePath], {
-            user: 'workspace',
-          });
-
-          if (catResult.exitCode === 0) {
-            try {
-              const session = JSON.parse(catResult.stdout) as { id: string };
-              const msgDir = `/home/workspace/.local/share/opencode/storage/message/${session.id}`;
-              const partDir = `/home/workspace/.local/share/opencode/storage/part`;
-
-              const listMsgsResult = await execInContainer(
-                containerName,
-                ['bash', '-c', `ls -1 "${msgDir}"/msg_*.json 2>/dev/null | sort`],
-                { user: 'workspace' }
-              );
-
-              if (listMsgsResult.exitCode === 0 && listMsgsResult.stdout.trim()) {
-                const msgFiles = listMsgsResult.stdout.trim().split('\n').filter(Boolean);
-                for (const msgFile of msgFiles) {
-                  const msgResult = await execInContainer(containerName, ['cat', msgFile], {
-                    user: 'workspace',
-                  });
-                  if (msgResult.exitCode === 0) {
-                    try {
-                      const msg = JSON.parse(msgResult.stdout) as {
-                        id?: string;
-                        role?: string;
-                        time?: { created?: number };
-                      };
-                      if (!msg.id || (msg.role !== 'user' && msg.role !== 'assistant')) continue;
-
-                      const timestamp = msg.time?.created
-                        ? new Date(msg.time.created).toISOString()
-                        : undefined;
-
-                      const listPartsResult = await execInContainer(
-                        containerName,
-                        [
-                          'bash',
-                          '-c',
-                          `ls -1 "${partDir}/${msg.id}"/prt_*.json 2>/dev/null | sort`,
-                        ],
-                        { user: 'workspace' }
-                      );
-
-                      if (listPartsResult.exitCode === 0 && listPartsResult.stdout.trim()) {
-                        const partFiles = listPartsResult.stdout.trim().split('\n').filter(Boolean);
-                        for (const partFile of partFiles) {
-                          const partResult = await execInContainer(
-                            containerName,
-                            ['cat', partFile],
-                            { user: 'workspace' }
-                          );
-                          if (partResult.exitCode === 0) {
-                            try {
-                              const part = JSON.parse(partResult.stdout) as {
-                                type: string;
-                                text?: string;
-                                tool?: string;
-                                callID?: string;
-                                id?: string;
-                                state?: {
-                                  input?: Record<string, unknown>;
-                                  output?: string;
-                                  title?: string;
-                                };
-                              };
-                              if (part.type === 'text' && part.text) {
-                                messages.push({
-                                  type: msg.role as 'user' | 'assistant',
-                                  content: part.text,
-                                  timestamp,
-                                });
-                              } else if (part.type === 'tool' && part.tool) {
-                                messages.push({
-                                  type: 'tool_use',
-                                  content: undefined,
-                                  toolName: part.state?.title || part.tool,
-                                  toolId: part.callID || part.id,
-                                  toolInput: JSON.stringify(part.state?.input, null, 2),
-                                  timestamp,
-                                });
-                                if (part.state?.output) {
-                                  messages.push({
-                                    type: 'tool_result',
-                                    content: part.state.output,
-                                    toolId: part.callID || part.id,
-                                    timestamp,
-                                  });
-                                }
-                              }
-                            } catch {
-                              continue;
-                            }
-                          }
-                        }
-                      }
-                    } catch {
-                      continue;
-                    }
-                  }
-                }
-              }
-              return { id: input.sessionId, agentType: 'opencode', messages };
-            } catch {
-              // Session parse failed
-            }
-          }
-        }
-      }
-
-      if (!input.agentType || input.agentType === 'codex') {
-        const findResult = await execInContainer(
-          containerName,
-          [
-            'bash',
-            '-c',
-            `find /home/workspace/.codex/sessions -name "rollout-*.jsonl" -type f 2>/dev/null`,
-          ],
-          { user: 'workspace' }
-        );
-
-        if (findResult.exitCode === 0 && findResult.stdout.trim()) {
-          const files = findResult.stdout.trim().split('\n').filter(Boolean);
-          for (const filePath of files) {
-            const headResult = await execInContainer(
-              containerName,
-              ['bash', '-c', `head -1 "${filePath}"`],
-              { user: 'workspace' }
-            );
-
-            let sessionId = filePath.split('/').pop()?.replace('.jsonl', '') || '';
-            if (headResult.exitCode === 0 && headResult.stdout.trim()) {
-              try {
-                const meta = JSON.parse(headResult.stdout.trim());
-                if (meta.session_id) sessionId = meta.session_id;
-              } catch {
-                // Use filename
-              }
-            }
-
-            if (sessionId === input.sessionId) {
-              const catResult = await execInContainer(containerName, ['cat', filePath], {
-                user: 'workspace',
-              });
-
-              if (catResult.exitCode === 0) {
-                const lines = catResult.stdout.split('\n').filter(Boolean);
-                for (let i = 1; i < lines.length; i++) {
-                  try {
-                    const event = JSON.parse(lines[i]) as {
-                      payload?: {
-                        role?: string;
-                        content?: unknown;
-                        message?: { role?: string; content?: unknown };
-                      };
-                      timestamp?: number;
-                    };
-                    const role = event.payload?.role || event.payload?.message?.role;
-                    const content = event.payload?.content || event.payload?.message?.content;
-                    if (role === 'user' || role === 'assistant') {
-                      const parsedContent = extractContent(content);
-                      messages.push({
-                        type: role,
-                        content: parsedContent || undefined,
-                        timestamp: event.timestamp
-                          ? new Date(event.timestamp).toISOString()
-                          : undefined,
-                      });
-                    }
-                  } catch {
-                    continue;
-                  }
-                }
-                return { id: input.sessionId, agentType: 'codex', messages };
-              }
-            }
-          }
-        }
-      }
-
-      throw new ORPCError('NOT_FOUND', { message: 'Session not found' });
+      return result;
     });
 
   const renameSession = os
