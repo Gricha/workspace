@@ -102,6 +102,22 @@ Two different `WorkspaceState` type definitions exist. Consolidate into single s
 
 ---
 
+### Performance
+
+#### Virtualize long chat session rendering
+**File**: `web/src/pages/WorkspaceDetail.tsx` (or wherever chat messages are rendered)
+
+Opening a long chat session (1000+ messages) freezes the browser because all messages are rendered at once. Need to implement virtualized list rendering.
+
+**Fix**:
+1. Only render last ~100 messages initially
+2. Use virtualization library (react-window or @tanstack/virtual) to render only visible messages
+3. Load more messages on scroll up
+4. Unload messages when scrolling away to keep DOM size manageable
+5. Keep scroll position stable when loading older messages
+
+---
+
 ### CI
 
 #### Add explicit typecheck step to test workflow
