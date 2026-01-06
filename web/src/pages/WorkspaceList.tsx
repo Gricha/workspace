@@ -28,6 +28,7 @@ function StatCard({ value, label, accent }: { value: number | string; label: str
 function WorkspaceRow({ workspace, onClick }: { workspace: WorkspaceInfo; onClick: () => void }) {
   const isRunning = workspace.status === 'running'
   const isError = workspace.status === 'error'
+  const isCreating = workspace.status === 'creating'
 
   return (
     <button
@@ -40,10 +41,14 @@ function WorkspaceRow({ workspace, onClick }: { workspace: WorkspaceInfo; onClic
           "block h-2.5 w-2.5 rounded-full",
           isRunning && "bg-emerald-500",
           isError && "bg-destructive",
-          !isRunning && !isError && "bg-muted-foreground/40"
+          isCreating && "bg-amber-500",
+          !isRunning && !isError && !isCreating && "bg-muted-foreground/40"
         )} />
         {isRunning && (
           <span className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping opacity-75" />
+        )}
+        {isCreating && (
+          <span className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-amber-500 animate-ping opacity-75" />
         )}
       </div>
 
@@ -53,6 +58,11 @@ function WorkspaceRow({ workspace, onClick }: { workspace: WorkspaceInfo; onClic
           {isRunning && (
             <span className="text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-medium">
               Running
+            </span>
+          )}
+          {isCreating && (
+            <span className="text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-medium">
+              Starting
             </span>
           )}
           {isError && (

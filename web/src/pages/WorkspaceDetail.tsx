@@ -353,6 +353,7 @@ export function WorkspaceDetail() {
 
   const isRunning = isHostWorkspace ? (hostInfo?.enabled ?? false) : workspace?.status === 'running'
   const isError = isHostWorkspace ? false : workspace?.status === 'error'
+  const isCreating = isHostWorkspace ? false : workspace?.status === 'creating'
   const displayName = isHostWorkspace ? (hostInfo?.hostname || 'Host') : workspace?.name
 
   const tabs = isHostWorkspace
@@ -366,50 +367,66 @@ export function WorkspaceDetail() {
         { id: 'settings' as const, label: 'Settings', icon: Settings },
       ]
 
-  const renderStartPrompt = () => (
-    <div className="flex-1 flex flex-col items-center justify-center">
-      <div className={cn(
-        "h-16 w-16 rounded-full flex items-center justify-center mb-6",
-        isError ? "bg-destructive/10" : "bg-muted/50"
-      )}>
-        {isError ? (
-          <AlertTriangle className="h-8 w-8 text-destructive" />
-        ) : (
-          <Square className="h-8 w-8 text-muted-foreground" />
-        )}
-      </div>
-      <p className="text-xl font-medium mb-2">
-        {isError ? 'Workspace needs recovery' : 'Workspace is stopped'}
-      </p>
-      <p className="text-muted-foreground mb-6 text-center max-w-md">
-        {isError
-          ? 'The container was deleted externally. Click below to recreate it with existing data.'
-          : 'Start the workspace to access this feature'}
-      </p>
-      {startMutation.error && (
-        <div className="mb-4 px-4 py-2 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm max-w-md text-center">
-          {(startMutation.error as Error).message || 'Failed to start workspace'}
+  const renderStartPrompt = () => {
+    if (isCreating) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="h-16 w-16 rounded-full flex items-center justify-center mb-6 bg-amber-500/10">
+            <Loader2 className="h-8 w-8 text-amber-500 animate-spin" />
+          </div>
+          <p className="text-xl font-medium mb-2">Workspace is starting</p>
+          <p className="text-muted-foreground mb-6 text-center max-w-md">
+            Please wait while the workspace container starts up. This may take a moment if the Docker image is being downloaded.
+          </p>
         </div>
-      )}
-      <Button
-        size="lg"
-        onClick={() => startMutation.mutate()}
-        disabled={startMutation.isPending}
-      >
-        {startMutation.isPending ? (
-          <>
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            {isError ? 'Recovering...' : 'Starting...'}
-          </>
-        ) : (
-          <>
-            {isError ? <RefreshCw className="mr-2 h-5 w-5" /> : <Play className="mr-2 h-5 w-5" />}
-            {isError ? 'Recover Workspace' : 'Start Workspace'}
-          </>
+      )
+    }
+
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center">
+        <div className={cn(
+          "h-16 w-16 rounded-full flex items-center justify-center mb-6",
+          isError ? "bg-destructive/10" : "bg-muted/50"
+        )}>
+          {isError ? (
+            <AlertTriangle className="h-8 w-8 text-destructive" />
+          ) : (
+            <Square className="h-8 w-8 text-muted-foreground" />
+          )}
+        </div>
+        <p className="text-xl font-medium mb-2">
+          {isError ? 'Workspace needs recovery' : 'Workspace is stopped'}
+        </p>
+        <p className="text-muted-foreground mb-6 text-center max-w-md">
+          {isError
+            ? 'The container was deleted externally. Click below to recreate it with existing data.'
+            : 'Start the workspace to access this feature'}
+        </p>
+        {startMutation.error && (
+          <div className="mb-4 px-4 py-2 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm max-w-md text-center">
+            {(startMutation.error as Error).message || 'Failed to start workspace'}
+          </div>
         )}
-      </Button>
-    </div>
-  )
+        <Button
+          size="lg"
+          onClick={() => startMutation.mutate()}
+          disabled={startMutation.isPending}
+        >
+          {startMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              {isError ? 'Recovering...' : 'Starting...'}
+            </>
+          ) : (
+            <>
+              {isError ? <RefreshCw className="mr-2 h-5 w-5" /> : <Play className="mr-2 h-5 w-5" />}
+              {isError ? 'Recover Workspace' : 'Start Workspace'}
+            </>
+          )}
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -425,6 +442,8 @@ export function WorkspaceDetail() {
             </Badge>
           ) : isRunning ? (
             <span className="h-2 w-2 rounded-full bg-success animate-pulse flex-shrink-0" title="Running" />
+          ) : isCreating ? (
+            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" title="Starting" />
           ) : isError ? (
             <Badge variant="destructive" className="text-xs flex-shrink-0">error</Badge>
           ) : (
@@ -442,6 +461,16 @@ export function WorkspaceDetail() {
             >
               <Square className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">{stopMutation.isPending ? 'Stopping...' : 'Stop'}</span>
+            </Button>
+          ) : isCreating ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled
+              className="h-9 px-2 sm:px-3 flex-shrink-0 text-amber-600"
+            >
+              <Loader2 className="h-4 w-4 sm:mr-1 animate-spin" />
+              <span className="hidden sm:inline">Starting...</span>
             </Button>
           ) : (
             <Button
@@ -654,8 +683,8 @@ export function WorkspaceDetail() {
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-border/50">
                     <span className="text-sm text-muted-foreground">Status</span>
-                    <Badge variant={isRunning ? 'success' : isError ? 'destructive' : 'muted'}>
-                      {isRunning ? 'running' : isError ? 'error' : 'stopped'}
+                    <Badge variant={isRunning ? 'success' : isError ? 'destructive' : isCreating ? 'secondary' : 'muted'} className={isCreating ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : ''}>
+                      {isRunning ? 'running' : isError ? 'error' : isCreating ? 'starting' : 'stopped'}
                     </Badge>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-border/50">

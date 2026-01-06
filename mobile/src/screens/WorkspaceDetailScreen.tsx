@@ -127,6 +127,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
   })
 
   const isRunning = isHost ? true : workspace?.status === 'running'
+  const isCreating = isHost ? false : workspace?.status === 'creating'
 
   const { data: sessionsData, isLoading: sessionsLoading, refetch } = useQuery({
     queryKey: ['sessions', name, agentFilter],
@@ -179,7 +180,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, isHost && styles.hostHeaderTitle]}>{displayName}</Text>
-          <View style={[styles.statusIndicator, { backgroundColor: isHost ? '#f59e0b' : (isRunning ? '#34c759' : '#636366') }]} />
+          <View style={[styles.statusIndicator, { backgroundColor: isHost ? '#f59e0b' : (isRunning ? '#34c759' : isCreating ? '#ff9f0a' : '#636366') }]} />
         </View>
         {isHost ? (
           <View style={styles.settingsBtn} />
@@ -275,10 +276,18 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
       )}
 
       {!isRunning && !isHost ? (
-        <View style={styles.notRunning}>
-          <Text style={styles.notRunningText}>Workspace is not running</Text>
-          <Text style={styles.notRunningSubtext}>Start it from settings to view sessions</Text>
-        </View>
+        isCreating ? (
+          <View style={styles.notRunning}>
+            <ActivityIndicator size="large" color="#ff9f0a" style={{ marginBottom: 16 }} />
+            <Text style={styles.notRunningText}>Workspace is starting</Text>
+            <Text style={styles.notRunningSubtext}>Please wait while the container starts up</Text>
+          </View>
+        ) : (
+          <View style={styles.notRunning}>
+            <Text style={styles.notRunningText}>Workspace is not running</Text>
+            <Text style={styles.notRunningSubtext}>Start it from settings to view sessions</Text>
+          </View>
+        )
       ) : sessionsLoading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#0a84ff" />

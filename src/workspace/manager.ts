@@ -419,6 +419,10 @@ export class WorkspaceManager {
   }
 
   private async syncWorkspaceStatus(workspace: Workspace): Promise<void> {
+    if (workspace.status === 'creating') {
+      return;
+    }
+
     const containerName = getContainerName(workspace.name);
 
     const exists = await docker.containerExists(containerName);
@@ -432,7 +436,7 @@ export class WorkspaceManager {
 
     const running = await docker.containerRunning(containerName);
     const newStatus = running ? 'running' : 'stopped';
-    if (workspace.status !== newStatus && workspace.status !== 'creating') {
+    if (workspace.status !== newStatus) {
       workspace.status = newStatus;
       await this.state.setWorkspace(workspace);
     }
@@ -553,76 +557,86 @@ export class WorkspaceManager {
       throw new Error(`Workspace '${name}' not found`);
     }
 
-    const containerName = getContainerName(name);
-    const volumeName = `${VOLUME_PREFIX}${name}`;
-    const exists = await docker.containerExists(containerName);
+    const previousStatus = workspace.status;
+    workspace.status = 'creating';
+    await this.state.setWorkspace(workspace);
 
-    if (!exists) {
-      const volumeExists = await docker.volumeExists(volumeName);
-      if (!volumeExists) {
-        throw new Error(
-          `Container and volume for workspace '${name}' were deleted. ` +
-            `Please delete this workspace and create a new one.`
-        );
+    try {
+      const containerName = getContainerName(name);
+      const volumeName = `${VOLUME_PREFIX}${name}`;
+      const exists = await docker.containerExists(containerName);
+
+      if (!exists) {
+        const volumeExists = await docker.volumeExists(volumeName);
+        if (!volumeExists) {
+          throw new Error(
+            `Container and volume for workspace '${name}' were deleted. ` +
+              `Please delete this workspace and create a new one.`
+          );
+        }
+
+        const workspaceImage = await ensureWorkspaceImage();
+        const sshPort = await findAvailablePort(SSH_PORT_RANGE_START, SSH_PORT_RANGE_END);
+
+        const containerEnv: Record<string, string> = {
+          ...this.config.credentials.env,
+        };
+
+        if (this.config.agents?.github?.token) {
+          containerEnv.GITHUB_TOKEN = this.config.agents.github.token;
+        }
+        if (this.config.agents?.claude_code?.oauth_token) {
+          containerEnv.CLAUDE_CODE_OAUTH_TOKEN = this.config.agents.claude_code.oauth_token;
+        }
+
+        if (workspace.repo) {
+          containerEnv.WORKSPACE_REPO_URL = workspace.repo;
+        }
+
+        const containerId = await docker.createContainer({
+          name: containerName,
+          image: workspaceImage,
+          hostname: name,
+          privileged: true,
+          restartPolicy: 'unless-stopped',
+          env: containerEnv,
+          volumes: [{ source: volumeName, target: '/home/workspace', readonly: false }],
+          ports: [{ hostPort: sshPort, containerPort: 22, protocol: 'tcp' }],
+          labels: {
+            'workspace.name': name,
+            'workspace.managed': 'true',
+          },
+        });
+
+        workspace.containerId = containerId;
+        workspace.ports.ssh = sshPort;
+        await this.state.setWorkspace(workspace);
       }
 
-      const workspaceImage = await ensureWorkspaceImage();
-      const sshPort = await findAvailablePort(SSH_PORT_RANGE_START, SSH_PORT_RANGE_END);
-
-      const containerEnv: Record<string, string> = {
-        ...this.config.credentials.env,
-      };
-
-      if (this.config.agents?.github?.token) {
-        containerEnv.GITHUB_TOKEN = this.config.agents.github.token;
-      }
-      if (this.config.agents?.claude_code?.oauth_token) {
-        containerEnv.CLAUDE_CODE_OAUTH_TOKEN = this.config.agents.claude_code.oauth_token;
+      const running = await docker.containerRunning(containerName);
+      if (running) {
+        workspace.status = 'running';
+        workspace.lastUsed = new Date().toISOString();
+        await this.state.setWorkspace(workspace);
+        return workspace;
       }
 
-      if (workspace.repo) {
-        containerEnv.WORKSPACE_REPO_URL = workspace.repo;
-      }
+      await docker.startContainer(containerName);
+      await docker.waitForContainerReady(containerName);
+      await this.setupWorkspaceCredentials(containerName, name);
 
-      const containerId = await docker.createContainer({
-        name: containerName,
-        image: workspaceImage,
-        hostname: name,
-        privileged: true,
-        restartPolicy: 'unless-stopped',
-        env: containerEnv,
-        volumes: [{ source: volumeName, target: '/home/workspace', readonly: false }],
-        ports: [{ hostPort: sshPort, containerPort: 22, protocol: 'tcp' }],
-        labels: {
-          'workspace.name': name,
-          'workspace.managed': 'true',
-        },
-      });
-
-      workspace.containerId = containerId;
-      workspace.ports.ssh = sshPort;
-      await this.state.setWorkspace(workspace);
-    }
-
-    const running = await docker.containerRunning(containerName);
-    if (running) {
       workspace.status = 'running';
       workspace.lastUsed = new Date().toISOString();
       await this.state.setWorkspace(workspace);
+
+      await this.runPostStartScript(containerName);
+
       return workspace;
+    } catch (err) {
+      workspace.status = previousStatus === 'error' ? 'error' : 'stopped';
+      await this.state.setWorkspace(workspace);
+      throw err;
     }
-
-    await docker.startContainer(containerName);
-    await docker.waitForContainerReady(containerName);
-    await this.setupWorkspaceCredentials(containerName, name);
-
-    workspace.status = 'running';
-    workspace.lastUsed = new Date().toISOString();
-    await this.state.setWorkspace(workspace);
-
-    await this.runPostStartScript(containerName);
-
-    return workspace;
   }
 
   async stop(name: string): Promise<Workspace> {
