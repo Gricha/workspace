@@ -699,7 +699,7 @@ function formatUptime(seconds: number): string {
   return `${mins}m`
 }
 
-export function SettingsScreen() {
+export function SettingsScreen({ navigation }: any) {
   const insets = useSafeAreaInsets()
 
   return (
@@ -708,7 +708,11 @@ export function SettingsScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>‹</Text>
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
+        <View style={styles.headerPlaceholder} />
       </View>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}>
         <ConnectionSettings />
@@ -729,15 +733,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#1c1c1e',
   },
+  backBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backBtnText: {
+    fontSize: 32,
+    color: '#0a84ff',
+    fontWeight: '300',
+  },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
+    flex: 1,
+    fontSize: 17,
+    fontWeight: '600',
     color: '#fff',
+    textAlign: 'center',
+  },
+  headerPlaceholder: {
+    width: 44,
   },
   content: {
     padding: 16,

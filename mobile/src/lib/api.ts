@@ -84,6 +84,13 @@ export interface SessionDetail {
   messages: SessionMessage[]
 }
 
+export interface RecentSession {
+  workspaceName: string
+  sessionId: string
+  agentType: AgentType
+  lastAccessed: string
+}
+
 const DEFAULT_PORT = 7391
 const STORAGE_KEY = 'perry_server_config'
 
@@ -156,6 +163,8 @@ function createClient() {
         offset?: number
       }) => Promise<{ sessions: (SessionInfo & { workspaceName: string })[]; total: number; hasMore: boolean }>
       get: (input: { workspaceName: string; sessionId: string; agentType?: AgentType; limit?: number; offset?: number }) => Promise<SessionDetail & { total: number; hasMore: boolean }>
+      getRecent: (input: { limit?: number }) => Promise<{ sessions: RecentSession[] }>
+      recordAccess: (input: { workspaceName: string; sessionId: string; agentType: AgentType }) => Promise<{ success: boolean }>
     }
     info: () => Promise<InfoResponse>
     host: {
@@ -222,6 +231,10 @@ export const api = {
     client.sessions.listAll({ agentType, limit, offset }),
   getSession: (workspaceName: string, sessionId: string, agentType?: AgentType, limit?: number, offset?: number) =>
     client.sessions.get({ workspaceName, sessionId, agentType, limit, offset }),
+  getRecentSessions: (limit?: number) =>
+    client.sessions.getRecent({ limit }),
+  recordSessionAccess: (workspaceName: string, sessionId: string, agentType: AgentType) =>
+    client.sessions.recordAccess({ workspaceName, sessionId, agentType }),
   getInfo: () => client.info(),
   getHostInfo: () => client.host.info(),
   updateHostAccess: (enabled: boolean) => client.host.updateAccess({ enabled }),

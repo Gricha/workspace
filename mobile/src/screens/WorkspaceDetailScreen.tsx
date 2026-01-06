@@ -130,7 +130,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
 
   const { data: sessionsData, isLoading: sessionsLoading, refetch } = useQuery({
     queryKey: ['sessions', name, agentFilter],
-    queryFn: () => api.listSessions(name, agentFilter, 100),
+    queryFn: () => api.listSessions(name, agentFilter, 50),
     enabled: isRunning,
   })
 

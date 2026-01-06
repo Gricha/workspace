@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import {
   View,
   Text,
@@ -7,11 +7,16 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
-import { useQuery } from '@tanstack/react-query'
-import { api, WorkspaceInfo, HOST_WORKSPACE_NAME } from '../lib/api'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { api, WorkspaceInfo, HOST_WORKSPACE_NAME, CreateWorkspaceRequest } from '../lib/api'
 import { useNetwork, parseNetworkError } from '../lib/network'
 
 function StatusDot({ status }: { status: WorkspaceInfo['status'] | 'host' }) {
@@ -104,12 +109,42 @@ function HostSection({ onHostPress }: { onHostPress: () => void }) {
 export function HomeScreen() {
   const insets = useSafeAreaInsets()
   const navigation = useNavigation<any>()
+  const queryClient = useQueryClient()
   const { status } = useNetwork()
+  const [showCreate, setShowCreate] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newRepo, setNewRepo] = useState('')
 
   const { data: workspaces, isLoading, refetch, isRefetching, error } = useQuery({
     queryKey: ['workspaces'],
     queryFn: api.listWorkspaces,
   })
+
+  const createMutation = useMutation({
+    mutationFn: (data: CreateWorkspaceRequest) => api.createWorkspace(data),
+    onSuccess: (workspace) => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      setShowCreate(false)
+      setNewName('')
+      setNewRepo('')
+      navigation.navigate('WorkspaceDetail', { name: workspace.name })
+    },
+    onError: (err) => {
+      Alert.alert('Error', parseNetworkError(err))
+    },
+  })
+
+  const handleCreate = () => {
+    const name = newName.trim()
+    if (!name) {
+      Alert.alert('Error', 'Please enter a workspace name')
+      return
+    }
+    createMutation.mutate({
+      name,
+      clone: newRepo.trim() || undefined,
+    })
+  }
 
   const handleWorkspacePress = useCallback((workspace: WorkspaceInfo) => {
     navigation.navigate('WorkspaceDetail', { name: workspace.name })
@@ -150,13 +185,22 @@ export function HomeScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Perry</Text>
-        <TouchableOpacity
-          style={styles.settingsBtn}
-          onPress={() => navigation.navigate('Settings')}
-          testID="settings-button"
-        >
-          <Text style={styles.settingsIcon}>⚙</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => setShowCreate(true)}
+            testID="add-workspace-button"
+          >
+            <Text style={styles.addIcon}>+</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => navigation.navigate('Settings')}
+            testID="settings-button"
+          >
+            <Text style={styles.settingsIcon}>⚙</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -179,6 +223,66 @@ export function HomeScreen() {
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
+
+      <Modal
+        visible={showCreate}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowCreate(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowCreate(false)} style={styles.modalCancelBtn}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>New Workspace</Text>
+            <TouchableOpacity
+              onPress={handleCreate}
+              style={styles.modalCreateBtn}
+              disabled={createMutation.isPending || !newName.trim()}
+            >
+              {createMutation.isPending ? (
+                <ActivityIndicator size="small" color="#0a84ff" />
+              ) : (
+                <Text style={[styles.modalCreateText, !newName.trim() && styles.modalCreateTextDisabled]}>
+                  Create
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+          <View style={styles.modalContent}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Name</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newName}
+                onChangeText={setNewName}
+                placeholder="my-project"
+                placeholderTextColor="#636366"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Repository (optional)</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newRepo}
+                onChangeText={setNewRepo}
+                placeholder="https://github.com/user/repo"
+                placeholderTextColor="#636366"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   )
 }
@@ -207,11 +311,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
-  settingsBtn: {
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerBtn: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  addIcon: {
+    fontSize: 28,
+    color: '#0a84ff',
+    fontWeight: '300',
   },
   settingsIcon: {
     fontSize: 22,
@@ -356,6 +469,64 @@ const styles = StyleSheet.create({
   retryBtnText: {
     fontSize: 15,
     fontWeight: '600',
+    color: '#fff',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1c1c1e',
+  },
+  modalCancelBtn: {
+    paddingVertical: 8,
+  },
+  modalCancelText: {
+    fontSize: 17,
+    color: '#0a84ff',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  modalCreateBtn: {
+    paddingVertical: 8,
+    minWidth: 60,
+    alignItems: 'flex-end',
+  },
+  modalCreateText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#0a84ff',
+  },
+  modalCreateTextDisabled: {
+    color: '#636366',
+  },
+  modalContent: {
+    padding: 16,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 13,
+    color: '#8e8e93',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  modalInput: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 17,
     color: '#fff',
   },
 })

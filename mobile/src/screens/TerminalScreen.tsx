@@ -9,7 +9,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import { useQuery } from '@tanstack/react-query'
-import { api, getTerminalUrl, getBaseUrl } from '../lib/api'
+import { api, getTerminalUrl, getBaseUrl, HOST_WORKSPACE_NAME } from '../lib/api'
 
 const TERMINAL_HTML = `
 <!DOCTYPE html>
@@ -77,6 +77,14 @@ const TERMINAL_HTML = `
       fitAddon = new FitAddon();
       term.loadAddon(fitAddon);
       term.open(document.getElementById('terminal'));
+
+      const textarea = document.querySelector('#terminal textarea');
+      if (textarea) {
+        textarea.setAttribute('autocapitalize', 'off');
+        textarea.setAttribute('autocorrect', 'off');
+        textarea.setAttribute('autocomplete', 'off');
+        textarea.setAttribute('spellcheck', 'false');
+      }
 
       requestAnimationFrame(() => {
         fitAddon.fit();
@@ -147,12 +155,21 @@ export function TerminalScreen({ route, navigation }: any) {
   const [connected, setConnected] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const isHost = name === HOST_WORKSPACE_NAME
+
   const { data: workspace } = useQuery({
     queryKey: ['workspace', name],
     queryFn: () => api.getWorkspace(name),
+    enabled: !isHost,
   })
 
-  const isRunning = workspace?.status === 'running'
+  const { data: hostInfo } = useQuery({
+    queryKey: ['hostInfo'],
+    queryFn: api.getHostInfo,
+    enabled: isHost,
+  })
+
+  const isRunning = isHost ? (hostInfo?.enabled ?? false) : workspace?.status === 'running'
 
   const handleMessage = (event: any) => {
     try {

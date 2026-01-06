@@ -304,8 +304,11 @@ export function SessionChatScreen({ route, navigation }: any) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false })
       }, 150)
+      if (initialSessionId) {
+        api.recordSessionAccess(workspaceName, initialSessionId, agentType).catch(() => {})
+      }
     }
-  }, [sessionData, parseMessages])
+  }, [sessionData, parseMessages, workspaceName, initialSessionId, agentType])
 
   const loadMoreMessages = useCallback(async () => {
     if (!hasMoreMessages || isLoadingMore || !initialSessionId) return
