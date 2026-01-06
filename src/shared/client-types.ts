@@ -8,6 +8,14 @@ export interface WorkspaceInfo {
     ssh: number;
     http?: number;
   };
+  lastUsed?: string;
+}
+
+export interface RecentSession {
+  workspaceName: string;
+  sessionId: string;
+  agentType: 'claude-code' | 'opencode' | 'codex';
+  lastAccessed: string;
 }
 
 export interface InfoResponse {
