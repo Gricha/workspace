@@ -9,12 +9,12 @@ import type {
   CodingAgents,
   AgentType,
   SessionInfo,
-  SessionInfoWithWorkspace,
   SessionMessage,
   SessionDetail,
   HostInfo,
   SSHSettings,
   SSHKeyInfo,
+  RecentSession,
 } from './types'
 
 export type {
@@ -26,12 +26,12 @@ export type {
   CodingAgents,
   AgentType,
   SessionInfo,
-  SessionInfoWithWorkspace,
   SessionMessage,
   SessionDetail,
   HostInfo,
   SSHSettings,
   SSHKeyInfo,
+  RecentSession,
 }
 
 function getRpcUrl(): string {
@@ -56,6 +56,7 @@ const client = createORPCClient<{
     logs: (input: { name: string; tail?: number }) => Promise<string>
     sync: (input: { name: string }) => Promise<{ success: boolean }>
     syncAll: () => Promise<{ synced: number; failed: number; results: { name: string; success: boolean; error?: string }[] }>
+    touch: (input: { name: string }) => Promise<WorkspaceInfo>
   }
   sessions: {
     list: (input: {
@@ -64,14 +65,11 @@ const client = createORPCClient<{
       limit?: number
       offset?: number
     }) => Promise<{ sessions: SessionInfo[]; total: number; hasMore: boolean }>
-    listAll: (input: {
-      agentType?: AgentType
-      limit?: number
-      offset?: number
-    }) => Promise<{ sessions: SessionInfoWithWorkspace[]; total: number; hasMore: boolean }>
     get: (input: { workspaceName: string; sessionId: string; agentType?: AgentType; limit?: number; offset?: number }) => Promise<SessionDetail & { total: number; hasMore: boolean }>
     rename: (input: { workspaceName: string; sessionId: string; name: string }) => Promise<{ success: boolean }>
     clearName: (input: { workspaceName: string; sessionId: string }) => Promise<{ success: boolean }>
+    getRecent: (input: { limit?: number }) => Promise<{ sessions: RecentSession[] }>
+    recordAccess: (input: { workspaceName: string; sessionId: string; agentType: AgentType }) => Promise<{ success: boolean }>
   }
   info: () => Promise<InfoResponse>
   host: {
@@ -109,10 +107,12 @@ export const api = {
   getLogs: (name: string, tail = 100) => client.workspaces.logs({ name, tail }),
   syncWorkspace: (name: string) => client.workspaces.sync({ name }),
   syncAllWorkspaces: () => client.workspaces.syncAll(),
+  touchWorkspace: (name: string) => client.workspaces.touch({ name }),
   listSessions: (workspaceName: string, agentType?: AgentType, limit?: number, offset?: number) =>
     client.sessions.list({ workspaceName, agentType, limit, offset }),
-  listAllSessions: (agentType?: AgentType, limit?: number, offset?: number) =>
-    client.sessions.listAll({ agentType, limit, offset }),
+  getRecentSessions: (limit?: number) => client.sessions.getRecent({ limit }),
+  recordSessionAccess: (workspaceName: string, sessionId: string, agentType: AgentType) =>
+    client.sessions.recordAccess({ workspaceName, sessionId, agentType }),
   getSession: (workspaceName: string, sessionId: string, agentType?: AgentType, limit?: number, offset?: number) =>
     client.sessions.get({ workspaceName, sessionId, agentType, limit, offset }),
   renameSession: (workspaceName: string, sessionId: string, name: string) =>

@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WorkspaceList } from './pages/WorkspaceList'
 import { WorkspaceDetail } from './pages/WorkspaceDetail'
-import { AllSessions } from './pages/AllSessions'
 import { EnvironmentSettings } from './pages/settings/Environment'
 import { FilesSettings } from './pages/settings/Files'
 import { ScriptsSettings } from './pages/settings/Scripts'
@@ -36,7 +35,6 @@ function App() {
               <Route path="workspaces" element={<WorkspaceList />} />
               <Route path="workspaces/:name" element={<WorkspaceDetail />} />
               <Route path="workspaces/:name/sessions" element={<SessionsRedirect />} />
-              <Route path="sessions" element={<AllSessions />} />
               <Route path="settings" element={<Navigate to="/settings/environment" replace />} />
               <Route path="settings/environment" element={<EnvironmentSettings />} />
               <Route path="settings/files" element={<FilesSettings />} />

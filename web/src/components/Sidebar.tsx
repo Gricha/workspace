@@ -7,7 +7,6 @@ import {
   FolderSync,
   Terminal,
   Settings,
-  MessageSquare,
   Monitor,
   Boxes,
 } from 'lucide-react'
@@ -90,17 +89,6 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 >
                   <Boxes className="h-4 w-4 text-muted-foreground" />
                   <span>All Workspaces</span>
-                </Link>
-                <Link
-                  to="/sessions"
-                  className={cn(
-                    'flex items-center gap-2.5 rounded px-2 py-2 text-sm transition-colors hover:bg-accent min-h-[44px]',
-                    location.pathname === '/sessions' && 'nav-active'
-                  )}
-                  onClick={() => isOpen && onToggle()}
-                >
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  <span>All Sessions</span>
                 </Link>
                 {workspaces?.map((ws: WorkspaceInfo) => (
                   <Link

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -218,10 +218,19 @@ export function WorkspaceDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
 
+  const [chatConnected, setChatConnected] = useState(false)
+
   const setTab = (tab: TabType) => {
     setChatMode(null)
     setSearchParams({ tab })
   }
+
+  const handleSessionId = useCallback((sessionId: string) => {
+    if (name && chatMode?.type === 'chat' && chatMode.agentType) {
+      api.recordSessionAccess(name, sessionId, chatMode.agentType).catch(() => {})
+    }
+    setChatMode((prev) => prev?.type === 'chat' ? { ...prev, sessionId } : prev)
+  }, [name, chatMode])
 
   const { data: hostInfo, isLoading: hostLoading } = useQuery({
     queryKey: ['hostInfo'],
@@ -495,12 +504,27 @@ export function WorkspaceDetail() {
                     <span className="text-sm font-medium">
                       {chatMode.agentType === 'opencode' ? 'OpenCode' : 'Claude Code'}
                     </span>
+                    <div className="flex-1" />
+                    {chatConnected ? (
+                      <span className="flex items-center gap-1 text-xs text-success">
+                        <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
+                        Connected
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <span className="w-2 h-2 bg-muted-foreground rounded-full" />
+                        Disconnected
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1 overflow-hidden">
                     <Chat
                       workspaceName={name!}
                       sessionId={chatMode.sessionId}
                       agentType={chatMode.agentType}
+                      hideHeader
+                      onConnectionChange={setChatConnected}
+                      onSessionId={handleSessionId}
                     />
                   </div>
                 </div>

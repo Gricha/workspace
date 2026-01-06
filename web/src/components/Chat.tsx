@@ -35,6 +35,8 @@ interface ChatProps {
   sessionId?: string
   onSessionId?: (sessionId: string) => void
   agentType?: AgentType
+  hideHeader?: boolean
+  onConnectionChange?: (connected: boolean) => void
 }
 
 function getToolSummary(toolName: string, content: string): string | null {
@@ -237,7 +239,7 @@ function StreamingMessage({ parts }: { parts: ChatMessagePart[] }) {
 
 const MESSAGES_PER_PAGE = 50
 
-export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, agentType = 'claude-code' }: ChatProps) {
+export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, agentType = 'claude-code', hideHeader, onConnectionChange }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isConnected, setIsConnected] = useState(false)
@@ -567,6 +569,10 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
     }
   }, [connect])
 
+  useEffect(() => {
+    onConnectionChange?.(isConnected)
+  }, [isConnected, onConnectionChange])
+
   const sendMessage = useCallback(() => {
     if (!input.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       return
@@ -610,36 +616,38 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="flex items-center justify-between px-4 py-2 border-b">
-        <div className="flex items-center gap-2">
-          {agentType === 'opencode' ? (
-            <Code2 className="h-5 w-5 text-blue-500" />
-          ) : (
-            <Bot className="h-5 w-5 text-orange-500" />
-          )}
-          <span className="font-medium">
-            {agentType === 'opencode' ? 'OpenCode' : 'Claude Code'}
-          </span>
-          {sessionId && (
-            <span className="text-xs text-muted-foreground font-mono">
-              {sessionId.slice(0, 8)}...
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 py-2 border-b">
+          <div className="flex items-center gap-2">
+            {agentType === 'opencode' ? (
+              <Code2 className="h-5 w-5 text-blue-500" />
+            ) : (
+              <Bot className="h-5 w-5 text-orange-500" />
+            )}
+            <span className="font-medium">
+              {agentType === 'opencode' ? 'OpenCode' : 'Claude Code'}
             </span>
-          )}
+            {sessionId && (
+              <span className="text-xs text-muted-foreground font-mono">
+                {sessionId.slice(0, 8)}...
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {isConnected ? (
+              <span className="flex items-center gap-1 text-xs text-success">
+                <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
+                Connected
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span className="w-2 h-2 bg-muted-foreground rounded-full" />
+                Disconnected
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {isConnected ? (
-            <span className="flex items-center gap-1 text-xs text-success">
-              <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
-              Connected
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <span className="w-2 h-2 bg-muted-foreground rounded-full" />
-              Disconnected
-            </span>
-          )}
-        </div>
-      </div>
+      )}
 
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         {isLoadingHistory && (

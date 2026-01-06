@@ -364,7 +364,7 @@ export function WorkspaceList() {
             <div className="text-sm">
               <span className="font-medium">Quick tip:</span>{' '}
               <span className="text-muted-foreground">
-                Use <code className="px-1.5 py-0.5 rounded bg-muted text-foreground text-xs">workspace shell {'<name>'}</code> from your terminal to SSH directly into any workspace.
+                Use <code className="px-1.5 py-0.5 rounded bg-muted text-foreground text-xs">perry shell {'<name>'}</code> from your terminal to SSH directly into any workspace.
               </span>
             </div>
           </div>
