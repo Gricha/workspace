@@ -29,7 +29,7 @@ async function cleanupOrphanedResources() {
 
 function imageExists() {
   try {
-    execSync('docker image inspect workspace:latest', { stdio: 'ignore' });
+    execSync('docker image inspect perry:latest', { stdio: 'ignore' });
     return true;
   } catch {
     return false;
@@ -38,12 +38,12 @@ function imageExists() {
 
 async function buildImage() {
   if (process.env.SKIP_DOCKER_BUILD === 'true' && imageExists()) {
-    console.log('\n✅ Using existing workspace:latest image (SKIP_DOCKER_BUILD=true)\n');
+    console.log('\n✅ Using existing perry:latest image (SKIP_DOCKER_BUILD=true)\n');
     return;
   }
 
   if (imageExists() && !process.env.FORCE_DOCKER_BUILD) {
-    console.log('\n✅ Using existing workspace:latest image\n');
+    console.log('\n✅ Using existing perry:latest image\n');
     return;
   }
 
@@ -51,7 +51,7 @@ async function buildImage() {
     console.log('\n🏗️  Building workspace Docker image once for all tests...\n');
 
     const buildContext = path.join(process.cwd(), 'perry');
-    const proc = spawn('docker', ['build', '-t', 'workspace:latest', buildContext], {
+    const proc = spawn('docker', ['build', '-t', 'perry:latest', buildContext], {
       stdio: 'inherit',
     });
 

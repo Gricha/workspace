@@ -188,7 +188,7 @@ jobs:
         with:
           context: ./perry
           load: true
-          tags: workspace:latest
+          tags: perry:latest
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-test
           cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.IMAGE_NAME) || '' }}
 

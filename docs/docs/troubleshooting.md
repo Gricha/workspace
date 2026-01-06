@@ -36,7 +36,7 @@ Common issues and their solutions when working with Perry.
    docker ps
    ```
 
-### "Image 'workspace:latest' not found"
+### "Image 'perry:latest' not found"
 
 **Symptoms:** Workspace creation fails with missing image error.
 

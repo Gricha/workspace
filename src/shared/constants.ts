@@ -3,7 +3,7 @@ export const DEFAULT_AGENT_PORT = 7391;
 export const SSH_PORT_RANGE_START = 2200;
 export const SSH_PORT_RANGE_END = 2400;
 
-export const WORKSPACE_IMAGE_LOCAL = 'workspace:latest';
+export const WORKSPACE_IMAGE_LOCAL = 'perry:latest';
 export const WORKSPACE_IMAGE_REGISTRY = 'ghcr.io/gricha/perry';
 
 export const VOLUME_PREFIX = 'workspace-';
