@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/gricha/perry/actions/workflows/test.yml"><img src="https://github.com/gricha/perry/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
-  <a href="https://www.npmjs.com/package/@gricha/perry"><img src="https://badge.fury.io/js/@gricha%2Fperry.svg" alt="npm version"></a>
+  <a href="https://github.com/gricha/perry/releases"><img src="https://img.shields.io/github/v/release/gricha/perry" alt="Release"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
 
@@ -29,7 +29,7 @@ Perry is designed to run on a machine within a **secure private network** such a
 ### Install
 
 ```bash
-npm install -g @gricha/perry
+curl -fsSL https://raw.githubusercontent.com/gricha/perry/main/install.sh | bash
 ```
 
 ### Start Agent
