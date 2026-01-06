@@ -35,6 +35,7 @@ export interface OpenCodeServerOptions {
   containerName: string;
   workDir?: string;
   sessionId?: string;
+  model?: string;
 }
 
 const serverPorts = new Map<string, number>();
@@ -108,6 +109,8 @@ export class OpenCodeServerSession {
   private containerName: string;
   private workDir: string;
   private sessionId?: string;
+  private model?: string;
+  private sessionModel?: string;
   private onMessage: (message: ChatMessage) => void;
   private sseProcess: Subprocess<'ignore', 'pipe', 'pipe'> | null = null;
   private responseComplete = false;
@@ -118,6 +121,8 @@ export class OpenCodeServerSession {
     this.containerName = options.containerName;
     this.workDir = options.workDir || '/home/workspace';
     this.sessionId = options.sessionId;
+    this.model = options.model;
+    this.sessionModel = options.model;
     this.onMessage = onMessage;
   }
 
@@ -133,6 +138,7 @@ export class OpenCodeServerSession {
 
     try {
       if (!this.sessionId) {
+        const sessionPayload = this.model ? JSON.stringify({ model: this.model }) : '{}';
         const createResult = await execInContainer(
           this.containerName,
           [
@@ -144,12 +150,13 @@ export class OpenCodeServerSession {
             '-H',
             'Content-Type: application/json',
             '-d',
-            '{}',
+            sessionPayload,
           ],
           { user: 'workspace' }
         );
         const session = JSON.parse(createResult.stdout);
         this.sessionId = session.id;
+        this.sessionModel = this.model;
         this.onMessage({
           type: 'system',
           content: `Session started ${this.sessionId}`,
@@ -160,9 +167,9 @@ export class OpenCodeServerSession {
       this.responseComplete = false;
       this.seenToolUse.clear();
       this.seenToolResult.clear();
-      const ssePromise = this.startSSEStream(port);
+      const { ready, done } = await this.startSSEStream(port);
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await ready;
 
       const messagePayload = JSON.stringify({
         parts: [{ type: 'text', text: userMessage }],
@@ -186,7 +193,7 @@ export class OpenCodeServerSession {
         console.error('[opencode-server] Send error:', err);
       });
 
-      await ssePromise;
+      await done;
 
       this.onMessage({
         type: 'done',
@@ -203,80 +210,99 @@ export class OpenCodeServerSession {
     }
   }
 
-  private async startSSEStream(port: number): Promise<void> {
-    return new Promise((resolve) => {
-      const proc = Bun.spawn(
-        [
-          'docker',
-          'exec',
-          '-i',
-          this.containerName,
-          'curl',
-          '-s',
-          '-N',
-          '--max-time',
-          '120',
-          `http://localhost:${port}/event`,
-        ],
-        {
-          stdin: 'ignore',
-          stdout: 'pipe',
-          stderr: 'pipe',
-        }
-      );
+  private async startSSEStream(
+    port: number
+  ): Promise<{ ready: Promise<void>; done: Promise<void> }> {
+    let resolveReady: () => void;
+    let resolveDone: () => void;
+    const ready = new Promise<void>((r) => (resolveReady = r));
+    const done = new Promise<void>((r) => (resolveDone = r));
 
-      this.sseProcess = proc;
+    const proc = Bun.spawn(
+      [
+        'docker',
+        'exec',
+        '-i',
+        this.containerName,
+        'curl',
+        '-s',
+        '-N',
+        '--max-time',
+        '120',
+        `http://localhost:${port}/event`,
+      ],
+      {
+        stdin: 'ignore',
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }
+    );
 
-      const decoder = new TextDecoder();
-      let buffer = '';
+    this.sseProcess = proc;
 
-      const processChunk = (chunk: Uint8Array) => {
-        buffer += decoder.decode(chunk);
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let hasReceivedData = false;
 
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6).trim();
-          if (!data) continue;
+    const processChunk = (chunk: Uint8Array) => {
+      buffer += decoder.decode(chunk);
+      if (!hasReceivedData) {
+        hasReceivedData = true;
+        resolveReady!();
+      }
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
 
-          try {
-            const event: OpenCodeServerEvent = JSON.parse(data);
-            this.handleEvent(event);
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (!data) continue;
 
-            if (event.type === 'session.idle') {
-              this.responseComplete = true;
-              proc.kill();
-              resolve();
-              return;
-            }
-          } catch {
-            continue;
+        try {
+          const event: OpenCodeServerEvent = JSON.parse(data);
+          this.handleEvent(event);
+
+          if (event.type === 'session.idle') {
+            this.responseComplete = true;
+            proc.kill();
+            resolveDone!();
+            return;
           }
+        } catch {
+          continue;
         }
-      };
+      }
+    };
 
-      (async () => {
-        if (!proc.stdout) {
-          resolve();
-          return;
-        }
+    (async () => {
+      if (!proc.stdout) {
+        resolveReady!();
+        resolveDone!();
+        return;
+      }
 
-        for await (const chunk of proc.stdout) {
-          processChunk(chunk);
-          if (this.responseComplete) break;
-        }
+      for await (const chunk of proc.stdout) {
+        processChunk(chunk);
+        if (this.responseComplete) break;
+      }
 
-        resolve();
-      })();
+      resolveDone!();
+    })();
 
-      setTimeout(() => {
-        if (!this.responseComplete) {
-          proc.kill();
-          resolve();
-        }
-      }, 120000);
-    });
+    setTimeout(() => {
+      if (!hasReceivedData) {
+        resolveReady!();
+      }
+    }, 500);
+
+    setTimeout(() => {
+      if (!this.responseComplete) {
+        proc.kill();
+        resolveDone!();
+      }
+    }, 120000);
+
+    return { ready, done };
   }
 
   private handleEvent(event: OpenCodeServerEvent): void {
@@ -328,6 +354,20 @@ export class OpenCodeServerSession {
         content: 'Chat interrupted',
         timestamp: new Date().toISOString(),
       });
+    }
+  }
+
+  setModel(model: string): void {
+    if (this.model !== model) {
+      this.model = model;
+      if (this.sessionModel !== model) {
+        this.sessionId = undefined;
+        this.onMessage({
+          type: 'system',
+          content: `Switching to model: ${model}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
   }
 

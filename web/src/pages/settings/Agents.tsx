@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Save, RefreshCw, ExternalLink, Sparkles, Github, Code2, ChevronDown, Check } from 'lucide-react'
-import { api, type CodingAgents } from '@/lib/api'
+import { api, type CodingAgents, type ModelInfo } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -13,11 +13,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useSyncPrompt } from '@/contexts/SyncContext'
 
-const MODEL_OPTIONS = [
-  { value: 'sonnet', label: 'Sonnet', description: 'Fast and cost-effective' },
-  { value: 'opus', label: 'Opus', description: 'Most capable' },
-  { value: 'haiku', label: 'Haiku', description: 'Fastest, lowest cost' },
-] as const
+const FALLBACK_CLAUDE_MODELS: ModelInfo[] = [
+  { id: 'sonnet', name: 'Sonnet', description: 'Fast and cost-effective' },
+  { id: 'opus', name: 'Opus', description: 'Most capable' },
+  { id: 'haiku', name: 'Haiku', description: 'Fastest, lowest cost' },
+]
+
 
 function StatusIndicator({ configured }: { configured: boolean }) {
   if (!configured) return null
@@ -37,7 +38,21 @@ export function AgentsSettings() {
     queryFn: api.getAgents,
   })
 
+  const { data: claudeModelsData } = useQuery({
+    queryKey: ['models', 'claude-code'],
+    queryFn: () => api.listModels('claude-code'),
+  })
+
+  const { data: opencodeModelsData } = useQuery({
+    queryKey: ['models', 'opencode'],
+    queryFn: () => api.listModels('opencode'),
+  })
+
+  const claudeModels = claudeModelsData?.models?.length ? claudeModelsData.models : FALLBACK_CLAUDE_MODELS
+  const opencodeModels = opencodeModelsData?.models || []
+
   const [opencodeZenToken, setOpencodeZenToken] = useState('')
+  const [opencodeModel, setOpencodeModel] = useState('')
   const [githubToken, setGithubToken] = useState('')
   const [claudeOAuthToken, setClaudeOAuthToken] = useState('')
   const [claudeModel, setClaudeModel] = useState('sonnet')
@@ -55,6 +70,7 @@ export function AgentsSettings() {
   useEffect(() => {
     if (agents && !initialized) {
       setOpencodeZenToken(agents.opencode?.zen_token || '')
+      setOpencodeModel(agents.opencode?.model || '')
       setGithubToken(agents.github?.token || '')
       setClaudeOAuthToken(agents.claude_code?.oauth_token || '')
       setClaudeModel(agents.claude_code?.model || 'sonnet')
@@ -79,6 +95,7 @@ export function AgentsSettings() {
         ...agents,
         opencode: {
           zen_token: opencodeZenToken.trim() || undefined,
+          model: opencodeModel || undefined,
         },
       },
       { onSuccess: () => showSaved('opencode') }
@@ -182,36 +199,64 @@ export function AgentsSettings() {
                 <ExternalLink className="h-3 w-3" />
               </a>
             </p>
-            <div className="agent-input flex flex-col sm:flex-row gap-2 mt-2">
-              <Input
-                type="password"
-                value={opencodeZenToken}
-                onChange={(e) => {
-                  setOpencodeZenToken(e.target.value)
-                  setOpencodeHasChanges(true)
-                }}
-                placeholder="zen_... (Zen token)"
-                className="flex-1 font-mono text-sm h-11 sm:h-9"
-              />
-              <Button
-                onClick={handleSaveOpencode}
-                disabled={mutation.isPending || !opencodeHasChanges}
-                size="sm"
-                className="h-11 sm:h-9"
-                variant={savedSection === 'opencode' ? 'secondary' : 'default'}
-              >
-                {savedSection === 'opencode' ? (
-                  <>
-                    <Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />
-                    Saved
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-1.5 h-3.5 w-3.5" />
-                    Save
-                  </>
+            <div className="space-y-2 mt-2">
+              <div className="agent-input">
+                <Input
+                  type="password"
+                  value={opencodeZenToken}
+                  onChange={(e) => {
+                    setOpencodeZenToken(e.target.value)
+                    setOpencodeHasChanges(true)
+                  }}
+                  placeholder="zen_... (Zen token)"
+                  className="w-full font-mono text-sm h-11 sm:h-9"
+                />
+              </div>
+              <div className="agent-input flex flex-col sm:flex-row gap-2">
+                {opencodeModels.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex-1 justify-between h-11 sm:h-9">
+                        <span className="text-sm">
+                          Model: {opencodeModels.find(m => m.id === opencodeModel)?.name || 'Default'}
+                        </span>
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuRadioGroup value={opencodeModel} onValueChange={(value) => {
+                        setOpencodeModel(value)
+                        setOpencodeHasChanges(true)
+                      }}>
+                        {opencodeModels.map((model) => (
+                          <DropdownMenuRadioItem key={model.id} value={model.id}>
+                            <span>{model.name}</span>
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
-              </Button>
+                <Button
+                  onClick={handleSaveOpencode}
+                  disabled={mutation.isPending || !opencodeHasChanges}
+                  size="sm"
+                  className="h-11 sm:h-9"
+                  variant={savedSection === 'opencode' ? 'secondary' : 'default'}
+                >
+                  {savedSection === 'opencode' ? (
+                    <>
+                      <Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />
+                      Saved
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-1.5 h-3.5 w-3.5" />
+                      Save
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -247,7 +292,7 @@ export function AgentsSettings() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="flex-1 justify-between h-11 sm:h-9">
                       <span className="text-sm">
-                        Model: {MODEL_OPTIONS.find(m => m.value === claudeModel)?.label || 'Sonnet'}
+                        Model: {claudeModels.find(m => m.id === claudeModel)?.name || 'Sonnet'}
                       </span>
                       <ChevronDown className="h-4 w-4 opacity-50" />
                     </Button>
@@ -257,11 +302,13 @@ export function AgentsSettings() {
                       setClaudeModel(value)
                       setClaudeHasChanges(true)
                     }}>
-                      {MODEL_OPTIONS.map((option) => (
-                        <DropdownMenuRadioItem key={option.value} value={option.value}>
+                      {claudeModels.map((model) => (
+                        <DropdownMenuRadioItem key={model.id} value={model.id}>
                           <div className="flex flex-col">
-                            <span>{option.label}</span>
-                            <span className="text-xs text-muted-foreground">{option.description}</span>
+                            <span>{model.name}</span>
+                            {model.description && (
+                              <span className="text-xs text-muted-foreground">{model.description}</span>
+                            )}
                           </div>
                         </DropdownMenuRadioItem>
                       ))}

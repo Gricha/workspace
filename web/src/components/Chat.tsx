@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Send, StopCircle, Bot, Sparkles, Wrench, ChevronDown, CheckCircle2, Loader2, Code2 } from 'lucide-react'
+import { Send, StopCircle, Bot, Sparkles, Wrench, ChevronDown, CheckCircle2, Loader2, Code2, ArrowLeft } from 'lucide-react'
 import Markdown from 'react-markdown'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { getChatUrl, api, type AgentType, type SessionMessage } from '@/lib/api'
+import { getChatUrl, api, type AgentType, type SessionMessage, type ModelInfo } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
 interface ChatMessagePart {
@@ -37,6 +38,7 @@ interface ChatProps {
   agentType?: AgentType
   hideHeader?: boolean
   onConnectionChange?: (connected: boolean) => void
+  onBack?: () => void
 }
 
 function getToolSummary(toolName: string, content: string): string | null {
@@ -239,7 +241,7 @@ function StreamingMessage({ parts }: { parts: ChatMessagePart[] }) {
 
 const MESSAGES_PER_PAGE = 50
 
-export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, agentType = 'claude-code', hideHeader, onConnectionChange }: ChatProps) {
+export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, agentType = 'claude-code', hideHeader, onConnectionChange, onBack }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isConnected, setIsConnected] = useState(false)
@@ -249,6 +251,10 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId)
   const [hasMoreMessages, setHasMoreMessages] = useState(false)
   const [messageOffset, setMessageOffset] = useState(0)
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([])
+  const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined)
+  const onSessionIdRef = useRef(onSessionId)
+  onSessionIdRef.current = onSessionId
 
   const parseMessages = useCallback((rawMessages: SessionMessage[]): ChatMessage[] => {
     const historicalMessages: ChatMessage[] = []
@@ -327,6 +333,28 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
         setIsLoadingHistory(false)
       })
   }, [initialSessionId, workspaceName, agentType, parseMessages])
+
+  useEffect(() => {
+    const fetchAgentType = agentType === 'opencode' ? 'opencode' : 'claude-code'
+    api.listModels(fetchAgentType, workspaceName)
+      .then(({ models }) => {
+        setAvailableModels(models)
+        if (models.length > 0 && !selectedModel) {
+          api.getAgents().then((agents) => {
+            const configModel = fetchAgentType === 'opencode'
+              ? agents.opencode?.model
+              : agents.claude_code?.model
+            const defaultModel = configModel || models[0].id
+            setSelectedModel(defaultModel)
+          }).catch(() => {
+            setSelectedModel(models[0].id)
+          })
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load models:', err)
+      })
+  }, [agentType, workspaceName, selectedModel])
 
   const streamingPartsRef = useRef<ChatMessagePart[]>([])
   const [streamingParts, setStreamingParts] = useState<ChatMessagePart[]>([])
@@ -514,7 +542,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
             if (match) {
               const newSessionId = match[1]
               setSessionId(newSessionId)
-              onSessionId?.(newSessionId)
+              onSessionIdRef.current?.(newSessionId)
             }
             return
           }
@@ -559,7 +587,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
     }
 
     return ws
-  }, [workspaceName, agentType, onSessionId, finalizeStreaming])
+  }, [workspaceName, agentType, finalizeStreaming])
 
   useEffect(() => {
     const ws = connect()
@@ -589,23 +617,43 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
 
     setMessages(prev => [...prev, userMessage])
 
-    wsRef.current.send(JSON.stringify({
+    const messagePayload: Record<string, unknown> = {
       type: 'message',
       content: input.trim(),
       sessionId,
-    }))
+    }
+
+    if (selectedModel) {
+      messagePayload.model = selectedModel
+    }
+
+    wsRef.current.send(JSON.stringify(messagePayload))
 
     setInput('')
     setIsStreaming(true)
     streamingPartsRef.current = []
     setStreamingParts([])
-  }, [input, sessionId])
+  }, [input, sessionId, selectedModel])
 
   const interrupt = useCallback(() => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'interrupt' }))
     }
   }, [])
+
+  const handleModelChange = useCallback((newModel: string) => {
+    const prevModel = selectedModel
+    setSelectedModel(newModel)
+
+    if (prevModel && prevModel !== newModel && sessionId && agentType !== 'opencode') {
+      setSessionId(undefined)
+      setMessages(prev => [...prev, {
+        type: 'system',
+        content: `Switching to model: ${availableModels.find(m => m.id === newModel)?.name || newModel}`,
+        timestamp: new Date().toISOString(),
+      }])
+    }
+  }, [selectedModel, sessionId, agentType, availableModels])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -619,6 +667,11 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
       {!hideHeader && (
         <div className="flex items-center justify-between px-4 py-2 border-b">
           <div className="flex items-center gap-2">
+            {onBack && (
+              <Button variant="ghost" size="sm" onClick={onBack} className="h-7 px-2">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
             {agentType === 'opencode' ? (
               <Code2 className="h-5 w-5 text-blue-500" />
             ) : (
@@ -633,7 +686,25 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {availableModels.length > 0 && (
+              <Select
+                value={selectedModel}
+                onValueChange={handleModelChange}
+                disabled={isStreaming || (agentType === 'opencode' && !!sessionId)}
+              >
+                <SelectTrigger className="h-7 w-[140px] text-xs">
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.map((model) => (
+                    <SelectItem key={model.id} value={model.id} className="text-xs">
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {isConnected ? (
               <span className="flex items-center gap-1 text-xs text-success">
                 <span className="w-2 h-2 bg-success rounded-full animate-pulse" />

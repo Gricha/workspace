@@ -12,6 +12,7 @@ import { OpencodeWebSocketServer } from '../chat/opencode-websocket';
 import { createRouter } from './router';
 import { serveStatic } from './static';
 import { SessionsCacheManager } from '../sessions/cache';
+import { ModelCacheManager } from '../models/cache';
 import pkg from '../../package.json';
 
 const startTime = Date.now();
@@ -25,6 +26,7 @@ function createAgentServer(configDir: string, config: AgentConfig) {
   let currentConfig = config;
   const workspaces = new WorkspaceManager(configDir, currentConfig);
   const sessionsCache = new SessionsCacheManager(configDir);
+  const modelCache = new ModelCacheManager(configDir);
 
   const isWorkspaceRunning = async (name: string) => {
     if (name === HOST_WORKSPACE_NAME) {
@@ -48,6 +50,7 @@ function createAgentServer(configDir: string, config: AgentConfig) {
   const opencodeServer = new OpencodeWebSocketServer({
     isWorkspaceRunning,
     isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
+    getConfig: () => currentConfig,
   });
 
   const router = createRouter({
@@ -64,6 +67,7 @@ function createAgentServer(configDir: string, config: AgentConfig) {
     startTime,
     terminalServer,
     sessionsCache,
+    modelCache,
   });
 
   const rpcHandler = new RPCHandler(router);

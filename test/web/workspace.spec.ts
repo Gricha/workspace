@@ -223,7 +223,6 @@ test.describe('Web UI - Sessions', () => {
       await sessionItem.click();
 
       await expect(page.getByText('Claude Code')).toBeVisible({ timeout: 30000 });
-      await expect(page.getByText('Back to Sessions')).toBeVisible();
       await expect(page.getByPlaceholder('Send a message...')).toBeVisible();
     } finally {
       await agent.api.deleteWorkspace(workspaceName);
@@ -276,8 +275,7 @@ test.describe('Web UI - Sessions', () => {
       await page.getByRole('button', { name: /new chat/i }).click();
       await page.getByText('Claude Code').first().click();
 
-      await expect(page.getByText('Back to Sessions')).toBeVisible({ timeout: 30000 });
-      await expect(page.getByPlaceholder('Send a message...')).toBeVisible();
+      await expect(page.getByPlaceholder('Send a message...')).toBeVisible({ timeout: 30000 });
     } finally {
       await agent.api.deleteWorkspace(workspaceName);
     }

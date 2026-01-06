@@ -7,6 +7,7 @@ import path from 'path';
 export interface HostOpencodeOptions {
   workDir?: string;
   sessionId?: string;
+  model?: string;
 }
 
 interface OpencodeStreamEvent {
@@ -35,6 +36,8 @@ export class HostOpencodeSession {
   private process: Subprocess<'ignore', 'pipe', 'pipe'> | null = null;
   private workDir: string;
   private sessionId?: string;
+  private model?: string;
+  private sessionModel?: string;
   private onMessage: (message: ChatMessage) => void;
   private buffer: string = '';
   private historyLoaded: boolean = false;
@@ -42,6 +45,8 @@ export class HostOpencodeSession {
   constructor(options: HostOpencodeOptions, onMessage: (message: ChatMessage) => void) {
     this.workDir = options.workDir || homedir();
     this.sessionId = options.sessionId;
+    this.model = options.model;
+    this.sessionModel = options.model;
     this.onMessage = onMessage;
   }
 
@@ -192,6 +197,10 @@ export class HostOpencodeSession {
       args.push('--session', this.sessionId);
     }
 
+    if (this.model) {
+      args.push('--model', this.model);
+    }
+
     args.push(userMessage);
 
     console.log('[host-opencode] Running: stdbuf', args.join(' '));
@@ -304,6 +313,7 @@ export class HostOpencodeSession {
     if (event.type === 'step_start' && event.sessionID) {
       if (!this.sessionId) {
         this.sessionId = event.sessionID;
+        this.sessionModel = this.model;
         this.historyLoaded = true;
         this.onMessage({
           type: 'system',
@@ -363,6 +373,21 @@ export class HostOpencodeSession {
         content: 'Chat interrupted',
         timestamp: new Date().toISOString(),
       });
+    }
+  }
+
+  setModel(model: string): void {
+    if (this.model !== model) {
+      this.model = model;
+      if (this.sessionModel !== model) {
+        this.sessionId = undefined;
+        this.historyLoaded = false;
+        this.onMessage({
+          type: 'system',
+          content: `Switching to model: ${model}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
   }
 

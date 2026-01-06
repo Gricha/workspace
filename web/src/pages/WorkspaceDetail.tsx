@@ -218,8 +218,7 @@ export function WorkspaceDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
 
-  const [chatConnected, setChatConnected] = useState(false)
-
+  
   const setTab = (tab: TabType) => {
     setChatMode(null)
     setSearchParams({ tab })
@@ -495,39 +494,13 @@ export function WorkspaceDetail() {
               renderStartPrompt()
             ) : chatMode ? (
               chatMode.type === 'chat' ? (
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center gap-2 px-4 py-2 border-b border-border/50">
-                    <Button variant="ghost" size="sm" onClick={() => setChatMode(null)}>
-                      <ArrowLeft className="h-4 w-4 mr-1" />
-                      Back to Sessions
-                    </Button>
-                    <span className="text-sm font-medium">
-                      {chatMode.agentType === 'opencode' ? 'OpenCode' : 'Claude Code'}
-                    </span>
-                    <div className="flex-1" />
-                    {chatConnected ? (
-                      <span className="flex items-center gap-1 text-xs text-success">
-                        <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
-                        Connected
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <span className="w-2 h-2 bg-muted-foreground rounded-full" />
-                        Disconnected
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <Chat
-                      workspaceName={name!}
-                      sessionId={chatMode.sessionId}
-                      agentType={chatMode.agentType}
-                      hideHeader
-                      onConnectionChange={setChatConnected}
-                      onSessionId={handleSessionId}
-                    />
-                  </div>
-                </div>
+                <Chat
+                  workspaceName={name!}
+                  sessionId={chatMode.sessionId}
+                  agentType={chatMode.agentType}
+                  onSessionId={handleSessionId}
+                  onBack={() => setChatMode(null)}
+                />
               ) : (
                 <div className="flex flex-col h-full">
                   <div className="flex items-center gap-2 px-4 py-2 border-b border-border/50">

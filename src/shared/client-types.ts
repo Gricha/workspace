@@ -42,6 +42,7 @@ export interface Scripts {
 export interface CodingAgents {
   opencode?: {
     zen_token?: string;
+    model?: string;
   };
   github?: {
     token?: string;
@@ -50,6 +51,12 @@ export interface CodingAgents {
     oauth_token?: string;
     model?: string;
   };
+}
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 export type AgentType = 'claude-code' | 'opencode' | 'codex';

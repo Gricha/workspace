@@ -15,6 +15,7 @@ import type {
   SSHSettings,
   SSHKeyInfo,
   RecentSession,
+  ModelInfo,
 } from './types'
 
 export type {
@@ -32,6 +33,7 @@ export type {
   SSHSettings,
   SSHKeyInfo,
   RecentSession,
+  ModelInfo,
 }
 
 function getRpcUrl(): string {
@@ -70,6 +72,9 @@ const client = createORPCClient<{
     clearName: (input: { workspaceName: string; sessionId: string }) => Promise<{ success: boolean }>
     getRecent: (input: { limit?: number }) => Promise<{ sessions: RecentSession[] }>
     recordAccess: (input: { workspaceName: string; sessionId: string; agentType: AgentType }) => Promise<{ success: boolean }>
+  }
+  models: {
+    list: (input: { agentType: 'claude-code' | 'opencode'; workspaceName?: string }) => Promise<{ models: ModelInfo[] }>
   }
   info: () => Promise<InfoResponse>
   host: {
@@ -131,6 +136,8 @@ export const api = {
   getSSHSettings: () => client.config.ssh.get(),
   updateSSHSettings: (data: SSHSettings) => client.config.ssh.update(data),
   listSSHKeys: () => client.config.ssh.listKeys(),
+  listModels: (agentType: 'claude-code' | 'opencode', workspaceName?: string) =>
+    client.models.list({ agentType, workspaceName }),
 }
 
 export function getTerminalUrl(name: string): string {

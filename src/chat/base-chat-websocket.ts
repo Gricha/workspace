@@ -7,6 +7,7 @@ import { HOST_WORKSPACE_NAME } from '../shared/types';
 export interface ChatSessionInterface {
   sendMessage(content: string): Promise<void>;
   interrupt(): Promise<void>;
+  setModel?(model: string): void;
 }
 
 export interface BaseChatConnection extends BaseConnection {
@@ -17,6 +18,7 @@ export interface IncomingChatMessage {
   type: 'message' | 'interrupt';
   content?: string;
   sessionId?: string;
+  model?: string;
 }
 
 export interface BaseChatWebSocketOptions {
@@ -37,13 +39,15 @@ export abstract class BaseChatWebSocketServer<
 
   protected abstract createHostSession(
     sessionId: string | undefined,
-    onMessage: (message: ChatMessage) => void
+    onMessage: (message: ChatMessage) => void,
+    model?: string
   ): ChatSessionInterface;
 
   protected abstract createContainerSession(
     containerName: string,
     sessionId: string | undefined,
-    onMessage: (message: ChatMessage) => void
+    onMessage: (message: ChatMessage) => void,
+    model?: string
   ): ChatSessionInterface;
 
   protected abstract createConnection(ws: WebSocket, workspaceName: string): TConnection;
@@ -90,15 +94,22 @@ export abstract class BaseChatWebSocketServer<
 
           if (!connection.session) {
             if (isHostMode) {
-              connection.session = this.createHostSession(message.sessionId, onMessage);
+              connection.session = this.createHostSession(
+                message.sessionId,
+                onMessage,
+                message.model
+              );
             } else {
               const containerName = getContainerName(workspaceName);
               connection.session = this.createContainerSession(
                 containerName,
                 message.sessionId,
-                onMessage
+                onMessage,
+                message.model
               );
             }
+          } else if (message.model && connection.session.setModel) {
+            connection.session.setModel(message.model);
           }
 
           await connection.session.sendMessage(message.content);

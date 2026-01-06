@@ -23,6 +23,12 @@ import {
   findSessionMessages,
 } from '../sessions/agents';
 import type { SessionsCacheManager } from '../sessions/cache';
+import type { ModelCacheManager } from '../models/cache';
+import {
+  discoverClaudeCodeModels,
+  discoverHostOpencodeModels,
+  discoverContainerOpencodeModels,
+} from '../models/discovery';
 
 const WorkspaceStatusSchema = z.enum(['running', 'stopped', 'creating', 'error']);
 
@@ -54,6 +60,7 @@ const CodingAgentsSchema = z.object({
   opencode: z
     .object({
       zen_token: z.string().optional(),
+      model: z.string().optional(),
     })
     .optional(),
   github: z
@@ -97,6 +104,7 @@ export interface RouterContext {
   startTime: number;
   terminalServer: TerminalWebSocketServer;
   sessionsCache: SessionsCacheManager;
+  modelCache: ModelCacheManager;
 }
 
 function mapErrorToORPC(err: unknown, defaultMessage: string): never {
@@ -764,6 +772,66 @@ export function createRouter(ctx: RouterContext) {
       };
     });
 
+  const listModels = os
+    .input(
+      z.object({
+        agentType: z.enum(['claude-code', 'opencode']),
+        workspaceName: z.string().optional(),
+      })
+    )
+    .handler(async ({ input }) => {
+      const config = ctx.config.get();
+
+      if (input.agentType === 'claude-code') {
+        const cached = await ctx.modelCache.getClaudeCodeModels();
+        if (cached) {
+          return { models: cached };
+        }
+
+        const models = await discoverClaudeCodeModels(config);
+        await ctx.modelCache.setClaudeCodeModels(models);
+        return { models };
+      }
+
+      const cached = await ctx.modelCache.getOpencodeModels();
+      if (cached) {
+        return { models: cached };
+      }
+
+      let models;
+      if (input.workspaceName === HOST_WORKSPACE_NAME) {
+        if (!config.allowHostAccess) {
+          throw new ORPCError('PRECONDITION_FAILED', { message: 'Host access is disabled' });
+        }
+        models = await discoverHostOpencodeModels();
+      } else if (input.workspaceName) {
+        const workspace = await ctx.workspaces.get(input.workspaceName);
+        if (!workspace) {
+          throw new ORPCError('NOT_FOUND', { message: 'Workspace not found' });
+        }
+        if (workspace.status !== 'running') {
+          throw new ORPCError('PRECONDITION_FAILED', { message: 'Workspace is not running' });
+        }
+        const containerName = `workspace-${input.workspaceName}`;
+        models = await discoverContainerOpencodeModels(containerName, execInContainer);
+      } else {
+        models = await discoverHostOpencodeModels();
+        if (models.length === 0) {
+          const allWorkspaces = await ctx.workspaces.list();
+          const runningWorkspace = allWorkspaces.find((w) => w.status === 'running');
+          if (runningWorkspace) {
+            const containerName = `workspace-${runningWorkspace.name}`;
+            models = await discoverContainerOpencodeModels(containerName, execInContainer);
+          }
+        }
+      }
+
+      if (models.length > 0) {
+        await ctx.modelCache.setOpencodeModels(models);
+      }
+      return { models };
+    });
+
   return {
     workspaces: {
       list: listWorkspaces,
@@ -784,6 +852,9 @@ export function createRouter(ctx: RouterContext) {
       clearName: clearSessionName,
       getRecent: getRecentSessions,
       recordAccess: recordSessionAccess,
+    },
+    models: {
+      list: listModels,
     },
     host: {
       info: getHostInfo,

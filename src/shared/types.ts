@@ -10,6 +10,7 @@ export interface WorkspaceScripts {
 export interface CodingAgents {
   opencode?: {
     zen_token?: string;
+    model?: string;
   };
   github?: {
     token?: string;

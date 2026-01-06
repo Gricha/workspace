@@ -45,6 +45,7 @@ export class ChatSession {
   private workDir: string;
   private sessionId?: string;
   private model: string;
+  private sessionModel: string;
   private onMessage: (message: ChatMessage) => void;
   private buffer: string = '';
 
@@ -53,6 +54,7 @@ export class ChatSession {
     this.workDir = options.workDir || '/home/workspace';
     this.sessionId = options.sessionId;
     this.model = options.model || 'sonnet';
+    this.sessionModel = this.model;
     this.onMessage = onMessage;
   }
 
@@ -186,6 +188,7 @@ export class ChatSession {
 
     if (msg.type === 'system' && msg.subtype === 'init') {
       this.sessionId = msg.session_id;
+      this.sessionModel = this.model;
       this.onMessage({
         type: 'system',
         content: `Session started: ${msg.session_id?.slice(0, 8)}...`,
@@ -231,6 +234,20 @@ export class ChatSession {
         content: 'Chat interrupted',
         timestamp: new Date().toISOString(),
       });
+    }
+  }
+
+  setModel(model: string): void {
+    if (this.model !== model) {
+      this.model = model;
+      if (this.sessionModel !== model) {
+        this.sessionId = undefined;
+        this.onMessage({
+          type: 'system',
+          content: `Switching to model: ${model}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
   }
 
