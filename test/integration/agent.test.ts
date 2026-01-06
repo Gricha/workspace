@@ -121,11 +121,13 @@ describe('Agent - Workspace Lifecycle', () => {
     }
   });
 
-  it('returns 404 when starting non-existent workspace', async () => {
-    const result = await agent.api.startWorkspace('nonexistent');
-    expect(result.status).toBe(404);
-    expect((result.data as { code: string }).code).toBe('NOT_FOUND');
-  });
+  it('creates workspace when starting non-existent workspace', async () => {
+    const name = `nonexistent-${Date.now()}`;
+    const result = await agent.api.startWorkspace(name);
+    expect(result.status).toBe(200);
+    expect((result.data as { name: string }).name).toBe(name);
+    await agent.api.deleteWorkspace(name);
+  }, 60000);
 
   it('returns 404 when stopping non-existent workspace', async () => {
     const result = await agent.api.stopWorkspace('nonexistent');

@@ -42,10 +42,10 @@ describe('CLI commands', () => {
     });
   });
 
-  describe('workspace create', () => {
-    it('creates a workspace', async () => {
+  describe('workspace start (create)', () => {
+    it('creates a workspace when it does not exist', async () => {
       const name = generateTestWorkspaceName();
-      const result = await runCLIExpecting(['create', name], [`Workspace '${name}' created`], {
+      const result = await runCLIExpecting(['start', name], [`Workspace '${name}' started`], {
         env: cliEnv(),
         timeout: 30000,
       });
@@ -56,25 +56,25 @@ describe('CLI commands', () => {
 
     it('creates workspace with --clone option', async () => {
       const name = generateTestWorkspaceName();
-      const result = await runCLI(['create', name, '--clone', 'https://github.com/example/repo'], {
+      const result = await runCLI(['start', name, '--clone', 'https://github.com/example/repo'], {
         env: cliEnv(),
         timeout: 30000,
       });
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain(`Workspace '${name}' created`);
+      expect(result.stdout).toContain(`Workspace '${name}' started`);
 
       await agent.api.deleteWorkspace(name);
     });
 
-    it('fails when workspace already exists', async () => {
+    it('starts existing workspace without error', async () => {
       const name = generateTestWorkspaceName();
       await agent.api.createWorkspace({ name });
 
-      const result = await runCLIExpectingError(['create', name], ['already exists'], {
+      const result = await runCLIExpecting(['start', name], [`Workspace '${name}' started`], {
         env: cliEnv(),
         timeout: 30000,
       });
-      expect(result.code).not.toBe(0);
+      expect(result.code).toBe(0);
 
       await agent.api.deleteWorkspace(name);
     });
@@ -136,13 +136,6 @@ describe('CLI commands', () => {
 
       await agent.api.deleteWorkspace(name);
     });
-
-    it('fails to start nonexistent workspace', async () => {
-      const result = await runCLIExpectingError(['start', 'nonexistent-workspace'], ['not found'], {
-        env: cliEnv(),
-      });
-      expect(result.code).not.toBe(0);
-    });
   });
 
   describe('workspace delete', () => {
@@ -172,11 +165,8 @@ describe('CLI commands', () => {
     });
 
     it('fails to delete nonexistent workspace', async () => {
-      const result = await runCLIExpectingError(
-        ['delete', 'nonexistent-workspace'],
-        ['not found'],
-        { env: cliEnv() }
-      );
+      const name = `nonexistent-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const result = await runCLIExpectingError(['delete', name], ['not found'], { env: cliEnv() });
       expect(result.code).not.toBe(0);
     });
   });

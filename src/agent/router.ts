@@ -151,11 +151,20 @@ export function createRouter(ctx: RouterContext) {
   });
 
   const startWorkspace = os
-    .input(z.object({ name: z.string() }))
+    .input(
+      z.object({
+        name: z.string(),
+        clone: z.string().optional(),
+        env: z.record(z.string(), z.string()).optional(),
+      })
+    )
     .output(WorkspaceInfoSchema)
     .handler(async ({ input }) => {
       try {
-        return await ctx.workspaces.start(input.name);
+        return await ctx.workspaces.start(input.name, {
+          clone: input.clone,
+          env: input.env,
+        });
       } catch (err) {
         mapErrorToORPC(err, 'Failed to start workspace');
       }

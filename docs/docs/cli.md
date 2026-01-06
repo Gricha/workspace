@@ -16,8 +16,7 @@ perry agent status
 ## Workspaces
 
 ```bash
-perry create <name> [--clone URL]
-perry start <name>
+perry start <name> [--clone URL]  # Start (creates if doesn't exist)
 perry stop <name>
 perry delete <name>
 perry list

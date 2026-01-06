@@ -149,39 +149,19 @@ program
   });
 
 program
-  .command('create <name>')
-  .description('Create a new workspace')
-  .option('--clone <url>', 'Git repository URL to clone')
-  .action(async (name, options) => {
-    try {
-      const client = await getClient();
-      console.log(`Creating workspace '${name}'...`);
-
-      const workspace = await client.createWorkspace({
-        name,
-        clone: options.clone,
-      });
-
-      console.log(`Workspace '${workspace.name}' created.`);
-      console.log(`  Status: ${workspace.status}`);
-      console.log(`  SSH Port: ${workspace.ports.ssh}`);
-    } catch (err) {
-      handleError(err);
-    }
-  });
-
-program
   .command('start <name>')
-  .description('Start a stopped workspace')
-  .action(async (name) => {
+  .description('Start a workspace (creates it if it does not exist)')
+  .option('--clone <url>', 'Git repository URL to clone (when creating)')
+  .action(async (name, options) => {
     try {
       const client = await getClient();
       console.log(`Starting workspace '${name}'...`);
 
-      const workspace = await client.startWorkspace(name);
+      const workspace = await client.startWorkspace(name, { clone: options.clone });
 
       console.log(`Workspace '${workspace.name}' started.`);
       console.log(`  Status: ${workspace.status}`);
+      console.log(`  SSH Port: ${workspace.ports.ssh}`);
     } catch (err) {
       handleError(err);
     }

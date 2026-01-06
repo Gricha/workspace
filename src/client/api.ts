@@ -84,9 +84,12 @@ export class ApiClient {
     }
   }
 
-  async startWorkspace(name: string): Promise<WorkspaceInfo> {
+  async startWorkspace(
+    name: string,
+    options?: { clone?: string; env?: Record<string, string> }
+  ): Promise<WorkspaceInfo> {
     try {
-      return await this.client.workspaces.start({ name });
+      return await this.client.workspaces.start({ name, clone: options?.clone, env: options?.env });
     } catch (err) {
       throw this.wrapError(err);
     }

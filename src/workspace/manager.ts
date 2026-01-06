@@ -547,10 +547,13 @@ export class WorkspaceManager {
     }
   }
 
-  async start(name: string): Promise<Workspace> {
+  async start(
+    name: string,
+    options?: { clone?: string; env?: Record<string, string> }
+  ): Promise<Workspace> {
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
-      throw new Error(`Workspace '${name}' not found`);
+      return this.create({ name, clone: options?.clone, env: options?.env });
     }
 
     const containerName = getContainerName(name);

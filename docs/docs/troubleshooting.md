@@ -98,7 +98,7 @@ perry build
 3. **Delete and recreate:**
    ```bash
    perry delete <name>
-   perry create <name>
+   perry start <name>
    ```
 
 4. **Check for port conflicts:**
@@ -168,7 +168,7 @@ perry build
 
 4. **Use HTTPS URL instead:**
    ```bash
-   perry create myproject --clone https://github.com/user/repo.git
+   perry start myproject --clone https://github.com/user/repo.git
    ```
 
 ### Workspace deleted but container still running

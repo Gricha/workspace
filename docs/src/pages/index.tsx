@@ -117,8 +117,8 @@ perry build
 # Start agent
 perry agent run
 
-# Create workspace
-perry create myproject --clone git@github.com:user/repo.git
+# Start workspace (creates if needed)
+perry start myproject --clone git@github.com:user/repo.git
 
 # Access via SSH
 ssh -p 2201 workspace@localhost
