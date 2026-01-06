@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import { View, ActivityIndicator } from 'react-native'
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native'
@@ -8,6 +8,8 @@ import { TabNavigator } from './src/navigation/TabNavigator'
 import { NetworkProvider, ConnectionBanner } from './src/lib/network'
 import { SetupScreen } from './src/screens/SetupScreen'
 import { loadServerConfig, isConfigured } from './src/lib/api'
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext'
+import { ThemeColors } from './src/lib/themes'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,23 +21,29 @@ const queryClient = new QueryClient({
   },
 })
 
-const DarkTheme = {
-  ...DefaultTheme,
-  dark: true,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: '#0a84ff',
-    background: '#000',
-    card: '#000',
-    text: '#fff',
-    border: '#2c2c2e',
-    notification: '#ff3b30',
-  },
+function createNavigationTheme(colors: ThemeColors, isDark: boolean) {
+  return {
+    ...DefaultTheme,
+    dark: isDark,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: colors.accent,
+      background: colors.background,
+      card: colors.background,
+      text: colors.text,
+      border: colors.border,
+      notification: colors.error,
+    },
+  }
 }
 
 function AppContent() {
   const [loading, setLoading] = useState(true)
   const [configured, setConfigured] = useState(false)
+  const { colors, themeId } = useTheme()
+
+  const isDark = themeId !== 'concrete' && themeId !== 'blossom' && themeId !== 'slate'
+  const navigationTheme = useMemo(() => createNavigationTheme(colors, isDark), [colors, isDark])
 
   useEffect(() => {
     loadServerConfig().then(() => {
@@ -46,9 +54,9 @@ function AppContent() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0a84ff" />
-        <StatusBar style="light" />
+      <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={colors.accent} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
       </View>
     )
   }
@@ -57,20 +65,20 @@ function AppContent() {
     return (
       <>
         <SetupScreen onComplete={() => setConfigured(true)} />
-        <StatusBar style="light" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
       </>
     )
   }
 
   return (
     <NetworkProvider>
-      <NavigationContainer theme={DarkTheme}>
-        <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <NavigationContainer theme={navigationTheme}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
           <ConnectionBanner />
           <TabNavigator />
         </View>
       </NavigationContainer>
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
     </NetworkProvider>
   )
 }
@@ -79,7 +87,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <AppContent />
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   )

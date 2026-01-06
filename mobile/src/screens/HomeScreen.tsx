@@ -18,6 +18,7 @@ import { useNavigation } from '@react-navigation/native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, WorkspaceInfo, HOST_WORKSPACE_NAME, CreateWorkspaceRequest } from '../lib/api'
 import { useNetwork, parseNetworkError } from '../lib/network'
+import { useTheme } from '../contexts/ThemeContext'
 
 function StatusDot({ status }: { status: WorkspaceInfo['status'] | 'host' }) {
   const colors = {
@@ -37,21 +38,23 @@ function WorkspaceRow({
   workspace: WorkspaceInfo
   onPress: () => void
 }) {
+  const { colors } = useTheme()
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} testID={`workspace-item-${workspace.name}`}>
       <StatusDot status={workspace.status} />
       <View style={styles.rowContent}>
-        <Text style={styles.rowName} testID="workspace-name">{workspace.name}</Text>
+        <Text style={[styles.rowName, { color: colors.text }]} testID="workspace-name">{workspace.name}</Text>
         {workspace.repo && (
-          <Text style={styles.rowRepo} numberOfLines={1}>{workspace.repo}</Text>
+          <Text style={[styles.rowRepo, { color: colors.textMuted }]} numberOfLines={1}>{workspace.repo}</Text>
         )}
       </View>
-      <Text style={styles.rowChevron}>›</Text>
+      <Text style={[styles.rowChevron, { color: colors.textMuted }]}>›</Text>
     </TouchableOpacity>
   )
 }
 
 function HostSection({ onHostPress }: { onHostPress: () => void }) {
+  const { colors } = useTheme()
   const { data: hostInfo, isLoading } = useQuery({
     queryKey: ['hostInfo'],
     queryFn: api.getHostInfo,
@@ -64,30 +67,30 @@ function HostSection({ onHostPress }: { onHostPress: () => void }) {
 
   if (isLoading) {
     return (
-      <View style={styles.hostSection}>
-        <ActivityIndicator size="small" color="#8e8e93" />
+      <View style={[styles.hostSection, { borderBottomColor: colors.border }]}>
+        <ActivityIndicator size="small" color={colors.textMuted} />
       </View>
     )
   }
 
   return (
-    <View style={styles.hostSection}>
+    <View style={[styles.hostSection, { borderBottomColor: colors.border }]}>
       <View style={styles.hostHeader}>
-        <Text style={styles.hostLabel}>Host Machine</Text>
-        <Text style={styles.hostName}>{info?.hostname || hostInfo?.hostname || 'Unknown'}</Text>
+        <Text style={[styles.hostLabel, { color: colors.textMuted }]}>Host Machine</Text>
+        <Text style={[styles.hostName, { color: colors.text }]}>{info?.hostname || hostInfo?.hostname || 'Unknown'}</Text>
       </View>
 
       {hostInfo?.enabled ? (
         <>
-          <TouchableOpacity style={styles.hostRow} onPress={onHostPress}>
+          <TouchableOpacity style={[styles.hostRow, { backgroundColor: colors.surface }]} onPress={onHostPress}>
             <StatusDot status="host" />
             <View style={styles.rowContent}>
               <Text style={styles.hostRowName}>
                 {hostInfo.username}@{hostInfo.hostname}
               </Text>
-              <Text style={styles.hostRowPath}>{hostInfo.homeDir}</Text>
+              <Text style={[styles.hostRowPath, { color: colors.textMuted }]}>{hostInfo.homeDir}</Text>
             </View>
-            <Text style={styles.rowChevron}>›</Text>
+            <Text style={[styles.rowChevron, { color: colors.textMuted }]}>›</Text>
           </TouchableOpacity>
           <Text style={styles.hostWarning}>
             Commands run directly on your machine without isolation
@@ -96,9 +99,9 @@ function HostSection({ onHostPress }: { onHostPress: () => void }) {
       ) : (
         info && (
           <View style={styles.hostStats}>
-            <Text style={styles.hostStat}>{info.workspacesCount} workspaces</Text>
-            <Text style={styles.hostStatDivider}>•</Text>
-            <Text style={styles.hostStat}>Docker {info.dockerVersion}</Text>
+            <Text style={[styles.hostStat, { color: colors.textMuted }]}>{info.workspacesCount} workspaces</Text>
+            <Text style={[styles.hostStatDivider, { color: colors.textMuted }]}>•</Text>
+            <Text style={[styles.hostStat, { color: colors.textMuted }]}>Docker {info.dockerVersion}</Text>
           </View>
         )
       )}
@@ -111,6 +114,7 @@ export function HomeScreen() {
   const navigation = useNavigation<any>()
   const queryClient = useQueryClient()
   const { status } = useNetwork()
+  const { colors } = useTheme()
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [newRepo, setNewRepo] = useState('')
@@ -156,20 +160,20 @@ export function HomeScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#0a84ff" />
+      <View style={[styles.container, styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     )
   }
 
   if (error && status !== 'connected') {
     return (
-      <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
-        <Text style={styles.errorIcon}>!</Text>
-        <Text style={styles.errorTitle}>Cannot Load Workspaces</Text>
-        <Text style={styles.errorText}>{parseNetworkError(error)}</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
-          <Text style={styles.retryBtnText}>Retry</Text>
+      <View style={[styles.container, styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <Text style={[styles.errorIcon, { color: colors.error }]}>!</Text>
+        <Text style={[styles.errorTitle, { color: colors.text }]}>Cannot Load Workspaces</Text>
+        <Text style={[styles.errorText, { color: colors.textMuted }]}>{parseNetworkError(error)}</Text>
+        <TouchableOpacity style={[styles.retryBtn, { backgroundColor: colors.accent }]} onPress={() => refetch()}>
+          <Text style={[styles.retryBtnText, { color: colors.accentText }]}>Retry</Text>
         </TouchableOpacity>
       </View>
     )
@@ -182,23 +186,23 @@ export function HomeScreen() {
   })
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Perry</Text>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Perry</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.headerBtn}
             onPress={() => setShowCreate(true)}
             testID="add-workspace-button"
           >
-            <Text style={styles.addIcon}>+</Text>
+            <Text style={[styles.addIcon, { color: colors.accent }]}>+</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerBtn}
             onPress={() => navigation.navigate('Settings')}
             testID="settings-button"
           >
-            <Text style={styles.settingsIcon}>⚙</Text>
+            <Text style={[styles.settingsIcon, { color: colors.textMuted }]}>⚙</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -213,15 +217,15 @@ export function HomeScreen() {
             onPress={() => handleWorkspacePress(item)}
           />
         )}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#0a84ff" />}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 20 }]}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No workspaces</Text>
-            <Text style={styles.emptySubtext}>Create one from the web UI or CLI</Text>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>No workspaces</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>Create one from the web UI or CLI</Text>
           </View>
         }
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.border }]} />}
       />
 
       <Modal
@@ -231,23 +235,23 @@ export function HomeScreen() {
         onRequestClose={() => setShowCreate(false)}
       >
         <KeyboardAvoidingView
-          style={styles.modalContainer}
+          style={[styles.modalContainer, { backgroundColor: colors.background }]}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.modalHeader}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
             <TouchableOpacity onPress={() => setShowCreate(false)} style={styles.modalCancelBtn}>
-              <Text style={styles.modalCancelText}>Cancel</Text>
+              <Text style={[styles.modalCancelText, { color: colors.accent }]}>Cancel</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>New Workspace</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>New Workspace</Text>
             <TouchableOpacity
               onPress={handleCreate}
               style={styles.modalCreateBtn}
               disabled={createMutation.isPending || !newName.trim()}
             >
               {createMutation.isPending ? (
-                <ActivityIndicator size="small" color="#0a84ff" />
+                <ActivityIndicator size="small" color={colors.accent} />
               ) : (
-                <Text style={[styles.modalCreateText, !newName.trim() && styles.modalCreateTextDisabled]}>
+                <Text style={[styles.modalCreateText, { color: colors.accent }, !newName.trim() && { color: colors.textMuted }]}>
                   Create
                 </Text>
               )}
@@ -255,26 +259,26 @@ export function HomeScreen() {
           </View>
           <View style={styles.modalContent}>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Name</Text>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Name</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text }]}
                 value={newName}
                 onChangeText={setNewName}
                 placeholder="my-project"
-                placeholderTextColor="#636366"
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoFocus
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Repository (optional)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Repository (optional)</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text }]}
                 value={newRepo}
                 onChangeText={setNewRepo}
                 placeholder="https://github.com/user/repo"
-                placeholderTextColor="#636366"
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"

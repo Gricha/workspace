@@ -16,11 +16,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, CodingAgents, Credentials, Scripts, SyncResult, ModelInfo, getBaseUrl, saveServerConfig, getDefaultPort, refreshClient } from '../lib/api'
 import { useNetwork, parseNetworkError } from '../lib/network'
+import { useTheme } from '../contexts/ThemeContext'
+import { ThemeId } from '../lib/themes'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const { colors } = useTheme()
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>{title}</Text>
       {children}
     </View>
   )
@@ -763,6 +766,65 @@ function AboutSection() {
   )
 }
 
+function ThemeSettings() {
+  const { themeId, setTheme, definitions, colors } = useTheme()
+  const currentTheme = definitions.find(t => t.id === themeId) || definitions[0]
+
+  const showPicker = () => {
+    const options = [...definitions.map(t => t.name), 'Cancel']
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options,
+        cancelButtonIndex: options.length - 1,
+        title: 'Select Theme',
+      },
+      (buttonIndex) => {
+        if (buttonIndex < definitions.length) {
+          setTheme(definitions[buttonIndex].id as ThemeId)
+        }
+      }
+    )
+  }
+
+  return (
+    <Section title="Appearance">
+      <View style={[styles.themeCard, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.themeLabel, { color: colors.textMuted }]}>Theme</Text>
+        <TouchableOpacity style={[styles.themePicker, { backgroundColor: colors.surfaceSecondary }]} onPress={showPicker}>
+          <View style={styles.themePreviewRow}>
+            <View style={[styles.themePreviewDot, { backgroundColor: currentTheme.preview.accent }]} />
+            <View style={styles.themeInfo}>
+              <Text style={[styles.themeName, { color: colors.text }]}>{currentTheme.name}</Text>
+              <Text style={[styles.themeDescription, { color: colors.textMuted }]}>{currentTheme.description}</Text>
+            </View>
+          </View>
+          <Text style={[styles.themeChevron, { color: colors.textMuted }]}>›</Text>
+        </TouchableOpacity>
+        <View style={styles.themeGrid}>
+          {definitions.map((theme) => (
+            <TouchableOpacity
+              key={theme.id}
+              style={[
+                styles.themeOption,
+                { backgroundColor: theme.preview.bg, borderColor: theme.preview.accent },
+                themeId === theme.id && styles.themeOptionSelected,
+              ]}
+              onPress={() => setTheme(theme.id as ThemeId)}
+            >
+              <View style={[styles.themeOptionDot, { backgroundColor: theme.preview.accent }]} />
+              {themeId === theme.id && (
+                <View style={[styles.themeCheckmark, { backgroundColor: theme.preview.accent }]}>
+                  <Text style={styles.themeCheckmarkText}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </Section>
+  )
+}
+
 function formatUptime(seconds: number): string {
   const hours = Math.floor(seconds / 3600)
   const mins = Math.floor((seconds % 3600) / 60)
@@ -774,21 +836,23 @@ function formatUptime(seconds: number): string {
 
 export function SettingsScreen({ navigation }: any) {
   const insets = useSafeAreaInsets()
+  const { colors } = useTheme()
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <Text style={[styles.backBtnText, { color: colors.accent }]}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
         <View style={styles.headerPlaceholder} />
       </View>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}>
         <ConnectionSettings />
+        <ThemeSettings />
         <SyncSettings />
         <AgentsSettings />
         <EnvironmentSettings />
@@ -1074,5 +1138,89 @@ const styles = StyleSheet.create({
   syncResultValue: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  themeCard: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    padding: 16,
+  },
+  themeLabel: {
+    fontSize: 13,
+    color: '#8e8e93',
+    marginBottom: 8,
+  },
+  themePicker: {
+    backgroundColor: '#2c2c2e',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  themePreviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  themePreviewDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 12,
+  },
+  themeInfo: {
+    flex: 1,
+  },
+  themeName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  themeDescription: {
+    fontSize: 12,
+    color: '#8e8e93',
+    marginTop: 2,
+  },
+  themeChevron: {
+    fontSize: 18,
+    color: '#636366',
+    marginLeft: 8,
+  },
+  themeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  themeOption: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeOptionSelected: {
+    borderWidth: 3,
+  },
+  themeOptionDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  themeCheckmark: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeCheckmarkText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fff',
   },
 })
