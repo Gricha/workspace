@@ -153,14 +153,6 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
     return result
   }, [groupedSessions])
 
-  if (workspaceLoading && !isHost) {
-    return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#0a84ff" />
-      </View>
-    )
-  }
-
   const displayName = isHost
     ? (hostInfo ? `${hostInfo.username}@${hostInfo.hostname}` : 'Host Machine')
     : name
@@ -275,7 +267,11 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
         </View>
       )}
 
-      {!isRunning && !isHost ? (
+      {workspaceLoading && !isHost ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#0a84ff" />
+        </View>
+      ) : !isRunning && !isHost ? (
         isCreating ? (
           <View style={styles.notRunning}>
             <ActivityIndicator size="large" color="#ff9f0a" style={{ marginBottom: 16 }} />
