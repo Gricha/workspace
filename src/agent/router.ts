@@ -22,6 +22,7 @@ import {
   getSessionMessages,
   findSessionMessages,
 } from '../sessions/agents';
+import type { SessionsCacheManager } from '../sessions/cache';
 
 const WorkspaceStatusSchema = z.enum(['running', 'stopped', 'creating', 'error']);
 
@@ -37,6 +38,7 @@ const WorkspaceInfoSchema = z.object({
   created: z.string(),
   repo: z.string().optional(),
   ports: WorkspacePortsSchema,
+  lastUsed: z.string().optional(),
 });
 
 const CredentialsSchema = z.object({
@@ -94,6 +96,7 @@ export interface RouterContext {
   stateDir: string;
   startTime: number;
   terminalServer: TerminalWebSocketServer;
+  sessionsCache: SessionsCacheManager;
 }
 
 function mapErrorToORPC(err: unknown, defaultMessage: string): never {
@@ -209,6 +212,17 @@ export function createRouter(ctx: RouterContext) {
       results,
     };
   });
+
+  const touchWorkspace = os
+    .input(z.object({ name: z.string() }))
+    .output(WorkspaceInfoSchema)
+    .handler(async ({ input }) => {
+      const workspace = await ctx.workspaces.touch(input.name);
+      if (!workspace) {
+        throw new ORPCError('NOT_FOUND', { message: 'Workspace not found' });
+      }
+      return workspace;
+    });
 
   const getInfo = os.handler(async () => {
     let dockerVersion = 'unknown';
@@ -701,61 +715,28 @@ export function createRouter(ctx: RouterContext) {
       return { success: true };
     });
 
-  const listAllSessions = os
+  const getRecentSessions = os
     .input(
       z.object({
-        agentType: z.enum(['claude-code', 'opencode', 'codex']).optional(),
-        limit: z.number().optional().default(100),
-        offset: z.number().optional().default(0),
+        limit: z.number().optional().default(10),
       })
     )
     .handler(async ({ input }) => {
-      const allWorkspaces = await ctx.workspaces.list();
-      const runningWorkspaces = allWorkspaces.filter((w) => w.status === 'running');
+      const recent = await ctx.sessionsCache.getRecent(input.limit);
+      return { sessions: recent };
+    });
 
-      type SessionWithWorkspace = {
-        id: string;
-        name: string | null;
-        agentType: string;
-        projectPath: string;
-        messageCount: number;
-        lastActivity: string;
-        firstPrompt: string | null;
-        workspaceName: string;
-      };
-
-      const allSessions: SessionWithWorkspace[] = [];
-
-      for (const workspace of runningWorkspaces) {
-        try {
-          const result = await listSessionsCore({
-            workspaceName: workspace.name,
-            agentType: input.agentType,
-            limit: 1000,
-            offset: 0,
-          });
-          for (const session of result.sessions) {
-            allSessions.push({
-              ...session,
-              workspaceName: workspace.name,
-            });
-          }
-        } catch {
-          continue;
-        }
-      }
-
-      allSessions.sort(
-        (a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
-      );
-
-      const paginatedSessions = allSessions.slice(input.offset, input.offset + input.limit);
-
-      return {
-        sessions: paginatedSessions,
-        total: allSessions.length,
-        hasMore: input.offset + input.limit < allSessions.length,
-      };
+  const recordSessionAccess = os
+    .input(
+      z.object({
+        workspaceName: z.string(),
+        sessionId: z.string(),
+        agentType: z.enum(['claude-code', 'opencode', 'codex']),
+      })
+    )
+    .handler(async ({ input }) => {
+      await ctx.sessionsCache.recordAccess(input.workspaceName, input.sessionId, input.agentType);
+      return { success: true };
     });
 
   const getHostInfo = os.handler(async () => {
@@ -794,13 +775,15 @@ export function createRouter(ctx: RouterContext) {
       logs: getLogs,
       sync: syncWorkspace,
       syncAll: syncAllWorkspaces,
+      touch: touchWorkspace,
     },
     sessions: {
       list: listSessions,
-      listAll: listAllSessions,
       get: getSession,
       rename: renameSession,
       clearName: clearSessionName,
+      getRecent: getRecentSessions,
+      recordAccess: recordSessionAccess,
     },
     host: {
       info: getHostInfo,

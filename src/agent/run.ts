@@ -11,6 +11,7 @@ import { ChatWebSocketServer } from '../chat/websocket';
 import { OpencodeWebSocketServer } from '../chat/opencode-websocket';
 import { createRouter } from './router';
 import { serveStatic } from './static';
+import { SessionsCacheManager } from '../sessions/cache';
 import pkg from '../../package.json';
 
 const startTime = Date.now();
@@ -23,6 +24,7 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 function createAgentServer(configDir: string, config: AgentConfig) {
   let currentConfig = config;
   const workspaces = new WorkspaceManager(configDir, currentConfig);
+  const sessionsCache = new SessionsCacheManager(configDir);
 
   const isWorkspaceRunning = async (name: string) => {
     if (name === HOST_WORKSPACE_NAME) {
@@ -61,6 +63,7 @@ function createAgentServer(configDir: string, config: AgentConfig) {
     stateDir: configDir,
     startTime,
     terminalServer,
+    sessionsCache,
   });
 
   const rpcHandler = new RPCHandler(router);
