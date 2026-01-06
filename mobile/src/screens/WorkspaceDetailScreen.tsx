@@ -110,6 +110,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
   const [agentFilter, setAgentFilter] = useState<AgentType | undefined>(undefined)
   const [showAgentPicker, setShowAgentPicker] = useState(false)
   const [showNewChatPicker, setShowNewChatPicker] = useState(false)
+  const [showWorkspacePicker, setShowWorkspacePicker] = useState(false)
 
   const isHost = name === HOST_WORKSPACE_NAME
 
@@ -124,6 +125,11 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
     queryKey: ['hostInfo'],
     queryFn: api.getHostInfo,
     enabled: isHost,
+  })
+
+  const { data: allWorkspaces } = useQuery({
+    queryKey: ['workspaces'],
+    queryFn: api.listWorkspaces,
   })
 
   const isRunning = isHost ? true : workspace?.status === 'running'
@@ -170,10 +176,14 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹</Text>
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, isHost && styles.hostHeaderTitle]}>{displayName}</Text>
+        <TouchableOpacity
+          style={styles.headerCenter}
+          onPress={() => setShowWorkspacePicker(!showWorkspacePicker)}
+        >
+          <Text style={[styles.headerTitle, isHost && styles.hostHeaderTitle]} numberOfLines={1}>{displayName}</Text>
           <View style={[styles.statusIndicator, { backgroundColor: isHost ? '#f59e0b' : (isRunning ? '#34c759' : isCreating ? '#ff9f0a' : '#636366') }]} />
-        </View>
+          <Text style={styles.headerChevron}>▼</Text>
+        </TouchableOpacity>
         {isHost ? (
           <View style={styles.settingsBtn} />
         ) : (
@@ -255,6 +265,43 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
                 <Text style={styles.newChatPickerItemText}>{agentLabels[type]}</Text>
               </TouchableOpacity>
             ))}
+          </View>
+        </View>
+      )}
+
+      {showWorkspacePicker && (
+        <View style={styles.workspacePickerOverlay}>
+          <TouchableOpacity style={styles.workspacePickerBackdrop} onPress={() => setShowWorkspacePicker(false)} />
+          <View style={styles.workspacePicker}>
+            <Text style={styles.workspacePickerTitle}>Switch workspace</Text>
+            {allWorkspaces?.map((ws) => (
+              <TouchableOpacity
+                key={ws.name}
+                style={[styles.workspacePickerItem, ws.name === name && styles.workspacePickerItemActive]}
+                onPress={() => {
+                  setShowWorkspacePicker(false)
+                  if (ws.name !== name) {
+                    navigation.replace('WorkspaceDetail', { name: ws.name })
+                  }
+                }}
+              >
+                <View style={[styles.workspaceStatusDot, { backgroundColor: ws.status === 'running' ? '#34c759' : ws.status === 'creating' ? '#ff9f0a' : '#636366' }]} />
+                <Text style={[styles.workspacePickerItemText, ws.name === name && styles.workspacePickerItemTextActive]}>{ws.name}</Text>
+                {ws.name === name && <Text style={styles.workspaceCheckmark}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+            {!isHost && (
+              <TouchableOpacity
+                style={styles.workspacePickerItem}
+                onPress={() => {
+                  setShowWorkspacePicker(false)
+                  navigation.replace('WorkspaceDetail', { name: HOST_WORKSPACE_NAME })
+                }}
+              >
+                <View style={[styles.workspaceStatusDot, { backgroundColor: '#f59e0b' }]} />
+                <Text style={styles.workspacePickerItemText}>Host Machine</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       )}
@@ -601,5 +648,71 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#fff',
+  },
+  headerChevron: {
+    fontSize: 10,
+    color: '#8e8e93',
+    marginLeft: 4,
+  },
+  workspacePickerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+  },
+  workspacePickerBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  workspacePicker: {
+    position: 'absolute',
+    top: 60,
+    left: 50,
+    right: 50,
+    backgroundColor: '#2c2c2e',
+    borderRadius: 12,
+    padding: 12,
+  },
+  workspacePickerTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8e8e93',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  workspacePickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 10,
+  },
+  workspacePickerItemActive: {
+    backgroundColor: '#3c3c3e',
+  },
+  workspacePickerItemText: {
+    fontSize: 16,
+    color: '#fff',
+    flex: 1,
+  },
+  workspacePickerItemTextActive: {
+    fontWeight: '600',
+  },
+  workspaceStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  workspaceCheckmark: {
+    fontSize: 14,
+    color: '#0a84ff',
+    fontWeight: '600',
   },
 })
