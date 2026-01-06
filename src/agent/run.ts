@@ -6,6 +6,7 @@ import { HOST_WORKSPACE_NAME } from '../shared/types';
 import { DEFAULT_AGENT_PORT } from '../shared/constants';
 import { WorkspaceManager } from '../workspace/manager';
 import { containerRunning, getContainerName } from '../docker';
+import { startEagerImagePull } from '../docker/eager-pull';
 import { TerminalWebSocketServer } from '../terminal/websocket';
 import { ChatWebSocketServer } from '../chat/websocket';
 import { OpencodeWebSocketServer } from '../chat/opencode-websocket';
@@ -204,6 +205,8 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
     console.log(`[agent] WebSocket terminal: ws://localhost:${port}/rpc/terminal/:name`);
     console.log(`[agent] WebSocket chat (Claude): ws://localhost:${port}/rpc/chat/:name`);
     console.log(`[agent] WebSocket chat (OpenCode): ws://localhost:${port}/rpc/opencode/:name`);
+
+    startEagerImagePull();
   });
 
   const shutdown = () => {
