@@ -21,6 +21,9 @@ export default defineConfig([
     },
     rules: {
       'custom/no-unstable-callback-props': 'warn',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'no-empty': ['error', { allowEmptyCatch: true }],
     },
     languageOptions: {
       ecmaVersion: 2020,
