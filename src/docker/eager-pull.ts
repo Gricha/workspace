@@ -1,5 +1,6 @@
 import { imageExists, tryPullImage, getDockerVersion } from './index';
-import { WORKSPACE_IMAGE_LOCAL, WORKSPACE_IMAGE_REGISTRY } from '../shared/constants';
+import { WORKSPACE_IMAGE_REGISTRY } from '../shared/constants';
+import pkg from '../../package.json';
 
 const RETRY_INTERVAL_MS = 20000;
 const MAX_RETRIES = 10;
@@ -17,21 +18,23 @@ async function isDockerAvailable(): Promise<boolean> {
 }
 
 async function pullWorkspaceImage(): Promise<boolean> {
-  const localExists = await imageExists(WORKSPACE_IMAGE_LOCAL);
-  if (localExists) {
-    console.log('[agent] Workspace image already available locally');
+  const registryImage = `${WORKSPACE_IMAGE_REGISTRY}:${pkg.version}`;
+
+  const exists = await imageExists(registryImage);
+  if (exists) {
+    console.log(`[agent] Workspace image ${registryImage} already available`);
     return true;
   }
 
-  console.log(`[agent] Pulling workspace image from ${WORKSPACE_IMAGE_REGISTRY}...`);
-  const pulled = await tryPullImage(WORKSPACE_IMAGE_REGISTRY);
+  console.log(`[agent] Pulling workspace image ${registryImage}...`);
+  const pulled = await tryPullImage(registryImage);
 
   if (pulled) {
     console.log('[agent] Workspace image pulled successfully');
     return true;
   }
 
-  console.log('[agent] Failed to pull image - will retry later or build on first workspace create');
+  console.log('[agent] Failed to pull image - will retry later');
   return false;
 }
 
