@@ -7,16 +7,28 @@ sidebar_position: 2
 ## Prerequisites
 
 - Docker
-- Node.js 18+ or Bun
 - SSH client
 
-## Install
+## Quick Install (Recommended)
 
 ```bash
-npm install -g @gricha/perry
+curl -fsSL https://raw.githubusercontent.com/gricha/perry/main/install.sh | bash
 ```
 
-From source:
+This downloads and installs the pre-built binary for your platform to `~/.perry/bin`.
+
+### Options
+
+```bash
+# Install specific version
+curl -fsSL https://raw.githubusercontent.com/gricha/perry/main/install.sh | bash -s -- --version 0.1.8
+
+# Don't modify PATH
+curl -fsSL https://raw.githubusercontent.com/gricha/perry/main/install.sh | bash -s -- --no-modify-path
+```
+
+## From Source
+
 ```bash
 git clone https://github.com/gricha/perry.git
 cd perry

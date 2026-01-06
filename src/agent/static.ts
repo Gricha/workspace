@@ -1,6 +1,7 @@
 import { IncomingMessage, ServerResponse } from 'http';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { homedir } from 'os';
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
@@ -20,15 +21,24 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 function getWebDir(): string {
-  const distWeb = path.join(__dirname, 'web');
-  const rootDistWeb = path.resolve(__dirname, '../../dist/agent/web');
+  const candidates = [
+    path.join(__dirname, 'web'),
+    path.resolve(__dirname, '../../dist/agent/web'),
+    path.join(path.dirname(process.execPath), 'web'),
+    path.join(path.dirname(process.argv[0]), 'web'),
+    path.join(homedir(), '.perry', 'web'),
+  ];
 
-  try {
-    require('fs').accessSync(path.join(distWeb, 'index.html'));
-    return distWeb;
-  } catch {
-    return rootDistWeb;
+  for (const dir of candidates) {
+    try {
+      require('fs').accessSync(path.join(dir, 'index.html'));
+      return dir;
+    } catch {
+      continue;
+    }
   }
+
+  return candidates[0];
 }
 
 export async function serveStatic(

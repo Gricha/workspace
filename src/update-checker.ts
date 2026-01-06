@@ -2,7 +2,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 
-const PACKAGE_NAME = '@gricha/perry';
+const GITHUB_REPO = 'gricha/perry';
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface UpdateCache {
@@ -37,12 +37,17 @@ async function writeCache(cache: UpdateCache): Promise<void> {
 
 async function fetchLatestVersion(): Promise<string | null> {
   try {
-    const response = await fetch(`https://registry.npmjs.org/${PACKAGE_NAME}/latest`, {
+    const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
       signal: AbortSignal.timeout(3000),
+      headers: {
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'perry-update-checker',
+      },
     });
     if (!response.ok) return null;
-    const data = (await response.json()) as { version?: string };
-    return data.version || null;
+    const data = (await response.json()) as { tag_name?: string };
+    const tag = data.tag_name || null;
+    return tag ? tag.replace(/^v/, '') : null;
   } catch {
     return null;
   }
@@ -77,14 +82,18 @@ export async function checkForUpdates(currentVersion: string): Promise<void> {
 
     if (latestVersion && compareVersions(currentVersion, latestVersion) > 0) {
       console.log('');
-      console.log(`\x1b[33m╭─────────────────────────────────────────────────────────╮\x1b[0m`);
       console.log(
-        `\x1b[33m│\x1b[0m  Update available: \x1b[90m${currentVersion}\x1b[0m → \x1b[32m${latestVersion}\x1b[0m                     \x1b[33m│\x1b[0m`
+        `\x1b[33m╭──────────────────────────────────────────────────────────────────────────────────╮\x1b[0m`
       );
       console.log(
-        `\x1b[33m│\x1b[0m  Run \x1b[36mnpm install -g ${PACKAGE_NAME}\x1b[0m to update   \x1b[33m│\x1b[0m`
+        `\x1b[33m│\x1b[0m  Update available: \x1b[90m${currentVersion}\x1b[0m → \x1b[32m${latestVersion}\x1b[0m                                                  \x1b[33m│\x1b[0m`
       );
-      console.log(`\x1b[33m╰─────────────────────────────────────────────────────────╯\x1b[0m`);
+      console.log(
+        `\x1b[33m│\x1b[0m  Run: \x1b[36mcurl -fsSL https://raw.githubusercontent.com/${GITHUB_REPO}/main/install.sh | bash\x1b[0m  \x1b[33m│\x1b[0m`
+      );
+      console.log(
+        `\x1b[33m╰──────────────────────────────────────────────────────────────────────────────────╯\x1b[0m`
+      );
       console.log('');
     }
   } catch {

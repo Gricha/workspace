@@ -167,3 +167,116 @@ jobs:
 
       - name: Publish to npm
         run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: bun-linux-x64
+            name: linux-x64
+            archive: tar.gz
+          - target: bun-linux-arm64
+            name: linux-arm64
+            archive: tar.gz
+          - target: bun-darwin-x64
+            name: darwin-x64
+            archive: tar.gz
+          - target: bun-darwin-arm64
+            name: darwin-arm64
+            archive: tar.gz
+          - target: bun-windows-x64
+            name: windows-x64
+            archive: zip
+
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: |
+          bun install
+          cd web && bun install
+
+      - name: Set version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build TypeScript and Web UI
+        run: |
+          bun run build:ts
+          bun run build:web
+
+      - name: Compile binary
+        run: |
+          mkdir -p dist-binaries
+          BINARY_NAME="perry"
+          if [[ "${{ matrix.name }}" == windows-* ]]; then
+            BINARY_NAME="perry.exe"
+          fi
+          bun build ./src/index.ts --compile --target=${{ matrix.target }} --minify --outfile=dist-binaries/$BINARY_NAME
+
+      - name: Create archive
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          ARCHIVE_DIR="perry-${VERSION}-${{ matrix.name }}"
+          mkdir -p "$ARCHIVE_DIR"
+
+          if [[ "${{ matrix.name }}" == windows-* ]]; then
+            cp dist-binaries/perry.exe "$ARCHIVE_DIR/"
+          else
+            cp dist-binaries/perry "$ARCHIVE_DIR/"
+          fi
+          cp -r dist/agent/web "$ARCHIVE_DIR/"
+
+          if [[ "${{ matrix.archive }}" == "tar.gz" ]]; then
+            tar -czvf "dist-binaries/perry-${VERSION}-${{ matrix.name }}.tar.gz" "$ARCHIVE_DIR"
+          else
+            zip -r "dist-binaries/perry-${VERSION}-${{ matrix.name }}.zip" "$ARCHIVE_DIR"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.name }}
+          path: dist-binaries/perry-*.*
+          retention-days: 1
+
+  release:
+    needs: binaries
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-binaries
+          pattern: binary-*
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd dist-binaries
+          sha256sum perry-*.tar.gz perry-*.zip > checksums.txt
+          cat checksums.txt
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist-binaries/*.tar.gz
+            dist-binaries/*.zip
+            dist-binaries/checksums.txt
+          fail_on_unmatched_files: true
