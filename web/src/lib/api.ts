@@ -53,7 +53,7 @@ const client = createORPCClient<{
     get: (input: { name: string }) => Promise<WorkspaceInfo>
     create: (input: CreateWorkspaceRequest) => Promise<WorkspaceInfo>
     delete: (input: { name: string }) => Promise<{ success: boolean }>
-    start: (input: { name: string }) => Promise<WorkspaceInfo>
+    start: (input: { name: string; clone?: string; env?: Record<string, string> }) => Promise<WorkspaceInfo>
     stop: (input: { name: string }) => Promise<WorkspaceInfo>
     logs: (input: { name: string; tail?: number }) => Promise<string>
     sync: (input: { name: string }) => Promise<{ success: boolean }>
@@ -107,7 +107,8 @@ export const api = {
   getWorkspace: (name: string) => client.workspaces.get({ name }),
   createWorkspace: (data: CreateWorkspaceRequest) => client.workspaces.create(data),
   deleteWorkspace: (name: string) => client.workspaces.delete({ name }),
-  startWorkspace: (name: string) => client.workspaces.start({ name }),
+  startWorkspace: (name: string, options?: { clone?: string; env?: Record<string, string> }) =>
+    client.workspaces.start({ name, clone: options?.clone, env: options?.env }),
   stopWorkspace: (name: string) => client.workspaces.stop({ name }),
   getLogs: (name: string, tail = 100) => client.workspaces.logs({ name, tail }),
   syncWorkspace: (name: string) => client.workspaces.sync({ name }),
