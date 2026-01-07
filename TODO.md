@@ -16,64 +16,7 @@
 
 ## Tasks
 
-### Binary Distribution via Curl Install Script
-
-Switch from npm-based distribution to standalone binary distribution with curl install script (like OpenCode/Claude Code).
-
-**Benefits:**
-- No runtime dependency (currently requires Bun installed globally)
-- Single binary, faster cold starts with bytecode compilation
-- Simpler: `curl -fsSL https://raw.githubusercontent.com/gricha/perry/main/install.sh | bash`
-
-#### Phase 1: Binary Build System
-
-- [ ] Create binary build script using Bun's `--compile` flag for all platforms:
-  - `perry-linux-x64` (glibc)
-  - `perry-linux-arm64` (glibc)
-  - `perry-darwin-x64` (Intel Mac)
-  - `perry-darwin-arm64` (Apple Silicon)
-  - `perry-windows-x64.exe`
-- [ ] Use `--minify --bytecode` flags for optimized binaries
-- [ ] Handle web UI assets embedding (investigate Bun file embedding)
-- [ ] Add `build:binaries` script to package.json
-- [ ] Test compiled binary runs basic commands locally
-
-#### Phase 2: Install Script
-
-- [ ] Create `install.sh` at repository root with:
-  - Platform detection (Darwin/Linux via uname)
-  - Architecture detection (x64/arm64)
-  - GitHub releases API to fetch latest version
-  - Download binary from GitHub releases
-  - Install to `$HOME/.perry/bin` (or `$PERRY_INSTALL_DIR`)
-  - PATH modification (.bashrc, .zshrc, config.fish, .profile)
-  - Post-install verification (`perry --version`)
-- [ ] Support `--version` flag for specific version install
-- [ ] Support `--no-modify-path` flag
-- [ ] GitHub Actions detection (add to `$GITHUB_PATH`)
-
-#### Phase 3: Release Workflow
-
-- [ ] Add `binaries` job to `.github/workflows/release.yml`:
-  - Cross-compile for all targets using Bun
-  - Create archives (tar.gz for Linux/macOS, zip for Windows)
-  - Upload to GitHub Releases
-  - Generate SHA256 checksums
-- [ ] Keep npm publish as alternative install method
-
-#### Phase 4: Update Checker
-
-- [ ] Modify `src/update-checker.ts`:
-  - Query GitHub releases API instead of npm registry
-  - Update upgrade message to show curl command
-- [ ] (Optional) Add `perry upgrade` self-update command
-
-#### Phase 5: Documentation
-
-- [ ] Update `docs/docs/installation.md` with curl install as primary method
-- [ ] Update README.md
-- [ ] Document manual download from GitHub Releases
-- [ ] Document uninstall process
+_No tasks pending._
 
 ---
 

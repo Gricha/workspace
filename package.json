@@ -24,7 +24,8 @@
     "format:check": "oxfmt --check src/ test/",
     "check": "bun run lint && bun run format:check && bun x tsc --noEmit",
     "lint:web": "cd web && bun run lint",
-    "validate": "bun run check && bun run build && bun run test && bun run lint:web && bun run test:web"
+    "validate": "bun run check && bun run build && bun run test && bun run lint:web && bun run test:web",
+    "build:binaries": "bun run scripts/build-binaries.ts"
   },
   "engines": {
     "bun": ">=1.3.5"
