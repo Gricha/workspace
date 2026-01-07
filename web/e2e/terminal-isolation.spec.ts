@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test.describe('Terminal Session Isolation', () => {
   test('rapid tab switching within same workspace', async ({ page }) => {
