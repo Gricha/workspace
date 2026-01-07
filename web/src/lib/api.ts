@@ -72,6 +72,8 @@ const client = createORPCClient<{
     clearName: (input: { workspaceName: string; sessionId: string }) => Promise<{ success: boolean }>
     getRecent: (input: { limit?: number }) => Promise<{ sessions: RecentSession[] }>
     recordAccess: (input: { workspaceName: string; sessionId: string; agentType: AgentType }) => Promise<{ success: boolean }>
+    delete: (input: { workspaceName: string; sessionId: string; agentType: AgentType }) => Promise<{ success: boolean }>
+    search: (input: { workspaceName: string; query: string }) => Promise<{ results: Array<{ sessionId: string; agentType: AgentType; matchCount: number }> }>
   }
   models: {
     list: (input: { agentType: 'claude-code' | 'opencode'; workspaceName?: string }) => Promise<{ models: ModelInfo[] }>
@@ -125,6 +127,10 @@ export const api = {
     client.sessions.rename({ workspaceName, sessionId, name }),
   clearSessionName: (workspaceName: string, sessionId: string) =>
     client.sessions.clearName({ workspaceName, sessionId }),
+  deleteSession: (workspaceName: string, sessionId: string, agentType: AgentType) =>
+    client.sessions.delete({ workspaceName, sessionId, agentType }),
+  searchSessions: (workspaceName: string, query: string) =>
+    client.sessions.search({ workspaceName, query }),
   getInfo: () => client.info(),
   getCredentials: () => client.config.credentials.get(),
   updateCredentials: (data: Credentials) => client.config.credentials.update(data),

@@ -120,4 +120,24 @@ export const opencodeProvider: AgentSessionProvider = {
       return null;
     }
   },
+
+  async deleteSession(
+    containerName: string,
+    sessionId: string,
+    exec: ExecInContainer
+  ): Promise<{ success: boolean; error?: string }> {
+    const result = await exec(containerName, ['perry', 'worker', 'sessions', 'delete', sessionId], {
+      user: 'workspace',
+    });
+
+    if (result.exitCode !== 0) {
+      return { success: false, error: result.stderr || 'Failed to delete session' };
+    }
+
+    try {
+      return JSON.parse(result.stdout) as { success: boolean; error?: string };
+    } catch {
+      return { success: false, error: 'Invalid response from worker' };
+    }
+  },
 };

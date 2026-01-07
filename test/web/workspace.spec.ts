@@ -63,10 +63,10 @@ test.describe('Web UI - Workspace Operations', () => {
     await agent.api.createWorkspace({ name: workspaceName });
 
     try {
-      await page.goto(`http://127.0.0.1:${agent.port}/workspaces/${workspaceName}`);
+      await page.goto(`http://127.0.0.1:${agent.port}/workspaces/${workspaceName}?tab=settings`);
       await expect(page.getByText(workspaceName).first()).toBeVisible({ timeout: 30000 });
 
-      const stopButton = page.getByRole('button', { name: /stop/i });
+      const stopButton = page.getByRole('button', { name: /^stop$/i });
       await stopButton.click();
 
       await expect(page.getByText('stopped').first()).toBeVisible({ timeout: 30000 });

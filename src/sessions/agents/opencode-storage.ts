@@ -196,3 +196,63 @@ async function findSessionFile(sessionDir: string, sessionId: string): Promise<s
 
   return null;
 }
+
+export async function deleteOpencodeSession(
+  sessionId: string,
+  homeDir?: string
+): Promise<{ success: boolean; error?: string }> {
+  const storageBase = getStorageBase(homeDir);
+  const sessionDir = path.join(storageBase, 'session');
+  const messageDir = path.join(storageBase, 'message');
+  const partDir = path.join(storageBase, 'part');
+
+  const sessionFile = await findSessionFile(sessionDir, sessionId);
+  if (!sessionFile) {
+    return { success: false, error: 'Session not found' };
+  }
+
+  let internalId: string | null = null;
+  try {
+    const content = await fs.readFile(sessionFile, 'utf-8');
+    const data = JSON.parse(content);
+    internalId = data.id;
+  } catch {
+    // Continue with session file deletion only
+  }
+
+  try {
+    await fs.unlink(sessionFile);
+  } catch (err) {
+    return { success: false, error: `Failed to delete session file: ${err}` };
+  }
+
+  if (internalId) {
+    const msgDir = path.join(messageDir, internalId);
+    try {
+      const msgFiles = await fs.readdir(msgDir);
+      for (const msgFile of msgFiles) {
+        if (!msgFile.startsWith('msg_') || !msgFile.endsWith('.json')) continue;
+        const msgPath = path.join(msgDir, msgFile);
+        try {
+          const content = await fs.readFile(msgPath, 'utf-8');
+          const msg = JSON.parse(content);
+          if (msg.id) {
+            const partMsgDir = path.join(partDir, msg.id);
+            try {
+              await fs.rm(partMsgDir, { recursive: true });
+            } catch {
+              // Parts may not exist
+            }
+          }
+        } catch {
+          // Skip malformed messages
+        }
+      }
+      await fs.rm(msgDir, { recursive: true });
+    } catch {
+      // Messages directory may not exist
+    }
+  }
+
+  return { success: true };
+}

@@ -45,4 +45,10 @@ export interface AgentSessionProvider {
     sessionId: string,
     exec: ExecInContainer
   ): Promise<{ id: string; messages: SessionMessage[] } | null>;
+
+  deleteSession(
+    containerName: string,
+    sessionId: string,
+    exec: ExecInContainer
+  ): Promise<{ success: boolean; error?: string }>;
 }

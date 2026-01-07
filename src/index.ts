@@ -673,11 +673,11 @@ const workerCmd = program
 
 workerCmd
   .command('sessions')
-  .argument('<subcommand>', 'Subcommand: list or messages')
-  .argument('[sessionId]', 'Session ID (required for messages)')
+  .argument('<subcommand>', 'Subcommand: list, messages, or delete')
+  .argument('[sessionId]', 'Session ID (required for messages and delete)')
   .description('Manage OpenCode sessions')
   .action(async (subcommand: string, sessionId?: string) => {
-    const { listOpencodeSessions, getOpencodeSessionMessages } =
+    const { listOpencodeSessions, getOpencodeSessionMessages, deleteOpencodeSession } =
       await import('./sessions/agents/opencode-storage');
 
     if (subcommand === 'list') {
@@ -690,9 +690,16 @@ workerCmd
       }
       const result = await getOpencodeSessionMessages(sessionId);
       console.log(JSON.stringify(result));
+    } else if (subcommand === 'delete') {
+      if (!sessionId) {
+        console.error('Usage: perry worker sessions delete <session_id>');
+        process.exit(1);
+      }
+      const result = await deleteOpencodeSession(sessionId);
+      console.log(JSON.stringify(result));
     } else {
       console.error(`Unknown subcommand: ${subcommand}`);
-      console.error('Available: list, messages');
+      console.error('Available: list, messages, delete');
       process.exit(1);
     }
   });

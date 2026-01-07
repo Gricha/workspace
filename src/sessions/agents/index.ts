@@ -65,3 +65,90 @@ export async function findSessionMessages(
   }
   return null;
 }
+
+export async function deleteSession(
+  containerName: string,
+  sessionId: string,
+  agentType: AgentType,
+  exec: ExecInContainer
+): Promise<{ success: boolean; error?: string }> {
+  const provider = providers[agentType];
+  if (!provider) {
+    return { success: false, error: 'Unknown agent type' };
+  }
+  return provider.deleteSession(containerName, sessionId, exec);
+}
+
+export interface SearchResult {
+  sessionId: string;
+  agentType: AgentType;
+  filePath: string;
+  matchCount: number;
+}
+
+export async function searchSessions(
+  containerName: string,
+  query: string,
+  exec: ExecInContainer
+): Promise<SearchResult[]> {
+  const safeQuery = query.replace(/['"\\]/g, '\\$&');
+
+  const searchPaths = [
+    '/home/workspace/.claude/projects',
+    '/home/workspace/.local/share/opencode/storage',
+    '/home/workspace/.codex/sessions',
+  ];
+
+  const rgCommand = `rg -l -i --no-messages "${safeQuery}" ${searchPaths.join(' ')} 2>/dev/null | head -100`;
+
+  const result = await exec(containerName, ['bash', '-c', rgCommand], {
+    user: 'workspace',
+  });
+
+  if (result.exitCode !== 0 || !result.stdout.trim()) {
+    return [];
+  }
+
+  const files = result.stdout.trim().split('\n').filter(Boolean);
+  const results: SearchResult[] = [];
+
+  for (const file of files) {
+    let sessionId: string | null = null;
+    let agentType: AgentType | null = null;
+
+    if (file.includes('/.claude/projects/')) {
+      const match = file.match(/\/([^/]+)\.jsonl$/);
+      if (match && !match[1].startsWith('agent-')) {
+        sessionId = match[1];
+        agentType = 'claude-code';
+      }
+    } else if (file.includes('/.local/share/opencode/storage/')) {
+      if (file.includes('/session/') && file.endsWith('.json')) {
+        const match = file.match(/\/(ses_[^/]+)\.json$/);
+        if (match) {
+          sessionId = match[1];
+          agentType = 'opencode';
+        }
+      } else if (file.includes('/part/') || file.includes('/message/')) {
+        continue;
+      }
+    } else if (file.includes('/.codex/sessions/')) {
+      const match = file.match(/\/([^/]+)\.jsonl$/);
+      if (match) {
+        sessionId = match[1];
+        agentType = 'codex';
+      }
+    }
+
+    if (sessionId && agentType) {
+      results.push({
+        sessionId,
+        agentType,
+        filePath: file,
+        matchCount: 1,
+      });
+    }
+  }
+
+  return results;
+}

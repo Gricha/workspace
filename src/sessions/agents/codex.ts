@@ -157,4 +157,58 @@ export const codexProvider: AgentSessionProvider = {
 
     return null;
   },
+
+  async deleteSession(
+    containerName: string,
+    sessionId: string,
+    exec: ExecInContainer
+  ): Promise<{ success: boolean; error?: string }> {
+    const findResult = await exec(
+      containerName,
+      ['bash', '-c', `find /home/workspace/.codex/sessions -name "*.jsonl" -type f 2>/dev/null`],
+      { user: 'workspace' }
+    );
+
+    if (findResult.exitCode !== 0 || !findResult.stdout.trim()) {
+      return { success: false, error: 'No session files found' };
+    }
+
+    const files = findResult.stdout.trim().split('\n').filter(Boolean);
+
+    for (const file of files) {
+      const fileId = file.split('/').pop()?.replace('.jsonl', '') || '';
+
+      if (fileId === sessionId) {
+        const rmResult = await exec(containerName, ['rm', '-f', file], {
+          user: 'workspace',
+        });
+        if (rmResult.exitCode !== 0) {
+          return { success: false, error: rmResult.stderr || 'Failed to delete session file' };
+        }
+        return { success: true };
+      }
+
+      const headResult = await exec(containerName, ['head', '-1', file], {
+        user: 'workspace',
+      });
+      if (headResult.exitCode === 0) {
+        try {
+          const meta = JSON.parse(headResult.stdout) as { session_id?: string };
+          if (meta.session_id === sessionId) {
+            const rmResult = await exec(containerName, ['rm', '-f', file], {
+              user: 'workspace',
+            });
+            if (rmResult.exitCode !== 0) {
+              return { success: false, error: rmResult.stderr || 'Failed to delete session file' };
+            }
+            return { success: true };
+          }
+        } catch {
+          continue;
+        }
+      }
+    }
+
+    return { success: false, error: 'Session not found' };
+  },
 };

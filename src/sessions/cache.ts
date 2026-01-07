@@ -77,4 +77,12 @@ export class SessionsCacheManager {
     cache.recent = cache.recent.filter((s) => s.workspaceName !== workspaceName);
     await this.save();
   }
+
+  async removeSession(workspaceName: string, sessionId: string): Promise<void> {
+    const cache = await this.load();
+    cache.recent = cache.recent.filter(
+      (s) => !(s.workspaceName === workspaceName && s.sessionId === sessionId)
+    );
+    await this.save();
+  }
 }

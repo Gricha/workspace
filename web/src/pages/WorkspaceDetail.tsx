@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -20,6 +20,8 @@ import {
   Info,
   AlertTriangle,
   FolderSync,
+  Search,
+  X,
 } from 'lucide-react'
 import { api, type SessionInfo, type AgentType } from '@/lib/api'
 import { HOST_WORKSPACE_NAME } from '@/lib/types'
@@ -142,63 +144,83 @@ function CopyableSessionId({ sessionId }: { sessionId: string }) {
   )
 }
 
-function SessionListItem({ session, onClick }: { session: SessionInfo; onClick: () => void }) {
+function SessionListItem({
+  session,
+  onClick,
+  onDelete,
+}: {
+  session: SessionInfo
+  onClick: () => void
+  onDelete: () => void
+}) {
   const isEmpty = session.messageCount === 0
   const hasPrompt = session.firstPrompt && session.firstPrompt.trim().length > 0
   const displayTitle = session.name || (hasPrompt ? session.firstPrompt : 'No prompt recorded')
 
   return (
-    <button
-      onClick={onClick}
+    <div
       data-testid="session-list-item"
       className={cn(
         'w-full text-left px-3 sm:px-4 py-3 border-b border-border/50 transition-colors hover:bg-accent/50 flex items-center gap-2 sm:gap-4 min-h-[56px]',
         isEmpty && 'opacity-60'
       )}
     >
-      <span
-        className={cn(
-          'shrink-0 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded',
-          AGENT_COLORS[session.agentType]
-        )}
-        data-testid="agent-badge"
-      >
-        [{AGENT_BADGES[session.agentType]}]
-      </span>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p
-            className={cn(
-              'text-sm font-medium truncate',
-              hasPrompt || session.name ? 'text-foreground' : 'text-muted-foreground italic'
-            )}
-          >
-            {displayTitle}
-          </p>
-          {isEmpty && (
-            <Badge variant="secondary" className="text-[10px] font-normal bg-muted text-muted-foreground shrink-0 hidden sm:inline-flex">
-              Empty
-            </Badge>
+      <button onClick={onClick} className="flex-1 flex items-center gap-2 sm:gap-4 min-w-0">
+        <span
+          className={cn(
+            'shrink-0 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded',
+            AGENT_COLORS[session.agentType]
           )}
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-muted-foreground">
-          <CopyableSessionId sessionId={session.id} />
-          <span className="flex items-center gap-1">
-            <Hash className="h-3 w-3" />
-            {session.messageCount}
-          </span>
-          <span className="truncate font-mono text-[11px] hidden sm:inline">{session.projectPath}</span>
-        </div>
-      </div>
+          data-testid="agent-badge"
+        >
+          [{AGENT_BADGES[session.agentType]}]
+        </span>
 
-      <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground">
-        <Clock className="h-3 w-3 hidden sm:block" />
-        <span className="text-[11px] sm:text-xs">{formatTimeAgo(session.lastActivity)}</span>
-      </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p
+              className={cn(
+                'text-sm font-medium truncate',
+                hasPrompt || session.name ? 'text-foreground' : 'text-muted-foreground italic'
+              )}
+            >
+              {displayTitle}
+            </p>
+            {isEmpty && (
+              <Badge variant="secondary" className="text-[10px] font-normal bg-muted text-muted-foreground shrink-0 hidden sm:inline-flex">
+                Empty
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-muted-foreground">
+            <CopyableSessionId sessionId={session.id} />
+            <span className="flex items-center gap-1">
+              <Hash className="h-3 w-3" />
+              {session.messageCount}
+            </span>
+            <span className="truncate font-mono text-[11px] hidden sm:inline">{session.projectPath}</span>
+          </div>
+        </div>
+
+        <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground">
+          <Clock className="h-3 w-3 hidden sm:block" />
+          <span className="text-[11px] sm:text-xs">{formatTimeAgo(session.lastActivity)}</span>
+        </div>
+      </button>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onDelete()
+        }}
+        className="shrink-0 p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+        title="Delete session"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
 
       <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-    </button>
+    </div>
   )
 }
 
@@ -217,8 +239,17 @@ export function WorkspaceDetail() {
   const [agentFilter, setAgentFilter] = useState<AgentType | 'all'>('all')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
+  const [deleteSessionDialog, setDeleteSessionDialog] = useState<SessionInfo | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
 
-  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
   const setTab = (tab: TabType) => {
     setChatMode(null)
     setSearchParams({ tab })
@@ -252,8 +283,22 @@ export function WorkspaceDetail() {
     enabled: !!name && ((isHostWorkspace && hostInfo?.enabled) || (!isHostWorkspace && workspace?.status === 'running')),
   })
 
-  const sessions = sessionsData?.sessions || []
+  const sessions = sessionsData?.sessions
   const totalSessions = sessionsData?.total || 0
+
+  const { data: searchData, isLoading: searchLoading } = useQuery({
+    queryKey: ['sessionSearch', name, debouncedQuery],
+    queryFn: () => api.searchSessions(name!, debouncedQuery),
+    enabled: !!name && !!debouncedQuery.trim() && ((isHostWorkspace && hostInfo?.enabled) || (!isHostWorkspace && workspace?.status === 'running')),
+  })
+
+  const filteredSessions = useMemo(() => {
+    const sessionList = sessions || []
+    if (!debouncedQuery.trim()) return sessionList
+    if (!searchData?.results) return []
+    const matchingIds = new Set(searchData.results.map((r) => r.sessionId))
+    return sessionList.filter((session) => matchingIds.has(session.id))
+  }, [sessions, debouncedQuery, searchData])
 
   const startMutation = useMutation({
     mutationFn: () => api.startWorkspace(name!),
@@ -282,6 +327,37 @@ export function WorkspaceDetail() {
 
   const syncMutation = useMutation({
     mutationFn: () => api.syncWorkspace(name!),
+  })
+
+  const deleteSessionMutation = useMutation({
+    mutationFn: ({ sessionId, agentType }: { sessionId: string; agentType: AgentType }) =>
+      api.deleteSession(name!, sessionId, agentType),
+    onMutate: async ({ sessionId }) => {
+      await queryClient.cancelQueries({ queryKey: ['sessions', name] })
+      const previousData = queryClient.getQueryData(['sessions', name, agentFilter])
+      queryClient.setQueryData(
+        ['sessions', name, agentFilter],
+        (old: { sessions: SessionInfo[]; total: number; hasMore: boolean } | undefined) => {
+          if (!old) return old
+          return {
+            ...old,
+            sessions: old.sessions.filter((s) => s.id !== sessionId),
+            total: old.total - 1,
+          }
+        }
+      )
+      setDeleteSessionDialog(null)
+      return { previousData }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['sessions', name, agentFilter], context.previousData)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions', name] })
+      queryClient.invalidateQueries({ queryKey: ['recentSessions'] })
+    },
   })
 
   const handleResume = (sessionId: string, agentType: AgentType) => {
@@ -514,36 +590,53 @@ export function WorkspaceDetail() {
               )
             ) : (
               <>
-                <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-3 border-b border-border/50">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-9 px-2 sm:px-3">
-                          <Bot className="h-4 w-4 sm:mr-2" />
-                          <span className="hidden sm:inline">{AGENT_LABELS[agentFilter]}</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuRadioGroup
-                          value={agentFilter}
-                          onValueChange={(value) => setAgentFilter(value as AgentType | 'all')}
-                        >
-                          <DropdownMenuRadioItem value="all">All Agents</DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="claude-code">Claude Code</DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="opencode">OpenCode</DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="codex">Codex</DropdownMenuRadioItem>
-                        </DropdownMenuRadioGroup>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    {totalSessions > 0 && (
-                      <span className="text-xs sm:text-sm text-muted-foreground truncate">
-                        {totalSessions} session{totalSessions !== 1 && 's'}
-                      </span>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 border-b border-border/50">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="sm" className="h-9 px-2 sm:px-3 flex-shrink-0">
+                      <Button variant="outline" size="sm" className="h-8 px-2 sm:px-3 flex-shrink-0">
+                        <Bot className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">{AGENT_LABELS[agentFilter]}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuRadioGroup
+                        value={agentFilter}
+                        onValueChange={(value) => setAgentFilter(value as AgentType | 'all')}
+                      >
+                        <DropdownMenuRadioItem value="all">All Agents</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="claude-code">Claude Code</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="opencode">OpenCode</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="codex">Codex</DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <div className="relative flex-1 max-w-xs">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search..."
+                      className="pl-8 h-8 text-sm"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {totalSessions > 0 && (
+                    <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+                      {debouncedQuery
+                        ? `${filteredSessions.length}/${totalSessions}`
+                        : totalSessions}
+                    </span>
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" className="h-8 px-2 sm:px-3 flex-shrink-0 ml-auto">
                         <Play className="h-4 w-4 sm:mr-2" />
                         <span className="hidden sm:inline">New Chat</span>
                       </Button>
@@ -566,11 +659,11 @@ export function WorkspaceDetail() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
-                  {sessionsLoading ? (
+                  {sessionsLoading || (debouncedQuery && searchLoading) ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                  ) : sessions.length === 0 ? (
+                  ) : !sessions || sessions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16">
                       <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-4" />
                       <p className="text-muted-foreground mb-4">No sessions yet</p>
@@ -597,10 +690,15 @@ export function WorkspaceDetail() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
+                  ) : filteredSessions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16">
+                      <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                      <p className="text-muted-foreground">No sessions match your search</p>
+                    </div>
                   ) : (
                     <div data-testid="sessions-list">
                       {(['Today', 'Yesterday', 'This Week', 'Older'] as DateGroup[]).map((group) => {
-                        const groupedSessions = groupSessionsByDate(sessions)
+                        const groupedSessions = groupSessionsByDate(filteredSessions)
                         const groupSessions = groupedSessions[group]
                         if (groupSessions.length === 0) return null
                         return (
@@ -615,6 +713,7 @@ export function WorkspaceDetail() {
                                 key={session.id}
                                 session={session}
                                 onClick={() => handleResume(session.id, session.agentType)}
+                                onDelete={() => setDeleteSessionDialog(session)}
                               />
                             ))}
                           </div>
@@ -840,6 +939,38 @@ export function WorkspaceDetail() {
           </AlertDialogContent>
         </AlertDialog>
       )}
+
+      <AlertDialog
+        open={!!deleteSessionDialog}
+        onOpenChange={(open) => !open && setDeleteSessionDialog(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Session</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this session and its conversation history.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteSessionDialog) {
+                  deleteSessionMutation.mutate({
+                    sessionId: deleteSessionDialog.id,
+                    agentType: deleteSessionDialog.agentType,
+                  })
+                }
+              }}
+              disabled={deleteSessionMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteSessionMutation.isPending ? 'Deleting...' : 'Delete Session'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -121,4 +121,36 @@ export const claudeProvider: AgentSessionProvider = {
       );
     return { id: sessionId, messages };
   },
+
+  async deleteSession(
+    containerName: string,
+    sessionId: string,
+    exec: ExecInContainer
+  ): Promise<{ success: boolean; error?: string }> {
+    const safeSessionId = sessionId.replace(/[^a-zA-Z0-9_-]/g, '');
+    const findResult = await exec(
+      containerName,
+      [
+        'bash',
+        '-c',
+        `find /home/workspace/.claude/projects -name "${safeSessionId}.jsonl" -type f 2>/dev/null | head -1`,
+      ],
+      { user: 'workspace' }
+    );
+
+    if (findResult.exitCode !== 0 || !findResult.stdout.trim()) {
+      return { success: false, error: 'Session not found' };
+    }
+
+    const filePath = findResult.stdout.trim();
+    const rmResult = await exec(containerName, ['rm', '-f', filePath], {
+      user: 'workspace',
+    });
+
+    if (rmResult.exitCode !== 0) {
+      return { success: false, error: rmResult.stderr || 'Failed to delete session file' };
+    }
+
+    return { success: true };
+  },
 };
