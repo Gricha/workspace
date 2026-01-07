@@ -271,6 +271,7 @@ export function SessionChatScreen({ route, navigation }: any) {
   const messageIdCounter = useRef(0)
   const hasLoadedInitial = useRef(false)
   const modelInitialized = useRef(false)
+  const isAtBottomRef = useRef(true)
 
   const fetchAgentType = agentType === 'opencode' ? 'opencode' : 'claude-code'
 
@@ -301,7 +302,12 @@ export function SessionChatScreen({ route, navigation }: any) {
   }, [availableModels, agentsConfig, fetchAgentType])
 
   useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardWillShow', () => setKeyboardVisible(true))
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true)
+      if (isAtBottomRef.current) {
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50)
+      }
+    })
     const hideSub = Keyboard.addListener('keyboardWillHide', () => setKeyboardVisible(false))
     return () => {
       showSub.remove()
@@ -501,7 +507,6 @@ export function SessionChatScreen({ route, navigation }: any) {
       } catch {
         // Non-JSON message, ignore
       }
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100)
     }
 
     ws.onclose = () => {
@@ -523,11 +528,19 @@ export function SessionChatScreen({ route, navigation }: any) {
     return cleanup
   }, [connect])
 
+  useEffect(() => {
+    if (streamingParts.length > 0 && isAtBottomRef.current) {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50)
+    }
+  }, [streamingParts])
+
   const handleScroll = useCallback((event: any) => {
-    const { contentOffset } = event.nativeEvent
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent
     if (contentOffset.y < 100 && hasMoreMessages && !isLoadingMore) {
       loadMoreMessages()
     }
+    const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y
+    isAtBottomRef.current = distanceFromBottom < 100
   }, [hasMoreMessages, isLoadingMore, loadMoreMessages])
 
   const sendMessage = () => {
@@ -539,6 +552,7 @@ export function SessionChatScreen({ route, navigation }: any) {
     setIsStreaming(true)
     streamingPartsRef.current = []
     setStreamingParts([])
+    isAtBottomRef.current = true
 
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100)
 
