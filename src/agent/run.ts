@@ -255,8 +255,12 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
 
   server.listen(port, '::', () => {
     console.log(`[agent] Agent running at http://localhost:${port}`);
-    if (tailscaleServeActive && tailscale.dnsName) {
-      console.log(`[agent] Tailscale HTTPS: https://${tailscale.dnsName}`);
+    if (tailscale.running && tailscale.dnsName) {
+      const shortName = tailscale.dnsName.split('.')[0];
+      console.log(`[agent] Tailnet: http://${shortName}:${port}`);
+      if (tailscaleServeActive) {
+        console.log(`[agent] Tailnet HTTPS: https://${tailscale.dnsName}`);
+      }
     }
     console.log(`[agent] oRPC endpoint: http://localhost:${port}/rpc`);
     console.log(`[agent] WebSocket terminal: ws://localhost:${port}/rpc/terminal/:name`);
