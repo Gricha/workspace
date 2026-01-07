@@ -1,8 +1,11 @@
 name: Mobile E2E Tests
 
 on:
-  # Only run on push to main or manual trigger to avoid slow CI on every PR
   push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+  pull_request:
     branches: [main]
     paths:
       - 'mobile/**'
