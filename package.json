@@ -1,6 +1,6 @@
 {
   "name": "@gricha/perry",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Self-contained CLI for spinning up Docker-in-Docker development environments with SSH and proxy helpers.",
   "type": "module",
   "bin": {
