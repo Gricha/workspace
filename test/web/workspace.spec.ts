@@ -202,8 +202,8 @@ test.describe('Web UI - Sessions', () => {
     const sessionId = `test-session-${Date.now()}`;
     const filePath = `/home/workspace/.claude/projects/-workspace/${sessionId}.jsonl`;
     const sessionContent = [
-      '{"type":"user","message":{"role":"user","content":"Hello from test"},"timestamp":"2026-01-01T00:00:00.000Z"}',
-      '{"type":"assistant","message":{"role":"assistant","content":"Hi there"},"timestamp":"2026-01-01T00:00:01.000Z"}',
+      '{"type":"user","content":"Hello from test","timestamp":"2026-01-01T00:00:00.000Z"}',
+      '{"type":"assistant","content":"Hi there","timestamp":"2026-01-01T00:00:01.000Z"}',
     ].join('\n');
 
     await agent.api.createWorkspace({ name: workspaceName });
@@ -222,7 +222,7 @@ test.describe('Web UI - Sessions', () => {
 
       await sessionItem.click();
 
-      await expect(page.getByText('Claude Code')).toBeVisible({ timeout: 30000 });
+      await expect(page.getByText('Claude Code', { exact: true })).toBeVisible({ timeout: 30000 });
       await expect(page.getByPlaceholder('Send a message...')).toBeVisible();
     } finally {
       await agent.api.deleteWorkspace(workspaceName);
@@ -234,10 +234,10 @@ test.describe('Web UI - Sessions', () => {
     const sessionId = `history-test-${Date.now()}`;
     const filePath = `/home/workspace/.claude/projects/-workspace/${sessionId}.jsonl`;
     const sessionContent = [
-      '{"type":"user","message":{"role":"user","content":"What is 2+2?"},"timestamp":"2026-01-01T00:00:00.000Z"}',
-      '{"type":"assistant","message":{"role":"assistant","content":"2+2 equals 4"},"timestamp":"2026-01-01T00:00:01.000Z"}',
-      '{"type":"user","message":{"role":"user","content":"Thanks!"},"timestamp":"2026-01-01T00:00:02.000Z"}',
-      '{"type":"assistant","message":{"role":"assistant","content":"You are welcome!"},"timestamp":"2026-01-01T00:00:03.000Z"}',
+      '{"type":"user","content":"What is 2+2?","timestamp":"2026-01-01T00:00:00.000Z"}',
+      '{"type":"assistant","content":"2+2 equals 4","timestamp":"2026-01-01T00:00:01.000Z"}',
+      '{"type":"user","content":"Thanks!","timestamp":"2026-01-01T00:00:02.000Z"}',
+      '{"type":"assistant","content":"You are welcome!","timestamp":"2026-01-01T00:00:03.000Z"}',
     ].join('\n');
 
     await agent.api.createWorkspace({ name: workspaceName });
@@ -256,7 +256,7 @@ test.describe('Web UI - Sessions', () => {
 
       await sessionItem.click();
 
-      await expect(page.getByText('Claude Code')).toBeVisible({ timeout: 30000 });
+      await expect(page.getByText('Claude Code', { exact: true })).toBeVisible({ timeout: 30000 });
       await expect(page.getByText('2+2 equals 4')).toBeVisible({ timeout: 10000 });
       await expect(page.getByText('Thanks!')).toBeVisible();
       await expect(page.getByText('You are welcome!')).toBeVisible();

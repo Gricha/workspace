@@ -568,6 +568,7 @@ export function WorkspaceDetail() {
             ) : chatMode ? (
               chatMode.type === 'chat' ? (
                 <Chat
+                  key={`chat-${chatMode.agentType}`}
                   workspaceName={name!}
                   sessionId={chatMode.sessionId}
                   agentType={chatMode.agentType}
