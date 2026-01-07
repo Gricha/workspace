@@ -7,6 +7,7 @@ const MAX_RETRIES = 10;
 
 let pullInProgress = false;
 let pullComplete = false;
+let abortController: AbortController | null = null;
 
 async function isDockerAvailable(): Promise<boolean> {
   try {
@@ -44,8 +45,15 @@ export async function startEagerImagePull(): Promise<void> {
   }
 
   pullInProgress = true;
+  abortController = new AbortController();
+  const signal = abortController.signal;
 
   const attemptPull = async (attempt: number): Promise<void> => {
+    if (signal.aborted) {
+      pullInProgress = false;
+      return;
+    }
+
     if (attempt > MAX_RETRIES) {
       console.log('[agent] Max retries reached for image pull - giving up background pull');
       pullInProgress = false;
@@ -58,7 +66,8 @@ export async function startEagerImagePull(): Promise<void> {
       if (attempt === 1) {
         console.log('[agent] Docker not available - will retry in background');
       }
-      setTimeout(() => attemptPull(attempt + 1), RETRY_INTERVAL_MS);
+      const timer = setTimeout(() => attemptPull(attempt + 1), RETRY_INTERVAL_MS);
+      timer.unref();
       return;
     }
 
@@ -67,12 +76,21 @@ export async function startEagerImagePull(): Promise<void> {
     if (success) {
       pullComplete = true;
       pullInProgress = false;
-    } else {
-      setTimeout(() => attemptPull(attempt + 1), RETRY_INTERVAL_MS);
+    } else if (!signal.aborted) {
+      const timer = setTimeout(() => attemptPull(attempt + 1), RETRY_INTERVAL_MS);
+      timer.unref();
     }
   };
 
   attemptPull(1);
+}
+
+export function stopEagerImagePull(): void {
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
+  pullInProgress = false;
 }
 
 export function isImagePullComplete(): boolean {

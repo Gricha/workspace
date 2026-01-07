@@ -6,7 +6,7 @@ import { HOST_WORKSPACE_NAME } from '../shared/client-types';
 import { DEFAULT_AGENT_PORT } from '../shared/constants';
 import { WorkspaceManager } from '../workspace/manager';
 import { containerRunning, getContainerName } from '../docker';
-import { startEagerImagePull } from '../docker/eager-pull';
+import { startEagerImagePull, stopEagerImagePull } from '../docker/eager-pull';
 import { TerminalWebSocketServer } from '../terminal/websocket';
 import { ChatWebSocketServer } from '../chat/websocket';
 import { OpencodeWebSocketServer } from '../chat/opencode-websocket';
@@ -297,17 +297,39 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
     startEagerImagePull();
   });
 
+  let isShuttingDown = false;
+
   const shutdown = async () => {
+    if (isShuttingDown) {
+      console.log('[agent] Force exit');
+      process.exit(0);
+    }
+    isShuttingDown = true;
+
     console.log('[agent] Shutting down...');
+
+    const forceExitTimeout = setTimeout(() => {
+      console.log('[agent] Force exit after timeout');
+      process.exit(0);
+    }, 3000);
+    forceExitTimeout.unref();
+
+    stopEagerImagePull();
     fileWatcher.stop();
+
     if (tailscaleServeActive) {
       console.log('[agent] Stopping Tailscale Serve...');
       await stopTailscaleServe();
     }
+
     chatServer.close();
     opencodeServer.close();
     terminalServer.close();
+
+    server.closeAllConnections();
+
     server.close(() => {
+      clearTimeout(forceExitTimeout);
       console.log('[agent] Server closed');
       process.exit(0);
     });
