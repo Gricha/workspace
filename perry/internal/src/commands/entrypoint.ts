@@ -20,7 +20,12 @@ export const runEntrypoint = async () => {
     return;
   }
   console.log("[entrypoint] Running workspace initialization...");
-  await runInit();
+  try {
+    await runInit();
+  } catch (error) {
+    console.log(`[entrypoint] Initialization failed (non-fatal): ${(error as Error).message}`);
+    console.log("[entrypoint] SSH will still start - connect to debug the issue");
+  }
   console.log("[entrypoint] Starting SSH daemon...");
   await startSshd();
   void monitorServices();

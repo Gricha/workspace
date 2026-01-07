@@ -83,6 +83,15 @@ const cloneRepository = async (
     return;
   }
 
+  const repoName = repoUrl.replace(/\/+$/, "").split("/").pop() ?? "repo";
+  const cleanRepoName = repoName.replace(/\.git$/, "");
+  const repoPath = path.join(workspaceHome, cleanRepoName);
+  if (await pathExists(repoPath)) {
+    console.log(`Repository directory '${cleanRepoName}' already exists. Skipping clone.`);
+    await configureGitSshKey(workspaceHome, repoPath, runtimeConfig?.ssh?.selectedKey ?? "");
+    return;
+  }
+
   console.log("=== Configuration Debug Info ===");
   console.log(`Repository URL: ${repoUrl}`);
   await logRuntimeConfigContents(runtimeConfigPath);
@@ -143,9 +152,6 @@ const cloneRepository = async (
   }
   console.log("Repository clone completed.");
 
-  const repoName = repoUrl.replace(/\/+$/, "").split("/").pop() ?? "repo";
-  const cleanRepoName = repoName.replace(/\.git$/, "");
-  const repoPath = path.join(workspaceHome, cleanRepoName);
   if (await pathExists(repoPath)) {
     await configureGitSshKey(workspaceHome, repoPath, selectedKey);
   }
