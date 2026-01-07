@@ -11,7 +11,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useSyncPrompt } from '@/contexts/SyncContext'
+import { useSyncNotification } from '@/contexts/SyncContext'
 
 const FALLBACK_CLAUDE_MODELS: ModelInfo[] = [
   { id: 'sonnet', name: 'Sonnet', description: 'Fast and cost-effective' },
@@ -31,7 +31,7 @@ function StatusIndicator({ configured }: { configured: boolean }) {
 
 export function AgentsSettings() {
   const queryClient = useQueryClient()
-  const showSyncPrompt = useSyncPrompt()
+  const showSyncNotification = useSyncNotification()
 
   const { data: agents, isLoading, error, refetch } = useQuery({
     queryKey: ['agents'],
@@ -85,7 +85,7 @@ export function AgentsSettings() {
       setOpencodeHasChanges(false)
       setGithubHasChanges(false)
       setClaudeHasChanges(false)
-      showSyncPrompt()
+      showSyncNotification()
     },
   })
 

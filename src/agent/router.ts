@@ -121,6 +121,7 @@ export interface RouterContext {
   sessionsCache: SessionsCacheManager;
   modelCache: ModelCacheManager;
   tailscale?: TailscaleInfo;
+  triggerAutoSync: () => void;
 }
 
 function mapErrorToORPC(err: unknown, defaultMessage: string): never {
@@ -289,6 +290,7 @@ export function createRouter(ctx: RouterContext) {
       const newConfig = { ...currentConfig, credentials: input };
       ctx.config.set(newConfig);
       await saveAgentConfig(newConfig, ctx.configDir);
+      ctx.triggerAutoSync();
       return input;
     });
 
@@ -304,6 +306,7 @@ export function createRouter(ctx: RouterContext) {
       const newConfig = { ...currentConfig, scripts: input };
       ctx.config.set(newConfig);
       await saveAgentConfig(newConfig, ctx.configDir);
+      ctx.triggerAutoSync();
       return input;
     });
 
@@ -319,6 +322,7 @@ export function createRouter(ctx: RouterContext) {
       const newConfig = { ...currentConfig, agents: input };
       ctx.config.set(newConfig);
       await saveAgentConfig(newConfig, ctx.configDir);
+      ctx.triggerAutoSync();
       return input;
     });
 
@@ -341,6 +345,7 @@ export function createRouter(ctx: RouterContext) {
       const newConfig = { ...currentConfig, ssh: input };
       ctx.config.set(newConfig);
       await saveAgentConfig(newConfig, ctx.configDir);
+      ctx.triggerAutoSync();
       return input;
     });
 

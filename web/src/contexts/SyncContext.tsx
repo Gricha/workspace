@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, type ReactNode } from
 import { SyncToast } from '@/components/SyncToast'
 
 interface SyncContextValue {
-  showSyncPrompt: () => void
+  showSyncNotification: () => void
 }
 
 const SyncContext = createContext<SyncContextValue | null>(null)
@@ -10,7 +10,7 @@ const SyncContext = createContext<SyncContextValue | null>(null)
 export function SyncProvider({ children }: { children: ReactNode }) {
   const [showToast, setShowToast] = useState(false)
 
-  const showSyncPrompt = useCallback(() => {
+  const showSyncNotification = useCallback(() => {
     setShowToast(true)
   }, [])
 
@@ -19,17 +19,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <SyncContext.Provider value={{ showSyncPrompt }}>
+    <SyncContext.Provider value={{ showSyncNotification }}>
       {children}
       <SyncToast show={showToast} onDismiss={dismissToast} />
     </SyncContext.Provider>
   )
 }
 
-export function useSyncPrompt() {
+export function useSyncNotification() {
   const context = useContext(SyncContext)
   if (!context) {
-    throw new Error('useSyncPrompt must be used within SyncProvider')
+    throw new Error('useSyncNotification must be used within SyncProvider')
   }
-  return context.showSyncPrompt
+  return context.showSyncNotification
 }

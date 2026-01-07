@@ -1,5 +1,12 @@
 export interface WorkspaceCredentials {
   env: Record<string, string>;
+  /**
+   * File or directory mappings from host to workspace.
+   * Key is destination path (in workspace), value is source path (on host).
+   * Paths starting with ~/ are expanded to the home directory.
+   * Directories are copied recursively via TAR.
+   * Example: { "~/.ssh/id_rsa": "~/.ssh/id_rsa", "~/.config/myapp": "~/.config/myapp" }
+   */
   files: Record<string, string>;
 }
 

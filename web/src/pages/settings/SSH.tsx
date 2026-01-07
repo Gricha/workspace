@@ -3,11 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Save, RefreshCw, Key, Check, AlertTriangle } from 'lucide-react'
 import { api, type SSHSettings } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { useSyncPrompt } from '@/contexts/SyncContext'
+import { useSyncNotification } from '@/contexts/SyncContext'
 
 export function SSHSettings() {
   const queryClient = useQueryClient()
-  const showSyncPrompt = useSyncPrompt()
+  const showSyncNotification = useSyncNotification()
 
   const { data: sshSettings, isLoading, error, refetch } = useQuery({
     queryKey: ['sshSettings'],
@@ -35,7 +35,7 @@ export function SSHSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sshSettings'] })
       setHasChanges(false)
-      showSyncPrompt()
+      showSyncNotification()
     },
   })
 

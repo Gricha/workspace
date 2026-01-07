@@ -4,11 +4,11 @@ import { Save, RefreshCw } from 'lucide-react'
 import { api, type Scripts } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useSyncPrompt } from '@/contexts/SyncContext'
+import { useSyncNotification } from '@/contexts/SyncContext'
 
 export function ScriptsSettings() {
   const queryClient = useQueryClient()
-  const showSyncPrompt = useSyncPrompt()
+  const showSyncNotification = useSyncNotification()
 
   const { data: scripts, isLoading, error, refetch } = useQuery({
     queryKey: ['scripts'],
@@ -31,7 +31,7 @@ export function ScriptsSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scripts'] })
       setHasChanges(false)
-      showSyncPrompt()
+      showSyncNotification()
     },
   })
 

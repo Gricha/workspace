@@ -14,6 +14,7 @@ import type {
   WorkspaceInfo,
   CreateWorkspaceRequest,
   ApiError,
+  WorkspaceCredentials,
 } from '../../src/shared/types';
 
 interface ExecResult {
@@ -36,6 +37,8 @@ interface ApiClient {
   deleteWorkspace(name: string): Promise<{ status: number }>;
   startWorkspace(name: string): Promise<ApiResponse<WorkspaceInfo | ApiError>>;
   stopWorkspace(name: string): Promise<ApiResponse<WorkspaceInfo | ApiError>>;
+  updateCredentials(credentials: WorkspaceCredentials): Promise<WorkspaceCredentials>;
+  syncWorkspace(name: string): Promise<void>;
 }
 
 export interface TestAgent {
@@ -182,6 +185,14 @@ export function createApiClient(baseUrl: string): ApiClient {
           data: { error: message, code: orpcErr.code } as ApiError,
         };
       }
+    },
+
+    async updateCredentials(credentials: WorkspaceCredentials): Promise<WorkspaceCredentials> {
+      return client.config.credentials.update(credentials);
+    },
+
+    async syncWorkspace(name: string): Promise<void> {
+      await client.workspaces.sync({ name });
     },
   };
 }

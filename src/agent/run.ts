@@ -14,6 +14,7 @@ import { createRouter } from './router';
 import { serveStatic } from './static';
 import { SessionsCacheManager } from '../sessions/cache';
 import { ModelCacheManager } from '../models/cache';
+import { FileWatcher } from './file-watcher';
 import {
   getTailscaleStatus,
   getTailscaleIdentity,
@@ -42,6 +43,24 @@ function createAgentServer(configDir: string, config: AgentConfig, tailscale?: T
   const sessionsCache = new SessionsCacheManager(configDir);
   const modelCache = new ModelCacheManager(configDir);
 
+  const syncAllRunning = async () => {
+    const allWorkspaces = await workspaces.list();
+    const running = allWorkspaces.filter((ws) => ws.status === 'running');
+    for (const ws of running) {
+      try {
+        await workspaces.sync(ws.name);
+        console.log(`[sync] Synced workspace: ${ws.name}`);
+      } catch (err) {
+        console.error(`[sync] Failed to sync ${ws.name}:`, err);
+      }
+    }
+  };
+
+  const fileWatcher = new FileWatcher({
+    config: currentConfig,
+    syncCallback: syncAllRunning,
+  });
+
   const isWorkspaceRunning = async (name: string) => {
     if (name === HOST_WORKSPACE_NAME) {
       return currentConfig.allowHostAccess === true;
@@ -67,6 +86,12 @@ function createAgentServer(configDir: string, config: AgentConfig, tailscale?: T
     getConfig: () => currentConfig,
   });
 
+  const triggerAutoSync = () => {
+    syncAllRunning().catch((err) => {
+      console.error('[sync] Auto-sync failed:', err);
+    });
+  };
+
   const router = createRouter({
     workspaces,
     config: {
@@ -74,6 +99,7 @@ function createAgentServer(configDir: string, config: AgentConfig, tailscale?: T
       set: (newConfig: AgentConfig) => {
         currentConfig = newConfig;
         workspaces.updateConfig(newConfig);
+        fileWatcher.updateConfig(newConfig);
       },
     },
     configDir,
@@ -83,6 +109,7 @@ function createAgentServer(configDir: string, config: AgentConfig, tailscale?: T
     sessionsCache,
     modelCache,
     tailscale,
+    triggerAutoSync,
   });
 
   const rpcHandler = new RPCHandler(router);
@@ -152,7 +179,7 @@ function createAgentServer(configDir: string, config: AgentConfig, tailscale?: T
     }
   });
 
-  return { server, terminalServer, chatServer, opencodeServer };
+  return { server, terminalServer, chatServer, opencodeServer, fileWatcher };
 }
 
 export interface StartAgentOptions {
@@ -232,7 +259,7 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
         }
       : undefined;
 
-  const { server, terminalServer, chatServer, opencodeServer } = createAgentServer(
+  const { server, terminalServer, chatServer, opencodeServer, fileWatcher } = createAgentServer(
     configDir,
     config,
     tailscaleInfo
@@ -272,6 +299,7 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
 
   const shutdown = async () => {
     console.log('[agent] Shutting down...');
+    fileWatcher.stop();
     if (tailscaleServeActive) {
       console.log('[agent] Stopping Tailscale Serve...');
       await stopTailscaleServe();
