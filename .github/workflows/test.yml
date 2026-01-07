@@ -46,6 +46,9 @@ jobs:
       - name: Typecheck
         run: bun x tsc --noEmit
 
+      - name: Lint web
+        run: bun run lint:web
+
   build:
     runs-on: ubuntu-latest
     steps:
