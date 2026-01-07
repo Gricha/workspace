@@ -202,17 +202,24 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
   const tailscale = await getTailscaleStatus();
   let tailscaleServeActive = false;
 
-  if (tailscale.running && tailscale.httpsEnabled && tailscale.dnsName) {
+  if (tailscale.running && tailscale.dnsName) {
     console.log(`[agent] Tailscale detected: ${tailscale.dnsName}`);
-    const started = await startTailscaleServe(port);
-    if (started) {
-      tailscaleServeActive = true;
-      console.log(`[agent] Tailscale Serve enabled`);
+
+    if (!tailscale.httpsEnabled) {
+      console.log(`[agent] Tailscale HTTPS not enabled in tailnet, skipping Serve`);
     } else {
-      console.log(`[agent] Tailscale Serve failed to start, continuing without it`);
+      const result = await startTailscaleServe(port);
+      if (result.success) {
+        tailscaleServeActive = true;
+        console.log(`[agent] Tailscale Serve enabled`);
+      } else if (result.error === 'permission_denied') {
+        console.log(`[agent] Tailscale Serve requires operator permissions`);
+        console.log(`[agent] To enable: ${result.message}`);
+        console.log(`[agent] Continuing without HTTPS...`);
+      } else {
+        console.log(`[agent] Tailscale Serve failed: ${result.message || 'unknown error'}`);
+      }
     }
-  } else if (tailscale.running && !tailscale.httpsEnabled) {
-    console.log(`[agent] Tailscale detected but HTTPS not enabled in tailnet`);
   }
 
   const tailscaleInfo: TailscaleInfo | undefined =

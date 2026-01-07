@@ -60,17 +60,37 @@ export async function getTailscaleStatus(): Promise<TailscaleStatus> {
   }
 }
 
-export async function startTailscaleServe(port: number): Promise<boolean> {
+export interface TailscaleServeResult {
+  success: boolean;
+  error?: 'permission_denied' | 'unknown';
+  message?: string;
+}
+
+export async function startTailscaleServe(port: number): Promise<TailscaleServeResult> {
   try {
     const proc = Bun.spawn(['tailscale', 'serve', '--bg', String(port)], {
       stdout: 'pipe',
       stderr: 'pipe',
     });
 
+    const stderr = await new Response(proc.stderr).text();
     const exitCode = await proc.exited;
-    return exitCode === 0;
-  } catch {
-    return false;
+
+    if (exitCode === 0) {
+      return { success: true };
+    }
+
+    if (stderr.includes('Access denied') || stderr.includes('serve config denied')) {
+      return {
+        success: false,
+        error: 'permission_denied',
+        message: 'Run: sudo tailscale set --operator=$USER',
+      };
+    }
+
+    return { success: false, error: 'unknown', message: stderr.trim() };
+  } catch (err) {
+    return { success: false, error: 'unknown', message: String(err) };
   }
 }
 
