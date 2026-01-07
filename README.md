@@ -12,6 +12,10 @@
 
 <p align="center">Isolated, self-hosted workspaces accessible over Tailscale. AI coding agents, web UI, and remote terminal access.</p>
 
+<p align="center">
+  <img src="assets/demo.gif" alt="Demo" width="800">
+</p>
+
 ## Overview
 
 Perry is designed to run on a machine within a **secure private network** such as [Tailscale](https://tailscale.com). It provides isolated Docker-based development environments that you can access remotely via CLI, web UI, or SSH from any device on your network.
