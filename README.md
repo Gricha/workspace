@@ -85,6 +85,14 @@ Open http://localhost:7391 (or your Tailscale host) and click "+" to create a wo
 
 Perry is designed for use within **secure private networks** like [Tailscale](https://tailscale.com). The web UI and API currently have no authentication - this is intentional for private network use where all devices are trusted.
 
+NOTE: Using this software can be dangerous, don't expose it on the network. Any user that can access perry's web server may be able to do serious damage to your system. Keep it closed in Tailscale network.
+
+Perry by default allows the API to interact with the host machine as well - while it's intended purpose is to manage docker containers, sometimes, for simplicity I run some of my jobs directly on my machine. This can be disabled. When you start perry, you can pass a `--no-host-access` flag.
+
+`perry agent run --no-host-access`
+
+This will ensure that perry can only stand up/tear down docker containers. While this reduces the attack surface, it is only as good as docker is as sandbox (and it may very well not be).
+
 ## Configuration
 
 Configure credentials and agent settings via Web UI → Settings or edit `~/.config/perry/config.json`:
