@@ -10,7 +10,9 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
 
-<p align="center">Isolated, self-hosted workspaces accessible over Tailscale. AI coding agents, web UI, and remote terminal access.</p>
+<p align="center">
+  Continue your coding sessions on the go. Self-hosted workspaces, accessible over Tailscale.
+</p>
 
 <p align="center">
   <img src="assets/demo-terminal-mobile.gif" alt="Terminal" width="280">
@@ -20,7 +22,11 @@
 
 ## Overview
 
-Perry is designed to run on a machine within a **secure private network** such as [Tailscale](https://tailscale.com). It provides isolated Docker-based development environments that you can access remotely via CLI, web UI, or SSH from any device on your network.
+Perry is an agent (agent P) designed to run as a daemon on your machine. It allows your clients - other machines through CLI, web, or mobile app - to connect directly to your workspaces over the Tailscale network.
+
+It can be connected directly to your host, or it can create docker containers so that your work can be fully isolated.
+
+Continue your sessions on the go!
 
 ## Features
 
