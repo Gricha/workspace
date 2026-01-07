@@ -1,0 +1,114 @@
+name: Mobile E2E Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+
+jobs:
+  maestro-ios:
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            mobile/node_modules
+          key: ${{ runner.os }}-bun-mobile-${{ hashFiles('mobile/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-mobile-
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: bun install
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: mobile/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('mobile/ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install CocoaPods dependencies
+        working-directory: mobile/ios
+        run: pod install
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: List available simulators
+        run: xcrun simctl list devices available
+
+      - name: Boot iOS Simulator
+        run: |
+          DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 16" | head -1 | grep -oE '[A-F0-9-]{36}')
+          if [ -z "$DEVICE_ID" ]; then
+            DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 15" | head -1 | grep -oE '[A-F0-9-]{36}')
+          fi
+          if [ -z "$DEVICE_ID" ]; then
+            DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | grep -oE '[A-F0-9-]{36}')
+          fi
+          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+
+      - name: Build iOS app for simulator
+        working-directory: mobile/ios
+        run: |
+          xcodebuild -workspace Perry.xcworkspace \
+            -scheme Perry \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "id=${{ env.DEVICE_ID }}" \
+            -derivedDataPath build \
+            build
+
+      - name: Install app on simulator
+        run: |
+          APP_PATH=$(find mobile/ios/build -name "*.app" -type d | head -1)
+          xcrun simctl install "${{ env.DEVICE_ID }}" "$APP_PATH"
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Run Maestro tests
+        working-directory: mobile
+        run: |
+          export PATH="$HOME/.maestro/bin:$PATH"
+          maestro test .maestro/flows/ --format junit --output maestro-report.xml
+        env:
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 120000
+
+      - name: Upload Maestro report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maestro-report
+          path: mobile/maestro-report.xml
+          retention-days: 7
+
+      - name: Upload Maestro screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: maestro-screenshots
+          path: ~/.maestro/tests/
+          retention-days: 7

@@ -212,6 +212,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
             style={styles.terminalBtn}
             onPress={() => navigation.navigate('Terminal', { name })}
             disabled={!isRunning}
+            testID="terminal-button"
           >
             <Text style={[styles.terminalBtnText, !isRunning && styles.disabledText]}>Terminal</Text>
           </TouchableOpacity>
@@ -219,6 +220,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
             style={styles.newChatBtn}
             onPress={() => setShowNewChatPicker(!showNewChatPicker)}
             disabled={!isRunning}
+            testID="new-chat-button"
           >
             <Text style={[styles.newChatBtnText, !isRunning && styles.disabledText]}>New Chat ▼</Text>
           </TouchableOpacity>

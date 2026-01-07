@@ -79,6 +79,7 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
+              testID="hostname-input"
             />
             <Text style={styles.hint}>Your Tailscale hostname or IP address</Text>
           </View>
@@ -92,6 +93,7 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
               placeholder="7391"
               placeholderTextColor="#666"
               keyboardType="number-pad"
+              testID="port-input"
             />
           </View>
 
@@ -105,6 +107,7 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
             style={[styles.button, isConnecting && styles.buttonDisabled]}
             onPress={handleConnect}
             disabled={isConnecting}
+            testID="connect-button"
           >
             {isConnecting ? (
               <ActivityIndicator size="small" color="#fff" />

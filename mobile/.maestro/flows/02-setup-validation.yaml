@@ -1,0 +1,25 @@
+appId: com.gricha.perry
+name: Setup Screen - Form Validation
+tags:
+  - setup
+  - validation
+---
+- launchApp:
+    clearState: true
+
+# Test empty hostname validation
+- tapOn:
+    id: "connect-button"
+- assertVisible: "Please enter a hostname"
+
+# Test port validation
+- tapOn:
+    id: "hostname-input"
+- inputText: "test-server.local"
+- tapOn:
+    id: "port-input"
+- clearText
+- inputText: "0"
+- tapOn:
+    id: "connect-button"
+- assertVisible: "Please enter a valid port number"

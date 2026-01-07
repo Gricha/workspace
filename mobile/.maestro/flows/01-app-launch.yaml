@@ -1,0 +1,18 @@
+appId: com.gricha.perry
+name: App Launch - Fresh Install
+tags:
+  - smoke
+  - setup
+---
+- launchApp:
+    clearState: true
+
+# On fresh install, should show setup screen with Perry branding
+- assertVisible: "Perry"
+- assertVisible: "Connect to your workspace server"
+- assertVisible:
+    id: "hostname-input"
+- assertVisible:
+    id: "port-input"
+- assertVisible:
+    id: "connect-button"
