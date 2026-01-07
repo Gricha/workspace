@@ -1,34 +1,670 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * Perry Documentation - Industrial Terminal Aesthetic
+ * A dark, developer-focused design with terminal vibes
  */
 
-/* Custom color scheme inspired by Docker and modern dev tools */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+/* ============================================
+   CSS VARIABLES - DARK INDUSTRIAL PALETTE
+   ============================================ */
 :root {
-  --ifm-color-primary: #667eea;
-  --ifm-color-primary-dark: #4c63e6;
-  --ifm-color-primary-darker: #3f54e4;
-  --ifm-color-primary-darkest: #2638d8;
-  --ifm-color-primary-light: #8099ee;
-  --ifm-color-primary-lighter: #93a8f0;
-  --ifm-color-primary-lightest: #bac8f5;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(102, 126, 234, 0.15);
-  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  /* Core Colors - Cyan/Teal terminal accent */
+  --ifm-color-primary: #00d4aa;
+  --ifm-color-primary-dark: #00bf99;
+  --ifm-color-primary-darker: #00b38f;
+  --ifm-color-primary-darkest: #009476;
+  --ifm-color-primary-light: #00e9bb;
+  --ifm-color-primary-lighter: #0dffc9;
+  --ifm-color-primary-lightest: #3dffd6;
+
+  /* Typography */
+  --ifm-font-family-base: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --ifm-heading-font-family: 'Outfit', sans-serif;
   --ifm-heading-font-weight: 700;
+  --ifm-font-weight-semibold: 600;
+
+  /* Code */
+  --ifm-code-font-size: 90%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 212, 170, 0.1);
+
+  /* Spacing */
+  --ifm-spacing-horizontal: 1.5rem;
+  --ifm-navbar-height: 4rem;
+
+  /* Custom Perry colors */
+  --perry-bg-dark: #0a0f14;
+  --perry-bg-card: #0f161d;
+  --perry-bg-elevated: #141d26;
+  --perry-border: #1e2d3d;
+  --perry-border-bright: #2a3f52;
+  --perry-text-primary: #e8edf3;
+  --perry-text-secondary: #8899a6;
+  --perry-text-muted: #556677;
+  --perry-accent: #00d4aa;
+  --perry-accent-dim: rgba(0, 212, 170, 0.15);
+  --perry-warning: #ffb347;
+  --perry-error: #ff6b6b;
+  --perry-success: #00d4aa;
+
+  /* Gradient */
+  --perry-gradient: linear-gradient(135deg, #00d4aa 0%, #00a8e8 100%);
+  --perry-gradient-subtle: linear-gradient(135deg, rgba(0, 212, 170, 0.1) 0%, rgba(0, 168, 232, 0.05) 100%);
 }
 
+/* Light mode */
+[data-theme='light'] {
+  --perry-bg-dark: #ffffff;
+  --perry-bg-card: #f8fafb;
+  --perry-bg-elevated: #f0f4f7;
+  --perry-border: #e2e8f0;
+  --perry-border-bright: #cbd5e1;
+  --perry-text-primary: #1a202c;
+  --perry-text-secondary: #4a5568;
+  --perry-text-muted: #718096;
+  --perry-accent: #00a88a;
+  --perry-accent-dim: rgba(0, 168, 138, 0.12);
+
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: var(--perry-bg-card);
+  --ifm-navbar-background-color: rgba(255, 255, 255, 0.9);
+  --ifm-footer-background-color: var(--perry-bg-card);
+  --ifm-font-color-base: var(--perry-text-primary);
+  --ifm-heading-color: var(--perry-text-primary);
+  --ifm-link-color: var(--perry-accent);
+  --ifm-menu-color: var(--perry-text-secondary);
+  --ifm-menu-color-active: var(--perry-accent);
+  --ifm-toc-link-color: var(--perry-text-secondary);
+  --ifm-code-background: var(--perry-bg-elevated);
+  --ifm-card-background-color: var(--perry-bg-card);
+  --ifm-hr-background-color: var(--perry-border);
+  --ifm-color-primary: #00a88a;
+  --ifm-color-primary-dark: #009478;
+  --perry-gradient: linear-gradient(135deg, #00a88a 0%, #0088cc 100%);
+}
+
+/* Dark mode */
 [data-theme='dark'] {
-  --ifm-color-primary: #8099ee;
-  --ifm-color-primary-dark: #667eea;
-  --ifm-color-primary-darker: #5470e8;
-  --ifm-color-primary-darkest: #3f54e4;
-  --ifm-color-primary-light: #93a8f0;
-  --ifm-color-primary-lighter: #a6b6f2;
-  --ifm-color-primary-lightest: #bac8f5;
-  --docusaurus-highlighted-code-line-bg: rgba(128, 153, 238, 0.2);
-  --ifm-background-color: #1a1a1a;
-  --ifm-background-surface-color: #242424;
+  --perry-bg-dark: #0a0f14;
+  --perry-bg-card: #0f161d;
+  --perry-bg-elevated: #141d26;
+  --perry-border: #1e2d3d;
+  --perry-border-bright: #2a3f52;
+  --perry-text-primary: #e8edf3;
+  --perry-text-secondary: #8899a6;
+  --perry-text-muted: #556677;
+  --perry-accent: #00d4aa;
+  --perry-accent-dim: rgba(0, 212, 170, 0.15);
+
+  --ifm-background-color: var(--perry-bg-dark);
+  --ifm-background-surface-color: var(--perry-bg-card);
+  --ifm-navbar-background-color: rgba(10, 15, 20, 0.85);
+  --ifm-footer-background-color: var(--perry-bg-dark);
+  --ifm-font-color-base: var(--perry-text-primary);
+  --ifm-heading-color: var(--perry-text-primary);
+  --ifm-link-color: var(--perry-accent);
+  --ifm-menu-color: var(--perry-text-secondary);
+  --ifm-menu-color-active: var(--perry-accent);
+  --ifm-toc-link-color: var(--perry-text-secondary);
+  --ifm-code-background: var(--perry-bg-elevated);
+  --ifm-card-background-color: var(--perry-bg-card);
+  --ifm-hr-background-color: var(--perry-border);
+  --ifm-color-primary: #00d4aa;
+  --ifm-color-primary-dark: #00bf99;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 212, 170, 0.15);
+}
+
+/* ============================================
+   GLOBAL STYLES
+   ============================================ */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--ifm-background-color);
+  font-feature-settings: 'liga' 1, 'calt' 1;
+}
+
+/* Subtle noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.015;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--ifm-heading-font-family);
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.markdown > h1:first-child {
+  font-size: 2.5rem;
+  background: var(--perry-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+code {
+  font-family: var(--ifm-font-family-monospace);
+  font-variant-ligatures: none;
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+  border: 1px solid var(--perry-border);
+}
+
+/* ============================================
+   NAVBAR
+   ============================================ */
+.navbar {
+  backdrop-filter: blur(12px) saturate(180%);
+  border-bottom: 1px solid var(--perry-border);
+  box-shadow: 0 1px 0 rgba(0, 212, 170, 0.05);
+}
+
+.navbar__title {
+  font-family: var(--ifm-font-family-monospace);
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.navbar__link {
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
+}
+
+.navbar__link:hover {
+  color: var(--perry-accent);
+}
+
+.navbar__link--active {
+  color: var(--perry-accent);
+}
+
+/* Navbar items styling */
+.navbar__items--right .navbar__link {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.navbar__items--right .navbar__link:hover {
+  border-color: var(--perry-border);
+  background: var(--perry-bg-elevated);
+}
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
+.menu {
+  font-weight: 400;
+  padding: 1rem 0.5rem;
+}
+
+.menu__link {
+  font-size: 0.9rem;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  transition: all 0.15s ease;
+}
+
+.menu__link:hover:not(.menu__link--active) {
+  background: var(--perry-bg-elevated);
+  color: var(--perry-text-primary);
+}
+
+.menu__link--active {
+  background: var(--perry-accent-dim);
+  color: var(--perry-accent);
+  font-weight: 500;
+}
+
+.menu__link--active:hover {
+  background: var(--perry-accent-dim);
+}
+
+.menu__list-item-collapsible:hover {
+  background: var(--perry-bg-elevated);
+}
+
+.theme-doc-sidebar-menu > li > .menu__link {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--perry-text-muted);
+}
+
+/* Category labels */
+.menu__list-item-collapsible .menu__link {
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--perry-text-secondary);
+}
+
+/* ============================================
+   DOCS CONTENT
+   ============================================ */
+.theme-doc-markdown {
+  max-width: 800px;
+}
+
+article {
+  padding-bottom: 3rem;
+}
+
+/* Doc page wrapper */
+.docMainContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-Main-styles-module {
+  background: var(--perry-bg-dark);
+}
+
+/* Table of Contents */
+.table-of-contents {
+  border-left: 1px solid var(--perry-border);
+}
+
+.table-of-contents__link {
+  font-size: 0.85rem;
+}
+
+.table-of-contents__link--active {
+  color: var(--perry-accent);
+  font-weight: 500;
+}
+
+/* ============================================
+   CODE BLOCKS - Terminal Style
+   ============================================ */
+.prism-code {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  border-radius: 8px;
+  border: 1px solid var(--perry-border);
+}
+
+div[class*='codeBlockContainer'] {
+  background: var(--perry-bg-card);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.3),
+    0 0 0 1px var(--perry-border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+/* Terminal-style title bar */
+div[class*='codeBlockTitle'] {
+  background: var(--perry-bg-elevated);
+  border-bottom: 1px solid var(--perry-border);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+  color: var(--perry-text-muted);
+  padding: 0.6rem 1rem;
+}
+
+div[class*='codeBlockTitle']::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff5f56;
+  margin-right: 8px;
+  box-shadow: 20px 0 0 #ffbd2e, 40px 0 0 #27ca40;
+}
+
+/* Copy button */
+button[class*='copyButton'] {
+  background: var(--perry-bg-elevated);
+  border: 1px solid var(--perry-border);
+  border-radius: 6px;
+  color: var(--perry-text-secondary);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.75rem;
+  transition: all 0.15s ease;
+}
+
+button[class*='copyButton']:hover {
+  background: var(--perry-accent-dim);
+  border-color: var(--perry-accent);
+  color: var(--perry-accent);
+}
+
+/* Line numbers */
+.prism-code .token-line {
+  padding: 0 1rem;
+}
+
+/* ============================================
+   TABLES
+   ============================================ */
+table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--perry-bg-card);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--perry-border);
+}
+
+th {
+  background: var(--perry-bg-elevated);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--perry-text-secondary);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--perry-border);
+}
+
+td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--perry-border);
+  font-size: 0.9rem;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:hover td {
+  background: rgba(0, 212, 170, 0.03);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.button {
+  font-family: var(--ifm-font-family-base);
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.button--primary {
+  background: var(--perry-gradient);
+  border: none;
+  color: #0a0f14;
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
+}
+
+.button--primary:hover {
+  background: var(--perry-gradient);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 24px rgba(0, 212, 170, 0.4);
+  color: #0a0f14;
+}
+
+.button--secondary {
+  background: transparent;
+  border: 1px solid var(--perry-border-bright);
+  color: var(--perry-text-primary);
+}
+
+.button--secondary:hover {
+  background: var(--perry-bg-elevated);
+  border-color: var(--perry-accent);
+  color: var(--perry-accent);
+}
+
+/* ============================================
+   ALERTS / ADMONITIONS
+   ============================================ */
+.alert {
+  border-radius: 8px;
+  border: 1px solid var(--perry-border);
+  background: var(--perry-bg-card);
+}
+
+.alert--info {
+  border-left: 4px solid #00a8e8;
+  background: rgba(0, 168, 232, 0.05);
+}
+
+.alert--warning {
+  border-left: 4px solid var(--perry-warning);
+  background: rgba(255, 179, 71, 0.05);
+}
+
+.alert--danger {
+  border-left: 4px solid var(--perry-error);
+  background: rgba(255, 107, 107, 0.05);
+}
+
+.alert--success {
+  border-left: 4px solid var(--perry-success);
+  background: var(--perry-accent-dim);
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.footer {
+  background: var(--perry-bg-dark);
+  border-top: 1px solid var(--perry-border);
+  padding: 3rem 0;
+}
+
+.footer__title {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--perry-text-secondary);
+  margin-bottom: 1rem;
+}
+
+.footer__link-item {
+  font-size: 0.9rem;
+  color: var(--perry-text-muted);
+  transition: color 0.15s ease;
+}
+
+.footer__link-item:hover {
+  color: var(--perry-accent);
+}
+
+.footer__copyright {
+  font-size: 0.85rem;
+  color: var(--perry-text-muted);
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--perry-border);
+}
+
+/* ============================================
+   SEARCH
+   ============================================ */
+.DocSearch-Button {
+  background: var(--perry-bg-elevated);
+  border: 1px solid var(--perry-border);
+  border-radius: 8px;
+}
+
+.DocSearch-Button:hover {
+  border-color: var(--perry-accent);
+  box-shadow: 0 0 0 2px var(--perry-accent-dim);
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--perry-bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--perry-border-bright);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--perry-text-muted);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(0, 212, 170, 0.5);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes terminalBlink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   MOBILE RESPONSIVE
+   ============================================ */
+@media screen and (max-width: 996px) {
+  .navbar__title {
+    font-size: 1.1rem;
+  }
+
+  .markdown > h1:first-child {
+    font-size: 2rem;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .markdown > h1:first-child {
+    font-size: 1.75rem;
+  }
+
+  .button--lg {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* ============================================
+   SPECIAL ELEMENTS
+   ============================================ */
+
+/* Blockquotes */
+blockquote {
+  border-left: 4px solid var(--perry-accent);
+  background: var(--perry-accent-dim);
+  padding: 1rem 1.5rem;
+  border-radius: 0 8px 8px 0;
+  color: var(--perry-text-primary);
+}
+
+/* Horizontal rule */
+hr {
+  border: none;
+  height: 1px;
+  background: var(--perry-border);
+  margin: 2rem 0;
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 212, 170, 0.3);
+  color: var(--perry-text-primary);
+}
+
+/* Focus states */
+*:focus-visible {
+  outline: 2px solid var(--perry-accent);
+  outline-offset: 2px;
+}
+
+/* Links in content */
+.markdown a {
+  color: var(--perry-accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.markdown a:hover {
+  border-bottom-color: var(--perry-accent);
+}
+
+/* Lists */
+.markdown ul,
+.markdown ol {
+  padding-left: 1.5rem;
+}
+
+.markdown li {
+  margin-bottom: 0.5rem;
+}
+
+.markdown li::marker {
+  color: var(--perry-accent);
+}
+
+/* Inline code in paragraphs */
+p code,
+li code,
+td code {
+  background: var(--perry-bg-elevated);
+  color: var(--perry-accent);
+  font-size: 0.875em;
 }

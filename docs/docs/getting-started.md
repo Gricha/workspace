@@ -4,69 +4,77 @@ sidebar_position: 3
 
 # Getting Started
 
-## Start Agent
+## 1. Start the Agent
 
 ```bash
-workspace agent run
+perry agent run
 ```
 
-Web UI: `http://localhost:7391`
+Run this on the machine you want to access remotely. The Web UI will be available at `http://localhost:7391`.
 
-Options:
-```bash
-workspace agent run --port 3000       # Custom port
-workspace agent run --no-host-access  # Disable direct host machine access
-```
+If the machine is on your Tailscale network, you can access it from any device at `http://<hostname>:7391`. With [Tailscale Serve](https://tailscale.com/kb/1312/serve) configured, Perry will automatically advertise itself over HTTPS.
 
-## Host Access
-
-By default, the agent enables direct access to your host machine. This allows running terminals and AI coding agents directly on your machine without Docker isolation.
-
-To disable host access (workspaces-only mode):
-```bash
-workspace agent run --no-host-access
-```
-
-Or via environment variable:
-```bash
-WS_NO_HOST_ACCESS=true workspace agent run
-```
-
-For systemd service installation:
-```bash
-workspace agent install --no-host-access
-```
-
-## Create Workspace
-
-CLI:
-```bash
-workspace create myproject
-workspace create myproject --clone git@github.com:user/repo.git
-```
-
-Web UI:
-1. Open `http://localhost:7391`
-2. Click "+"
-3. Enter name
-4. Create
-
-## Access
-
-SSH:
-```bash
-workspace list  # Find port
-ssh -p 2201 workspace@localhost
-```
-
-Web Terminal: Click workspace → Terminal
-
-## Commands
+## 2. Create a Workspace
 
 ```bash
-workspace list              # List all
-workspace start <name>      # Start
-workspace stop <name>       # Stop
-workspace delete <name>     # Delete
-workspace logs <name>       # Logs
+perry start myproject
 ```
+
+Or with a git repository:
+
+```bash
+perry start myproject --clone git@github.com:user/repo.git
+```
+
+## 3. Connect
+
+**CLI:**
+```bash
+perry shell myproject
+```
+
+**Web UI:**
+Open the Web UI, click your workspace, then open a terminal session.
+
+![Web UI Terminal](/img/webui-terminal.png)
+
+You can also view AI coding agent sessions from the Sessions tab:
+
+![Web UI Sessions](/img/webui-sessions.png)
+
+## Connecting from Another Machine
+
+To use the CLI from a different machine (like your laptop):
+
+1. Install Perry on that machine
+2. Point it to your agent:
+
+```bash
+perry config worker <hostname>:7391
+```
+
+Replace `<hostname>` with your machine's Tailscale hostname or IP address. Now all `perry` commands will run against the remote agent.
+
+## That's It
+
+You now have an isolated development environment with:
+- Full Linux environment (Ubuntu 24.04)
+- Docker support inside the container
+- All your configured credentials synced
+
+## Common Commands
+
+```bash
+perry list              # List workspaces
+perry stop myproject    # Stop workspace
+perry start myproject   # Start stopped workspace
+perry delete myproject  # Remove workspace
+perry logs myproject    # View container logs
+perry sync myproject    # Re-sync credentials
+```
+
+## Next Steps
+
+- [Configure SSH keys and credentials](./configuration/overview.md)
+- [Set up AI coding assistants](./configuration/ai-agents.md)
+- [Enable remote access with Tailscale](./configuration/tailscale.md)

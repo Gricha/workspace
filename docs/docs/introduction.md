@@ -4,28 +4,50 @@ sidebar_position: 1
 
 # Introduction
 
-Perry creates isolated, containerized development environments accessible from anywhere.
+Perry is a lightweight orchestration layer for development environments with built-in support for AI coding agents.
 
-## Features
+## What is Perry?
 
-- **Isolated** - Each workspace runs in its own container
-- **Self-Hosted** - Run on your hardware, full control
-- **AI-Ready** - Claude Code, OpenCode, GitHub Copilot pre-installed
-- **Remote Access** - Use over Tailscale, web UI, CLI, or SSH
+Perry is a self-hosted daemon that:
 
-## What's Inside
+- **Spawns sandboxed containers** for isolated development workspaces
+- **Runs AI coding agents** (Claude Code, OpenCode, Codex) against your workspaces—or directly on the host
+- **Provides remote access** via Tailscale through a responsive web app or native mobile app
 
-- Ubuntu 24.04 LTS
-- Node.js 22, Python 3, Go
-- Docker (for containerized workflows)
-- Neovim + LazyVim
-- Git, GitHub CLI, common tools
-- Claude Code, OpenCode, Codex CLI
+Think of it as your personal development environment manager that you can access from anywhere.
 
-## Access
+## How It Works
 
-- **Web UI** - Browser interface (port 7391)
-- **CLI** - `perry` command
-- **SSH** - Direct terminal access
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Your Devices                           │
+│   Browser (Web UI)  •  Mobile App  •  CLI  •  SSH          │
+└─────────────────────────┬───────────────────────────────────┘
+                          │ Tailscale / Local
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     Perry Agent                             │
+│   API Server  •  Container Management  •  Session Tracking │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+          ┌───────────────┼───────────────┐
+          ▼               ▼               ▼
+    ┌──────────┐    ┌──────────┐    ┌──────────┐
+    │Workspace │    │Workspace │    │  Host    │
+    │Container │    │Container │    │ Machine  │
+    └──────────┘    └──────────┘    └──────────┘
+```
 
-Next: [Installation](./installation.md)
+## Key Features
+
+- **Self-hosted** — runs on your hardware, your data stays with you
+- **Container isolation** — each workspace is sandboxed with Docker-in-Docker support
+- **Remote access** — work from any device via Tailscale
+- **AI-ready** — coding agents pre-installed and configured
+- **Credential sync** — SSH keys, API tokens, and configs automatically available in workspaces
+
+## Next Steps
+
+1. [Install Perry](./installation.md)
+2. [Create your first workspace](./getting-started.md)
+3. [Configure credentials and agents](./configuration/overview.md)

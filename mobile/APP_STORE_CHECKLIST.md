@@ -111,7 +111,7 @@ Perry is a companion app for managing self-hosted Docker development environment
 
 To test this app, you need:
 1. A Mac or Linux machine running the Perry agent (https://github.com/gricha/perry)
-2. The Perry CLI installed: npm install -g @gricha/perry
+2. Install Perry: curl -fsSL https://raw.githubusercontent.com/gricha/perry/main/install.sh | bash
 3. Start the agent: perry agent run
 
 The app connects to the Perry agent over your local network to:
