@@ -260,6 +260,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
                   setShowNewChatPicker(false)
                   navigation.navigate('SessionChat', { workspaceName: name, isNew: true, agentType: type })
                 }}
+                testID={`new-chat-${type}`}
               >
                 <View style={[styles.agentBadgeLarge, { backgroundColor: type === 'claude-code' ? '#8b5cf6' : type === 'opencode' ? '#22c55e' : '#f59e0b' }]}>
                   <Text style={styles.agentBadgeLargeText}>{type === 'claude-code' ? 'CC' : type === 'opencode' ? 'OC' : 'CX'}</Text>

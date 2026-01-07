@@ -129,7 +129,8 @@ jobs:
         working-directory: mobile
         run: |
           export PATH="$HOME/.maestro/bin:$PATH"
-          maestro test .maestro/flows/ --format junit --output maestro-report.xml
+          # Exclude chat tests (require backend) - run those locally
+          maestro test .maestro/flows/ --exclude-tags=chat --format junit --output maestro-report.xml
         env:
           MAESTRO_DRIVER_STARTUP_TIMEOUT: 120000
 

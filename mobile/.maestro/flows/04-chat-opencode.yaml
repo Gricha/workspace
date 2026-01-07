@@ -1,0 +1,66 @@
+appId: com.gricha.perry
+name: Chat - OpenCode
+tags:
+  - chat
+  - opencode
+---
+- launchApp:
+    clearState: true
+
+# Configure server connection
+- tapOn:
+    id: "hostname-input"
+- inputText: "localhost"
+- tapOn:
+    id: "port-input"
+- eraseText
+- inputText: "7391"
+- tapOn:
+    id: "connect-button"
+
+# Wait for workspace list to load
+- extendedWaitUntil:
+    visible: "test"
+    timeout: 30000
+
+# Tap on test workspace
+- tapOn: "test"
+
+# Wait for workspace detail screen
+- extendedWaitUntil:
+    visible:
+      id: "new-chat-button"
+    timeout: 10000
+
+# Start new OpenCode chat
+- tapOn:
+    id: "new-chat-button"
+
+# Select OpenCode from picker
+- tapOn:
+    id: "new-chat-opencode"
+
+# Wait for chat screen to load and connect
+- extendedWaitUntil:
+    visible:
+      id: "chat-input"
+    timeout: 15000
+
+# Type and send a simple message
+- tapOn:
+    id: "chat-input"
+- inputText: "Say hello"
+- tapOn:
+    id: "send-button"
+
+# Verify thinking dots appear (streaming started)
+- extendedWaitUntil:
+    visible:
+      id: "thinking-dots"
+    timeout: 10000
+
+# Wait for response to complete (thinking dots disappear, assistant message appears)
+- extendedWaitUntil:
+    visible:
+      id: "assistant-message"
+    timeout: 120000

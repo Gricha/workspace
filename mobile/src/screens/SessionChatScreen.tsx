@@ -177,7 +177,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
   if (message.role === 'user') {
     return (
-      <View style={styles.userBubble}>
+      <View style={styles.userBubble} testID="user-message">
         <Text style={styles.messageText}>{trimmedContent}</Text>
       </View>
     )
@@ -192,7 +192,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   }
 
   return (
-    <View style={styles.assistantBubble}>
+    <View style={styles.assistantBubble} testID="assistant-message">
       <Text style={styles.messageText}>{trimmedContent}</Text>
     </View>
   )
@@ -230,7 +230,7 @@ function ThinkingDots() {
   }, [dot1, dot2, dot3])
 
   return (
-    <View style={styles.thinkingDots}>
+    <View style={styles.thinkingDots} testID="thinking-dots">
       <Animated.View style={[styles.dot, { opacity: dot1 }]} />
       <Animated.View style={[styles.dot, { opacity: dot2 }]} />
       <Animated.View style={[styles.dot, { opacity: dot3 }]} />
@@ -684,9 +684,10 @@ export function SessionChatScreen({ route, navigation }: any) {
           multiline
           maxLength={4000}
           editable={connected && !isStreaming}
+          testID="chat-input"
         />
         {isStreaming ? (
-          <TouchableOpacity style={styles.stopBtn} onPress={interrupt}>
+          <TouchableOpacity style={styles.stopBtn} onPress={interrupt} testID="stop-button">
             <Text style={styles.stopBtnText}>Stop</Text>
           </TouchableOpacity>
         ) : (
@@ -694,6 +695,7 @@ export function SessionChatScreen({ route, navigation }: any) {
             style={[styles.sendBtn, (!connected || !input.trim()) && styles.sendBtnDisabled]}
             onPress={sendMessage}
             disabled={!connected || !input.trim()}
+            testID="send-button"
           >
             <Text style={styles.sendBtnText}>Send</Text>
           </TouchableOpacity>
