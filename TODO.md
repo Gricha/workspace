@@ -77,57 +77,6 @@ Switch from npm-based distribution to standalone binary distribution with curl i
 
 ---
 
-### Consolidate Chat Handlers with Adapter Pattern
-
-**Context:** `src/chat/handler.ts` (container) and `src/chat/host-handler.ts` (host) share ~95% identical code:
-- `StreamMessage` interface duplicated (L18-40 vs L11-33)
-- `processBuffer()` method identical
-- `handleStreamMessage()` method ~95% identical
-- `interrupt()` method identical
-- Default model `'sonnet'` hardcoded in both
-
-Same pattern exists for OpenCode handlers. When we add more agents, this will get worse.
-
-**Task:** Refactor to adapter pattern:
-
-1. Create `src/chat/base-chat-session.ts`:
-   - Move `StreamMessage` interface here
-   - Create abstract `BaseChatSession` class with:
-     - `protected buffer: string`
-     - `protected sessionId?: string`
-     - `protected model: string` (default from constant)
-     - `protected processBuffer(): void` - shared implementation
-     - `protected handleStreamMessage(msg: StreamMessage): void` - shared implementation
-     - `async interrupt(): Promise<void>` - shared implementation
-     - `abstract getSpawnCommand(): string[]` - what differs between container/host
-     - `abstract getSpawnOptions(): object` - cwd, env differences
-
-2. Create `src/chat/adapters/`:
-   - `container-adapter.ts` - implements spawn for `docker exec` into container
-   - `host-adapter.ts` - implements spawn for direct `claude` execution
-
-3. Refactor `ChatSession` and `HostChatSession` to extend `BaseChatSession` and use adapters
-
-4. Do the same for OpenCode handlers (`opencode-handler.ts`, `host-opencode-handler.ts`)
-
-5. Move default model `'sonnet'` to `src/shared/constants.ts` as `DEFAULT_CLAUDE_MODEL`
-
-**Files to create:**
-- `src/chat/base-chat-session.ts`
-- `src/chat/adapters/container-adapter.ts`
-- `src/chat/adapters/host-adapter.ts`
-
-**Files to modify:**
-- `src/chat/handler.ts` - extend base, use adapter
-- `src/chat/host-handler.ts` - extend base, use adapter
-- `src/chat/opencode-handler.ts` - same pattern
-- `src/chat/host-opencode-handler.ts` - same pattern
-- `src/shared/constants.ts` - add DEFAULT_CLAUDE_MODEL
-
-**Verify:** Chat still works for both container and host workspaces. Run existing chat tests.
-
----
-
 ## Considerations
 
 > Add items here to discuss with project owner before promoting to tasks.

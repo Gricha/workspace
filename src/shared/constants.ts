@@ -1,5 +1,7 @@
 export const DEFAULT_AGENT_PORT = 7391;
 
+export const DEFAULT_CLAUDE_MODEL = 'sonnet';
+
 export const SSH_PORT_RANGE_START = 2200;
 export const SSH_PORT_RANGE_END = 2400;
 
