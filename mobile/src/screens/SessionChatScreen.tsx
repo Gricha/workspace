@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Keyboard,
   ActionSheetIOS,
+  Animated,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
@@ -197,19 +198,53 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   )
 }
 
+function ThinkingDots() {
+  const dot1 = useRef(new Animated.Value(0.3)).current
+  const dot2 = useRef(new Animated.Value(0.3)).current
+  const dot3 = useRef(new Animated.Value(0.3)).current
+
+  useEffect(() => {
+    const animate = (dot: Animated.Value, delay: number) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0.3, duration: 300, useNativeDriver: true }),
+        ])
+      )
+    }
+
+    const anim1 = animate(dot1, 0)
+    const anim2 = animate(dot2, 150)
+    const anim3 = animate(dot3, 300)
+
+    anim1.start()
+    anim2.start()
+    anim3.start()
+
+    return () => {
+      anim1.stop()
+      anim2.stop()
+      anim3.stop()
+    }
+  }, [dot1, dot2, dot3])
+
+  return (
+    <View style={styles.thinkingDots}>
+      <Animated.View style={[styles.dot, { opacity: dot1 }]} />
+      <Animated.View style={[styles.dot, { opacity: dot2 }]} />
+      <Animated.View style={[styles.dot, { opacity: dot3 }]} />
+    </View>
+  )
+}
+
 function StreamingBubble({ parts }: { parts: MessagePart[] }) {
   const hasContent = parts.some(p => p.content.length > 0)
 
   return (
     <View style={styles.partsContainer}>
       {renderPartsWithPairedTools(parts)}
-      {!hasContent && (
-        <View style={styles.thinkingDots}>
-          <View style={[styles.dot, styles.dot1]} />
-          <View style={[styles.dot, styles.dot2]} />
-          <View style={[styles.dot, styles.dot3]} />
-        </View>
-      )}
+      {!hasContent && <ThinkingDots />}
     </View>
   )
 }
@@ -856,15 +891,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#636366',
-  },
-  dot1: {
-    opacity: 0.4,
-  },
-  dot2: {
-    opacity: 0.6,
-  },
-  dot3: {
-    opacity: 0.8,
   },
   loadingMore: {
     alignItems: 'center',
