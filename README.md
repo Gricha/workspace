@@ -13,10 +13,6 @@
 <p align="center">Isolated, self-hosted workspaces accessible over Tailscale. AI coding agents, web UI, and remote terminal access.</p>
 
 <p align="center">
-  <img src="assets/demo.gif" alt="Demo" width="800">
-</p>
-
-<p align="center">
   <img src="assets/demo-terminal-mobile.gif" alt="Terminal" width="280">
   &nbsp;&nbsp;&nbsp;
   <img src="assets/demo-chat-mobile.gif" alt="Chat" width="280">
@@ -74,6 +70,10 @@ perry list
 **Via Web UI:**
 
 Open http://localhost:7391 (or your Tailscale host) and click "+" to create a workspace.
+
+<p align="center">
+  <img src="assets/demo.gif" alt="Web UI Demo" width="800">
+</p>
 
 ## Security
 
