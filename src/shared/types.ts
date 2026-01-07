@@ -84,12 +84,20 @@ export interface HealthResponse {
   version: string;
 }
 
+export interface TailscaleInfo {
+  running: boolean;
+  dnsName?: string;
+  serveActive: boolean;
+  httpsUrl?: string;
+}
+
 export interface InfoResponse {
   hostname: string;
   uptime: number;
   workspacesCount: number;
   dockerVersion: string;
   terminalConnections: number;
+  tailscale?: TailscaleInfo;
 }
 
 export const DEFAULT_CONFIG_DIR =

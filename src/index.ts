@@ -224,6 +224,12 @@ program
         console.log(`  Uptime: ${formatUptime(info.uptime)}`);
         console.log(`  Workspaces: ${info.workspacesCount}`);
         console.log(`  Docker: ${info.dockerVersion}`);
+        if (info.tailscale?.running) {
+          console.log(`  Tailscale: ${info.tailscale.dnsName}`);
+          if (info.tailscale.httpsUrl) {
+            console.log(`  HTTPS URL: ${info.tailscale.httpsUrl}`);
+          }
+        }
       }
     } catch (err) {
       handleError(err);

@@ -14,6 +14,12 @@ import { createRouter } from './router';
 import { serveStatic } from './static';
 import { SessionsCacheManager } from '../sessions/cache';
 import { ModelCacheManager } from '../models/cache';
+import {
+  getTailscaleStatus,
+  getTailscaleIdentity,
+  startTailscaleServe,
+  stopTailscaleServe,
+} from '../tailscale';
 import pkg from '../../package.json';
 
 const startTime = Date.now();
@@ -23,7 +29,14 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.end(JSON.stringify(data));
 }
 
-function createAgentServer(configDir: string, config: AgentConfig) {
+interface TailscaleInfo {
+  running: boolean;
+  dnsName?: string;
+  serveActive: boolean;
+  httpsUrl?: string;
+}
+
+function createAgentServer(configDir: string, config: AgentConfig, tailscale?: TailscaleInfo) {
   let currentConfig = config;
   const workspaces = new WorkspaceManager(configDir, currentConfig);
   const sessionsCache = new SessionsCacheManager(configDir);
@@ -69,6 +82,7 @@ function createAgentServer(configDir: string, config: AgentConfig) {
     terminalServer,
     sessionsCache,
     modelCache,
+    tailscale,
   });
 
   const rpcHandler = new RPCHandler(router);
@@ -77,6 +91,8 @@ function createAgentServer(configDir: string, config: AgentConfig) {
     const url = new URL(req.url || '/', 'http://localhost');
     const method = req.method;
     const pathname = url.pathname;
+
+    const identity = getTailscaleIdentity(req);
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -90,7 +106,11 @@ function createAgentServer(configDir: string, config: AgentConfig) {
 
     try {
       if (pathname === '/health' && method === 'GET') {
-        sendJson(res, 200, { status: 'ok', version: pkg.version });
+        const response: Record<string, unknown> = { status: 'ok', version: pkg.version };
+        if (identity) {
+          response.user = identity.email;
+        }
+        sendJson(res, 200, response);
         return;
       }
 
@@ -179,9 +199,43 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
   console.log(`[agent] Config directory: ${configDir}`);
   console.log(`[agent] Starting on port ${port}...`);
 
+  const tailscale = await getTailscaleStatus();
+  let tailscaleServeActive = false;
+
+  if (tailscale.running && tailscale.dnsName) {
+    console.log(`[agent] Tailscale detected: ${tailscale.dnsName}`);
+
+    if (!tailscale.httpsEnabled) {
+      console.log(`[agent] Tailscale HTTPS not enabled in tailnet, skipping Serve`);
+    } else {
+      const result = await startTailscaleServe(port);
+      if (result.success) {
+        tailscaleServeActive = true;
+        console.log(`[agent] Tailscale Serve enabled`);
+      } else if (result.error === 'permission_denied') {
+        console.log(`[agent] Tailscale Serve requires operator permissions`);
+        console.log(`[agent] To enable: ${result.message}`);
+        console.log(`[agent] Continuing without HTTPS...`);
+      } else {
+        console.log(`[agent] Tailscale Serve failed: ${result.message || 'unknown error'}`);
+      }
+    }
+  }
+
+  const tailscaleInfo: TailscaleInfo | undefined =
+    tailscale.running && tailscale.dnsName
+      ? {
+          running: true,
+          dnsName: tailscale.dnsName,
+          serveActive: tailscaleServeActive,
+          httpsUrl: tailscaleServeActive ? `https://${tailscale.dnsName}` : undefined,
+        }
+      : undefined;
+
   const { server, terminalServer, chatServer, opencodeServer } = createAgentServer(
     configDir,
-    config
+    config,
+    tailscaleInfo
   );
 
   server.on('error', async (err: NodeJS.ErrnoException) => {
@@ -201,6 +255,13 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
 
   server.listen(port, '::', () => {
     console.log(`[agent] Agent running at http://localhost:${port}`);
+    if (tailscale.running && tailscale.dnsName) {
+      const shortName = tailscale.dnsName.split('.')[0];
+      console.log(`[agent] Tailnet: http://${shortName}:${port}`);
+      if (tailscaleServeActive) {
+        console.log(`[agent] Tailnet HTTPS: https://${tailscale.dnsName}`);
+      }
+    }
     console.log(`[agent] oRPC endpoint: http://localhost:${port}/rpc`);
     console.log(`[agent] WebSocket terminal: ws://localhost:${port}/rpc/terminal/:name`);
     console.log(`[agent] WebSocket chat (Claude): ws://localhost:${port}/rpc/chat/:name`);
@@ -209,8 +270,12 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
     startEagerImagePull();
   });
 
-  const shutdown = () => {
+  const shutdown = async () => {
     console.log('[agent] Shutting down...');
+    if (tailscaleServeActive) {
+      console.log('[agent] Stopping Tailscale Serve...');
+      await stopTailscaleServe();
+    }
     chatServer.close();
     opencodeServer.close();
     terminalServer.close();

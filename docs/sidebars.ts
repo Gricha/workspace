@@ -14,6 +14,7 @@ const sidebars: SidebarsConfig = {
         'configuration/files',
         'configuration/github',
         'configuration/ai-agents',
+        'configuration/tailscale',
       ],
     },
     'cli',
