@@ -539,6 +539,11 @@ export class WorkspaceManager {
         containerEnv.WORKSPACE_REPO_URL = clone;
       }
 
+      const dockerVolumeName = `${VOLUME_PREFIX}${name}-docker`;
+      if (!(await docker.volumeExists(dockerVolumeName))) {
+        await docker.createVolume(dockerVolumeName);
+      }
+
       const containerId = await docker.createContainer({
         name: containerName,
         image: workspaceImage,
@@ -546,7 +551,10 @@ export class WorkspaceManager {
         privileged: true,
         restartPolicy: 'unless-stopped',
         env: containerEnv,
-        volumes: [{ source: volumeName, target: '/home/workspace', readonly: false }],
+        volumes: [
+          { source: volumeName, target: '/home/workspace', readonly: false },
+          { source: dockerVolumeName, target: '/var/lib/docker', readonly: false },
+        ],
         ports: [{ hostPort: sshPort, containerPort: 22, protocol: 'tcp' }],
         labels: {
           'workspace.name': name,
@@ -620,6 +628,11 @@ export class WorkspaceManager {
           containerEnv.WORKSPACE_REPO_URL = workspace.repo;
         }
 
+        const dockerVolumeName = `${VOLUME_PREFIX}${name}-docker`;
+        if (!(await docker.volumeExists(dockerVolumeName))) {
+          await docker.createVolume(dockerVolumeName);
+        }
+
         const containerId = await docker.createContainer({
           name: containerName,
           image: workspaceImage,
@@ -627,7 +640,10 @@ export class WorkspaceManager {
           privileged: true,
           restartPolicy: 'unless-stopped',
           env: containerEnv,
-          volumes: [{ source: volumeName, target: '/home/workspace', readonly: false }],
+          volumes: [
+            { source: volumeName, target: '/home/workspace', readonly: false },
+            { source: dockerVolumeName, target: '/var/lib/docker', readonly: false },
+          ],
           ports: [{ hostPort: sshPort, containerPort: 22, protocol: 'tcp' }],
           labels: {
             'workspace.name': name,
@@ -695,6 +711,7 @@ export class WorkspaceManager {
 
     const containerName = getContainerName(name);
     const volumeName = `${VOLUME_PREFIX}${name}`;
+    const dockerVolumeName = `${VOLUME_PREFIX}${name}-docker`;
 
     if (await docker.containerExists(containerName)) {
       await docker.removeContainer(containerName, true);
@@ -702,6 +719,10 @@ export class WorkspaceManager {
 
     if (await docker.volumeExists(volumeName)) {
       await docker.removeVolume(volumeName, true);
+    }
+
+    if (await docker.volumeExists(dockerVolumeName)) {
+      await docker.removeVolume(dockerVolumeName, true);
     }
 
     await this.state.deleteWorkspace(name);

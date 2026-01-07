@@ -180,6 +180,8 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 
 RUN curl -fsSL https://opencode.ai/install | bash
 
+RUN bunx playwright install chromium --with-deps
+
 USER root
 
 ENV PATH="/home/workspace/.opencode/bin:${PATH}"
