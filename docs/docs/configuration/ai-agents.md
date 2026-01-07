@@ -1,34 +1,171 @@
 ---
-sidebar_position: 4
+sidebar_position: 5
 ---
 
 # AI Agents
 
-Pre-installed: Claude Code, OpenCode, GitHub Copilot.
+Perry workspaces come with AI coding assistants pre-installed.
 
 ## Claude Code
 
+[Claude Code](https://claude.ai/code) is Anthropic's AI coding assistant.
+
+### Setup
+
+1. On your host machine, run:
+   ```bash
+   claude setup-token
+   ```
+   This generates an OAuth token for container use.
+
+2. Add the token to Perry:
+
+   **Via config.json:**
+   ```json
+   {
+     "agents": {
+       "claude_code": {
+         "oauth_token": "sk-ant-oat01-..."
+       }
+     }
+   }
+   ```
+
+   **Via Web UI:**
+   - Settings > Agents > Claude Code OAuth Token
+
+3. Restart workspaces to apply:
+   ```bash
+   perry stop myproject
+   perry start myproject
+   ```
+
+### Usage
+
+Inside a workspace:
+
 ```bash
-claude setup-token  # On host
+claude
 ```
 
-Add token to Web UI → Settings → Agents → Claude Code.
+### Alternative: Credentials File
+
+Perry also copies `~/.claude/.credentials.json` if it exists on your host. This provides authentication without the explicit OAuth token.
 
 ## OpenCode
 
-Add OpenAI API key to Web UI → Settings → Agents → OpenCode.
+[OpenCode](https://github.com/sst/opencode) is an open-source AI coding assistant.
 
-## GitHub
+### Setup
 
-Create token at https://github.com/settings/personal-access-tokens/new
+1. Get a Zen token from OpenCode
 
-Add to Web UI → Settings → Agents → GitHub.
+2. Add to Perry:
 
-## Use
+   **Via config.json:**
+   ```json
+   {
+     "agents": {
+       "opencode": {
+         "zen_token": "your-zen-token"
+       }
+     }
+   }
+   ```
 
-Inside workspace:
+   **Via Web UI:**
+   - Settings > Agents > OpenCode Zen Token
+
+### Usage
+
+Inside a workspace:
+
 ```bash
-claude
 opencode
-gh copilot suggest "..."
+```
+
+### Alternative: OpenAI API Key
+
+You can also use OpenCode with an OpenAI API key:
+
+```json
+{
+  "credentials": {
+    "env": {
+      "OPENAI_API_KEY": "sk-..."
+    }
+  }
+}
+```
+
+## Codex CLI
+
+[Codex CLI](https://github.com/openai/codex-cli) is OpenAI's coding assistant.
+
+### Setup
+
+Perry copies `~/.codex/` directory from your host if it exists, including:
+- `auth.json` - Authentication
+- `config.toml` - Configuration
+
+### Usage
+
+Inside a workspace:
+
+```bash
+codex
+```
+
+## GitHub Copilot
+
+GitHub Copilot is available through the GitHub CLI.
+
+### Setup
+
+1. Configure GitHub token (see [GitHub Integration](./github.md))
+2. Authenticate inside workspace:
+   ```bash
+   gh auth login
+   gh extension install github/gh-copilot
+   ```
+
+### Usage
+
+```bash
+gh copilot suggest "create a REST API endpoint"
+gh copilot explain "what does this code do"
+```
+
+## Viewing Sessions
+
+Perry tracks AI agent sessions in the Web UI:
+
+1. Open http://localhost:7391
+2. Click on a workspace
+3. View "Sessions" or "Chat" tab
+
+Sessions show conversation history from Claude Code, OpenCode, and Codex.
+
+## Environment Variables
+
+All AI agent credentials are injected as environment variables:
+
+| Agent | Variable |
+|-------|----------|
+| Claude Code | `CLAUDE_CODE_OAUTH_TOKEN` |
+| GitHub | `GITHUB_TOKEN` |
+| OpenAI/OpenCode | `OPENAI_API_KEY` |
+| Anthropic | `ANTHROPIC_API_KEY` |
+
+You can also set these directly in environment config:
+
+```json
+{
+  "credentials": {
+    "env": {
+      "ANTHROPIC_API_KEY": "sk-ant-...",
+      "OPENAI_API_KEY": "sk-..."
+    }
+  }
+}
 ```

@@ -1,15 +1,17 @@
+---
+sidebar_position: 6
+---
+
 # Tailscale Integration
 
-Perry automatically detects and integrates with [Tailscale](https://tailscale.com) to provide secure HTTPS access to your workspaces over your private network.
+Perry integrates with [Tailscale](https://tailscale.com) to provide secure remote access to your workspaces.
 
-## How It Works
+## Overview
 
-When you start the Perry agent, it checks if Tailscale is running on your machine. If Tailscale is detected with HTTPS enabled, Perry automatically starts [Tailscale Serve](https://tailscale.com/kb/1312/serve) to expose the agent over HTTPS using your Tailscale domain.
-
-This gives you:
-- **Trusted HTTPS certificates** - No browser warnings, valid certificates from Let's Encrypt
-- **Private network access** - Access Perry from any device on your tailnet
-- **User identity** - Perry can identify who's making requests via Tailscale headers
+When Tailscale is running on your machine, Perry automatically:
+- Detects your Tailscale hostname
+- Enables HTTPS via Tailscale Serve (if configured)
+- Allows access from any device on your tailnet
 
 ## Setup
 
@@ -17,13 +19,13 @@ This gives you:
 
 Follow the [Tailscale installation guide](https://tailscale.com/download) for your platform.
 
-### 2. Enable HTTPS Certificates
+### 2. Enable HTTPS (Optional but Recommended)
 
-Tailscale HTTPS must be enabled for your tailnet. This is typically enabled by default, but you can verify in your [Tailscale admin console](https://login.tailscale.com/admin/dns).
+Check that HTTPS certificates are enabled in your [Tailscale admin console](https://login.tailscale.com/admin/dns).
 
-### 3. Set Operator Permissions (Required)
+### 3. Set Operator Permissions
 
-By default, Tailscale Serve requires root permissions. To allow Perry to use it without sudo, run:
+Allow Perry to use Tailscale Serve without sudo:
 
 ```bash
 sudo tailscale set --operator=$USER
@@ -37,7 +39,7 @@ This only needs to be done once per machine.
 perry agent run
 ```
 
-If Tailscale is properly configured, you'll see:
+If Tailscale is configured, you'll see:
 
 ```
 [agent] Tailscale detected: your-machine.tail-scale.ts.net
@@ -46,11 +48,56 @@ If Tailscale is properly configured, you'll see:
 [agent] Tailscale HTTPS: https://your-machine.tail-scale.ts.net
 ```
 
+## Remote Access
+
+### From Another Machine
+
+On a different device on your tailnet:
+
+```bash
+# Configure CLI to use remote agent
+perry config worker your-machine.tail-scale.ts.net
+
+# Use normally
+perry list
+perry start myproject
+perry shell myproject
+```
+
+### From Browser
+
+Access the Web UI at:
+- `https://your-machine.tail-scale.ts.net` (with HTTPS)
+- `http://your-machine.tail-scale.ts.net:7391` (without HTTPS)
+
+### From Mobile
+
+Access the Web UI from your phone's browser while connected to your tailnet.
+
+## How Tailscale Serve Works
+
+[Tailscale Serve](https://tailscale.com/kb/1312/serve) exposes your local Perry agent over HTTPS using valid Let's Encrypt certificates. This means:
+
+- No browser security warnings
+- Encrypted traffic on your tailnet
+- User identity available via headers
+
+Perry runs `tailscale serve --bg 7391` automatically when the agent starts.
+
+## Behavior Matrix
+
+| Scenario | Behavior |
+|----------|----------|
+| Tailscale not installed | Agent runs on localhost only |
+| Tailscale running, HTTPS enabled, operator set | HTTPS via Tailscale Serve |
+| Tailscale running, HTTPS enabled, no operator | Logs instructions, localhost only |
+| Tailscale running, HTTPS not enabled | Agent accessible via Tailscale IP |
+
 ## Troubleshooting
 
 ### "Tailscale Serve requires operator permissions"
 
-You'll see this message if Tailscale Serve can't start:
+You'll see this message:
 
 ```
 [agent] Tailscale Serve requires operator permissions
@@ -62,32 +109,38 @@ You'll see this message if Tailscale Serve can't start:
 
 ### "Tailscale HTTPS not enabled in tailnet"
 
-Your tailnet doesn't have HTTPS certificates enabled. Check your [Tailscale admin DNS settings](https://login.tailscale.com/admin/dns) and ensure "HTTPS Certificates" is enabled.
+Enable HTTPS certificates in your [Tailscale DNS settings](https://login.tailscale.com/admin/dns).
 
 ### Tailscale Not Detected
 
-If Perry doesn't detect Tailscale at all, verify Tailscale is running:
+Verify Tailscale is running:
 
 ```bash
 tailscale status
 ```
 
-## Graceful Fallback
+### Check Agent Info
 
-Perry always starts successfully regardless of Tailscale status:
+```bash
+perry info
+```
 
-| Scenario | Behavior |
-|----------|----------|
-| Tailscale not installed | Agent starts normally on localhost |
-| Tailscale running, HTTPS enabled, operator set | HTTPS via Tailscale Serve |
-| Tailscale running, HTTPS enabled, no operator | Logs fix instructions, falls back to localhost |
-| Tailscale running, HTTPS not enabled | Falls back to localhost |
+Shows Tailscale status including DNS name and HTTPS URL if available.
 
-## Security Considerations
+## Security
 
-When using Tailscale Serve:
-- Traffic is encrypted end-to-end within your tailnet
-- Perry can identify users via `Tailscale-User-*` headers
-- Access is limited to devices on your tailnet
+When using Tailscale:
+- All traffic is encrypted within your tailnet
+- Only devices on your tailnet can access Perry
+- No ports need to be opened on your firewall
+- User identity is available for future authentication features
 
-Without Tailscale, Perry binds to localhost only by default. For remote access without Tailscale, consider using a reverse proxy with proper authentication.
+Without Tailscale, Perry binds to localhost by default. For remote access without Tailscale, use a reverse proxy with proper authentication.
+
+## Stopping Tailscale Serve
+
+Tailscale Serve is stopped automatically when the Perry agent exits. To manually stop:
+
+```bash
+tailscale serve off
+```

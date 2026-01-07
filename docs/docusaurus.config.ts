@@ -4,6 +4,8 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const config: Config = {
   title: 'Perry',
   tagline: 'Isolated, self-hosted workspaces accessible over Tailscale',
@@ -16,9 +18,8 @@ const config: Config = {
 
   // Set the production url of your site here
   url: 'https://gricha.github.io',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/perry/',
+  // For GitHub pages deployment, use '/perry/'. For local dev, use '/'
+  baseUrl: isProd ? '/perry/' : '/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
@@ -109,10 +110,6 @@ const config: Config = {
             {
               label: 'GitHub',
               href: 'https://github.com/gricha/perry',
-            },
-            {
-              label: 'npm Package',
-              href: 'https://www.npmjs.com/package/@gricha/perry',
             },
             {
               label: 'Report Issues',
