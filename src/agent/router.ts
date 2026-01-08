@@ -273,7 +273,7 @@ export function createRouter(ctx: RouterContext) {
     });
 
   const setPortForwards = os
-    .input(z.object({ name: z.string(), forwards: z.array(z.number()) }))
+    .input(z.object({ name: z.string(), forwards: z.array(z.number().int().min(1).max(65535)) }))
     .output(WorkspaceInfoSchema)
     .handler(async ({ input }) => {
       try {
