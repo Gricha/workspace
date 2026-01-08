@@ -40,6 +40,10 @@ export interface SSHSettings {
   workspaces: Record<string, Partial<SSHKeyConfig>>;
 }
 
+export interface TerminalSettings {
+  preferredShell?: string;
+}
+
 export interface AgentConfig {
   port: number;
   credentials: WorkspaceCredentials;
@@ -47,6 +51,7 @@ export interface AgentConfig {
   agents?: CodingAgents;
   allowHostAccess?: boolean;
   ssh?: SSHSettings;
+  terminal?: TerminalSettings;
 }
 
 export interface ClientConfig {

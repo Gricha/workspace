@@ -6,6 +6,7 @@ import {
   KeyRound,
   FolderSync,
   Terminal,
+  SquareTerminal,
   Settings,
   Monitor,
   Boxes,
@@ -39,6 +40,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     { to: '/settings/agents', label: 'Configuration', icon: Settings },
     { to: '/settings/files', label: 'Files', icon: FolderSync },
     { to: '/settings/scripts', label: 'Scripts', icon: Terminal },
+    { to: '/settings/terminal', label: 'Terminal', icon: SquareTerminal },
     { to: '/settings/ssh', label: 'SSH Keys', icon: KeyRound },
   ]
 

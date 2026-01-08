@@ -16,6 +16,7 @@ import type {
   SSHKeyInfo,
   RecentSession,
   ModelInfo,
+  TerminalSettings,
 } from '@shared/client-types'
 
 export interface GitHubRepo {
@@ -44,6 +45,7 @@ export type {
   SSHKeyInfo,
   RecentSession,
   ModelInfo,
+  TerminalSettings,
 }
 
 function getRpcUrl(): string {
@@ -121,6 +123,10 @@ const client = createORPCClient<{
       update: (input: SSHSettings) => Promise<SSHSettings>
       listKeys: () => Promise<SSHKeyInfo[]>
     }
+    terminal: {
+      get: () => Promise<TerminalSettings>
+      update: (input: { preferredShell?: string }) => Promise<{ preferredShell?: string }>
+    }
   }
 }>(link)
 
@@ -170,6 +176,8 @@ export const api = {
     client.models.list({ agentType, workspaceName }),
   listGitHubRepos: (search?: string, perPage?: number, page?: number) =>
     client.github.listRepos({ search, perPage, page }),
+  getTerminalSettings: () => client.config.terminal.get(),
+  updateTerminalSettings: (data: { preferredShell?: string }) => client.config.terminal.update(data),
 }
 
 export function getTerminalUrl(name: string): string {

@@ -106,6 +106,10 @@ const SSHKeyInfoSchema = z.object({
   hasPrivateKey: z.boolean(),
 });
 
+const TerminalSettingsSchema = z.object({
+  preferredShell: z.string().optional(),
+});
+
 export interface TailscaleInfo {
   running: boolean;
   dnsName?: string;
@@ -393,6 +397,32 @@ export function createRouter(ctx: RouterContext) {
   const listSSHKeys = os.output(z.array(SSHKeyInfoSchema)).handler(async () => {
     return discoverSSHKeys();
   });
+
+  const getTerminalSettings = os
+    .output(
+      z.object({
+        preferredShell: z.string().optional(),
+        detectedShell: z.string().optional(),
+      })
+    )
+    .handler(async () => {
+      const config = ctx.config.get();
+      return {
+        preferredShell: config.terminal?.preferredShell,
+        detectedShell: process.env.SHELL,
+      };
+    });
+
+  const updateTerminalSettings = os
+    .input(TerminalSettingsSchema)
+    .output(TerminalSettingsSchema)
+    .handler(async ({ input }) => {
+      const currentConfig = ctx.config.get();
+      const newConfig = { ...currentConfig, terminal: input };
+      ctx.config.set(newConfig);
+      await saveAgentConfig(newConfig, ctx.configDir);
+      return input;
+    });
 
   const GitHubRepoSchema = z.object({
     name: z.string(),
@@ -1223,6 +1253,10 @@ export function createRouter(ctx: RouterContext) {
         get: getSSHSettings,
         update: updateSSHSettings,
         listKeys: listSSHKeys,
+      },
+      terminal: {
+        get: getTerminalSettings,
+        update: updateTerminalSettings,
       },
     },
   };

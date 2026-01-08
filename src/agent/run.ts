@@ -68,10 +68,15 @@ function createAgentServer(configDir: string, config: AgentConfig, tailscale?: T
     return containerRunning(getContainerName(name));
   };
 
+  const getPreferredShell = () => {
+    return currentConfig.terminal?.preferredShell || process.env.SHELL;
+  };
+
   const terminalServer = new TerminalWebSocketServer({
     getContainerName,
     isWorkspaceRunning,
     isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
+    getPreferredShell,
   });
 
   const chatServer = new ChatWebSocketServer({

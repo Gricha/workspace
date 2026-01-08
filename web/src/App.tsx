@@ -7,6 +7,7 @@ import { FilesSettings } from './pages/settings/Files'
 import { ScriptsSettings } from './pages/settings/Scripts'
 import { AgentsSettings } from './pages/settings/Agents'
 import { SSHSettings } from './pages/settings/SSH'
+import { TerminalSettings } from './pages/settings/Terminal'
 import { Layout } from './components/Layout'
 import { SyncProvider } from './contexts/SyncContext'
 
@@ -41,6 +42,7 @@ function App() {
               <Route path="settings/scripts" element={<ScriptsSettings />} />
               <Route path="settings/agents" element={<AgentsSettings />} />
               <Route path="settings/ssh" element={<SSHSettings />} />
+              <Route path="settings/terminal" element={<TerminalSettings />} />
             </Route>
           </Routes>
         </BrowserRouter>

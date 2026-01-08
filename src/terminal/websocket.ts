@@ -14,15 +14,18 @@ interface TerminalConnection extends BaseConnection {
 export class TerminalWebSocketServer extends BaseWebSocketServer<TerminalConnection> {
   private getContainerName: (workspaceName: string) => string;
   private isHostAccessAllowed: () => boolean;
+  private getPreferredShell: () => string | undefined;
 
   constructor(options: {
     getContainerName: (workspaceName: string) => string;
     isWorkspaceRunning: (workspaceName: string) => Promise<boolean>;
     isHostAccessAllowed?: () => boolean;
+    getPreferredShell?: () => string | undefined;
   }) {
     super({ isWorkspaceRunning: options.isWorkspaceRunning });
     this.getContainerName = options.getContainerName;
     this.isHostAccessAllowed = options.isHostAccessAllowed || (() => false);
+    this.getPreferredShell = options.getPreferredShell || (() => undefined);
   }
 
   protected handleConnection(ws: WebSocket, workspaceName: string): void {
@@ -40,9 +43,11 @@ export class TerminalWebSocketServer extends BaseWebSocketServer<TerminalConnect
       if (started) return;
       started = true;
 
+      const preferredShell = this.getPreferredShell();
       if (isHostMode) {
         session = createHostTerminalSession({
           size: { cols, rows },
+          shell: preferredShell,
         });
       } else {
         const containerName = this.getContainerName(workspaceName);
@@ -50,6 +55,7 @@ export class TerminalWebSocketServer extends BaseWebSocketServer<TerminalConnect
           containerName,
           user: 'workspace',
           size: { cols, rows },
+          shell: preferredShell,
         });
       }
 

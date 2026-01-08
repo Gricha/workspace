@@ -120,3 +120,8 @@ export interface SSHKeyInfo {
   fingerprint: string;
   hasPrivateKey: boolean;
 }
+
+export interface TerminalSettings {
+  preferredShell?: string;
+  detectedShell?: string;
+}
