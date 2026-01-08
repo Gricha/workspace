@@ -256,7 +256,6 @@ export function SessionChatScreen({ route, navigation }: any) {
   const [isStreaming, setIsStreaming] = useState(false)
   const [connected, setConnected] = useState(false)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(initialSessionId || null)
-  const [initialScrollDone, setInitialScrollDone] = useState(false)
   const [streamingParts, setStreamingParts] = useState<MessagePart[]>([])
   const [keyboardVisible, setKeyboardVisible] = useState(false)
   const [hasMoreMessages, setHasMoreMessages] = useState(false)

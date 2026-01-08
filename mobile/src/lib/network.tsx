@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo'
-import { api, getBaseUrl, isConfigured } from './api'
+import { api, getBaseUrl } from './api'
 
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'server-unreachable'
 
@@ -154,7 +154,7 @@ export function withNetworkCheck<T extends object>(
   WrappedComponent: React.ComponentType<T>
 ): React.FC<T> {
   return function NetworkCheckedComponent(props: T) {
-    const { status } = useNetwork()
+    useNetwork()
 
     return (
       <View style={{ flex: 1 }}>

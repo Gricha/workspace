@@ -664,7 +664,7 @@ function ConnectionSettings() {
       queryClient.invalidateQueries()
       setHasChanges(false)
       Alert.alert('Success', 'Server settings updated')
-    } catch (err) {
+    } catch {
       Alert.alert('Error', 'Failed to save settings')
     } finally {
       setIsSaving(false)
@@ -705,7 +705,7 @@ function ConnectionSettings() {
 }
 
 function AboutSection() {
-  const { status, serverHostname, checkConnection } = useNetwork()
+  const { status, checkConnection } = useNetwork()
   const { data: info, isLoading } = useQuery({
     queryKey: ['info'],
     queryFn: api.getInfo,

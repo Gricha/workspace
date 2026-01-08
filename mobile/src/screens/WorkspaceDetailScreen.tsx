@@ -135,7 +135,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
   const isRunning = isHost ? true : workspace?.status === 'running'
   const isCreating = isHost ? false : workspace?.status === 'creating'
 
-  const { data: sessionsData, isLoading: sessionsLoading, refetch } = useQuery({
+  const { data: sessionsData, isLoading: sessionsLoading } = useQuery({
     queryKey: ['sessions', name, agentFilter],
     queryFn: () => api.listSessions(name, agentFilter, 50),
     enabled: isRunning,
@@ -346,7 +346,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
       ) : (
         <FlatList
           data={flatData}
-          keyExtractor={(item, idx) => item.type === 'header' ? `header-${item.title}` : `session-${item.session.id}`}
+          keyExtractor={(item) => item.type === 'header' ? `header-${item.title}` : `session-${item.session.id}`}
           renderItem={({ item }) => {
             if (item.type === 'header') {
               return <DateGroupHeader title={item.title} />

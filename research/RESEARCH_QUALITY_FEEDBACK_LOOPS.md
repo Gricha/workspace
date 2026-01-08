@@ -4,12 +4,12 @@
 
 This report analyzes the Perry codebase from the perspective of quality assurance and feedback loops for agent-driven development. The core finding is that while the project has functional quality tooling, it's significantly under-configured and inconsistent across modules. The result: agents can introduce bugs that won't be caught until manual testing or production.
 
-**Key metrics:**
-- Oxlint: 7 of 80+ rules enabled (~9% utilization)
+**Key metrics (updated):**
+- Oxlint: All categories enabled (correctness, suspicious, pedantic, perf, style, restriction)
 - Code coverage: Not measured
-- Pre-commit hooks: None
-- Mobile linting: None
-- Web linting in CI: Not enforced
+- Pre-commit hooks: Intentionally not used (see policy in section 2.4)
+- Mobile linting: Enabled (included in global `bun run lint`)
+- Web linting in CI: Enforced
 - Type sync between API and clients: Manual/fragile
 
 ---
@@ -182,16 +182,17 @@ This means:
 - Agents can write code with zero test coverage
 - Refactors can silently break untested paths
 
-### 2.4 No Pre-commit Hooks (Critical Gap)
+### 2.4 Pre-commit Hooks - INTENTIONALLY NOT USED
 
-No `.husky` directory. No pre-commit configuration.
+**Policy: Do not add pre-commit hooks to this project.**
 
-Result: Agents can commit:
-- Code that fails linting
-- Code that fails type checking
-- Code that fails formatting
+Pre-commit hooks are intentionally avoided because:
+- They slow down the development workflow
+- CI is the appropriate place to catch errors
+- Developers should be trusted to run checks manually when needed
+- Hook setup complexity causes friction for new contributors
 
-These errors are only caught in CI, after the commit is pushed.
+Errors are caught in CI after pushing, which is acceptable for this project's workflow.
 
 ### 2.5 CI Pipeline Gaps (High)
 
@@ -279,11 +280,11 @@ Missing common React rules:
 
 | Issue Type | When Caught | Ideal |
 |------------|-------------|-------|
-| Backend lint error | CI (post-push) | Pre-commit |
-| Backend type error | CI (post-push) | Pre-commit |
-| Web lint error | Never in CI | Pre-commit |
-| Mobile lint error | Never | Pre-commit |
-| Mobile type error | Build (maybe) | Pre-commit |
+| Backend lint error | CI (post-push) | CI |
+| Backend type error | CI (post-push) | CI |
+| Web lint error | CI (post-push) | CI |
+| Mobile lint error | CI (post-push) | CI |
+| Mobile type error | Build (maybe) | CI |
 | API type drift (mobile) | Runtime | Build |
 | Code duplication | Never | PR review |
 | Missing coverage | Never | PR review |
@@ -294,31 +295,7 @@ Missing common React rules:
 
 ### 4.1 Immediate Wins (Shift Left)
 
-#### Task 1: Add Pre-commit Hooks
-**Impact: Critical** | **Effort: Low**
-
-```bash
-bun add -d husky lint-staged
-npx husky init
-```
-
-`.husky/pre-commit`:
-```bash
-bun run lint-staged
-```
-
-`package.json`:
-```json
-{
-  "lint-staged": {
-    "src/**/*.ts": ["oxlint --fix", "oxfmt --write"],
-    "web/src/**/*.{ts,tsx}": ["cd web && bun run lint --fix"],
-    "mobile/src/**/*.{ts,tsx}": ["oxlint --fix"]
-  }
-}
-```
-
-#### Task 2: Fix CI Web Linting Gap
+#### Task 1: Fix CI Web Linting Gap
 **Impact: High** | **Effort: Trivial**
 
 Add to `.github/workflows/test.yml` lint job:
@@ -330,22 +307,9 @@ Add to `.github/workflows/test.yml` lint job:
 #### Task 3: Add Mobile Linting
 **Impact: High** | **Effort: Low**
 
-Create `mobile/oxlint.json`:
-```json
-{
-  "extends": ["../oxlint.json"],
-  "rules": {
-    "no-console": "off"
-  }
-}
-```
+**STATUS: DONE** - Mobile is now included in the global `bun run lint` command.
 
-Add to `package.json`:
-```json
-{
-  "lint:mobile": "cd mobile && oxlint src/"
-}
-```
+The root `oxlint.json` configuration applies to both `src/` and `mobile/src/` directories.
 
 #### Task 4: Expand Oxlint Rules
 **Impact: High** | **Effort: Low**
@@ -494,29 +458,27 @@ Recommended metrics to track:
 
 | Metric | Current | Target | Tool |
 |--------|---------|--------|------|
-| Oxlint rules enabled | 7 | 25+ | oxlint |
+| Oxlint rules enabled | All categories | All categories | oxlint |
 | Code coverage | Unknown | 70%+ | vitest |
 | Type definition locations | 3 | 1 | manual |
-| Pre-commit hook | No | Yes | husky |
-| CI lint coverage | 50% | 100% | github actions |
+| CI lint coverage | 100% | 100% | github actions |
 | Duplicate code blocks | ~15 | <5 | jscpd |
 
 ---
 
 ## Part 6: Priority Matrix
 
-| Task | Impact | Effort | Priority |
-|------|--------|--------|----------|
-| Fix CI web linting gap | High | Trivial | P0 |
-| Add pre-commit hooks | Critical | Low | P0 |
-| Add mobile linting | High | Low | P1 |
-| Expand oxlint rules | High | Low | P1 |
-| Add code coverage | High | Medium | P1 |
-| Unify TS strictness | Medium | Low | P2 |
-| Generate client types | Critical | Medium | P2 |
-| Extract chat base class | Medium | Medium | P2 |
-| API contract tests | High | High | P3 |
-| Architecture tests | Medium | Medium | P3 |
+| Task | Impact | Effort | Priority | Status |
+|------|--------|--------|----------|--------|
+| Fix CI web linting gap | High | Trivial | P0 | DONE |
+| Add mobile linting | High | Low | P1 | DONE |
+| Expand oxlint rules | High | Low | P1 | DONE (all categories enabled) |
+| Add code coverage | High | Medium | P1 | |
+| Unify TS strictness | Medium | Low | P2 | |
+| Generate client types | Critical | Medium | P2 | |
+| Extract chat base class | Medium | Medium | P2 | |
+| API contract tests | High | High | P3 | |
+| Architecture tests | Medium | Medium | P3 | |
 
 ---
 
@@ -529,9 +491,11 @@ The codebase has solid foundations but leaky feedback loops. Agents can:
 4. Write untested code with no visibility
 
 The most impactful immediate changes are:
-1. **Fix CI to lint web** (literally one line)
-2. **Add pre-commit hooks** (catch errors before commit)
-3. **Expand oxlint rules** (catch more bugs automatically)
+1. **Fix CI to lint web** (literally one line) - DONE
+2. **Expand oxlint rules** (catch more bugs automatically) - DONE (all categories enabled)
+3. **Add mobile linting** (included in global lint command) - DONE
 4. **Generate client types** (eliminate manual sync)
 
-These changes would shift most feedback from "manual testing" to "automated, pre-commit", allowing agents to iterate much faster with confidence.
+These changes shift feedback to CI, allowing agents to iterate with confidence.
+
+**Note:** Pre-commit hooks are intentionally not used in this project. CI is the appropriate place to catch errors.
