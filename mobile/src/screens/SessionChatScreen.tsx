@@ -928,6 +928,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
+    alignItems: 'flex-end',
     padding: 8,
     borderTopWidth: 1,
     borderTopColor: '#1c1c1e',
@@ -947,6 +948,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a84ff',
     borderRadius: 20,
     paddingHorizontal: 16,
+    height: 40,
     justifyContent: 'center',
   },
   sendBtnDisabled: {
@@ -961,6 +963,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ff3b30',
     borderRadius: 20,
     paddingHorizontal: 16,
+    height: 40,
     justifyContent: 'center',
   },
   stopBtnText: {
