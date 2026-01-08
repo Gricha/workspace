@@ -201,6 +201,25 @@ program
   });
 
 program
+  .command('clone <source> <clone-name>')
+  .description('Clone an existing workspace')
+  .action(async (source, cloneName) => {
+    try {
+      const client = await getClient();
+      console.log(`Cloning workspace '${source}' to '${cloneName}'...`);
+      console.log('This may take a while for large workspaces.');
+
+      const workspace = await client.cloneWorkspace(source, cloneName);
+
+      console.log(`Workspace '${cloneName}' created.`);
+      console.log(`  Status: ${workspace.status}`);
+      console.log(`  SSH Port: ${workspace.ports.ssh}`);
+    } catch (err) {
+      handleError(err);
+    }
+  });
+
+program
   .command('info [name]')
   .description('Show workspace or agent info')
   .action(async (name) => {

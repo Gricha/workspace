@@ -136,6 +136,14 @@ export class ApiClient {
     }
   }
 
+  async cloneWorkspace(sourceName: string, cloneName: string): Promise<WorkspaceInfo> {
+    try {
+      return await this.client.workspaces.clone({ sourceName, cloneName });
+    } catch (err) {
+      throw this.wrapError(err);
+    }
+  }
+
   getTerminalUrl(name: string): string {
     const wsUrl = this.baseUrl.replace(/^http/, 'ws');
     return `${wsUrl}/rpc/terminal/${encodeURIComponent(name)}`;

@@ -712,4 +712,124 @@ export class WorkspaceManager {
     }
     return workspace.ports.forwards || [];
   }
+
+  async clone(sourceName: string, cloneName: string): Promise<Workspace> {
+    const source = await this.state.getWorkspace(sourceName);
+    if (!source) {
+      throw new Error(`Workspace '${sourceName}' not found`);
+    }
+
+    const existing = await this.state.getWorkspace(cloneName);
+    if (existing) {
+      throw new Error(`Workspace '${cloneName}' already exists`);
+    }
+
+    const sourceContainerName = getContainerName(sourceName);
+    const cloneContainerName = getContainerName(cloneName);
+    const sourceVolumeName = `${VOLUME_PREFIX}${sourceName}`;
+    const sourceDockerVolume = `${VOLUME_PREFIX}${sourceName}-docker`;
+    const cloneVolumeName = `${VOLUME_PREFIX}${cloneName}`;
+    const cloneDockerVolume = `${VOLUME_PREFIX}${cloneName}-docker`;
+
+    const workspace: Workspace = {
+      name: cloneName,
+      status: 'creating',
+      containerId: '',
+      created: new Date().toISOString(),
+      repo: source.repo,
+      ports: {
+        ssh: 0,
+        forwards: source.ports.forwards ? [...source.ports.forwards] : undefined,
+      },
+      lastUsed: new Date().toISOString(),
+    };
+    await this.state.setWorkspace(workspace);
+
+    const wasRunning = await docker.containerRunning(sourceContainerName);
+
+    try {
+      if (wasRunning) {
+        await docker.stopContainer(sourceContainerName);
+      }
+
+      await docker.cloneVolume(sourceVolumeName, cloneVolumeName);
+      await docker.cloneVolume(sourceDockerVolume, cloneDockerVolume);
+
+      if (wasRunning) {
+        await docker.startContainer(sourceContainerName);
+      }
+
+      const workspaceImage = await ensureWorkspaceImage();
+      const sshPort = await findAvailablePort(SSH_PORT_RANGE_START, SSH_PORT_RANGE_END);
+
+      const containerEnv: Record<string, string> = {
+        ...this.config.credentials.env,
+      };
+
+      if (this.config.agents?.github?.token) {
+        containerEnv.GITHUB_TOKEN = this.config.agents.github.token;
+      }
+      if (this.config.agents?.claude_code?.oauth_token) {
+        containerEnv.CLAUDE_CODE_OAUTH_TOKEN = this.config.agents.claude_code.oauth_token;
+      }
+
+      if (workspace.repo) {
+        containerEnv.WORKSPACE_REPO_URL = workspace.repo;
+      }
+
+      const containerId = await docker.createContainer({
+        name: cloneContainerName,
+        image: workspaceImage,
+        hostname: cloneName,
+        privileged: true,
+        restartPolicy: 'unless-stopped',
+        env: containerEnv,
+        volumes: [
+          { source: cloneVolumeName, target: '/home/workspace', readonly: false },
+          { source: cloneDockerVolume, target: '/var/lib/docker', readonly: false },
+        ],
+        ports: [{ hostPort: sshPort, containerPort: 22, protocol: 'tcp' }],
+        labels: {
+          'workspace.name': cloneName,
+          'workspace.managed': 'true',
+        },
+      });
+
+      workspace.containerId = containerId;
+      workspace.ports.ssh = sshPort;
+      await this.state.setWorkspace(workspace);
+
+      await docker.startContainer(cloneContainerName);
+      await docker.waitForContainerReady(cloneContainerName);
+      await this.setupWorkspaceCredentials(cloneContainerName, cloneName);
+
+      workspace.status = 'running';
+      await this.state.setWorkspace(workspace);
+
+      await this.runUserScripts(cloneContainerName);
+
+      return workspace;
+    } catch (err) {
+      workspace.status = 'error';
+      await this.state.setWorkspace(workspace);
+
+      if (await docker.containerExists(cloneContainerName)) {
+        await docker.removeContainer(cloneContainerName, true).catch(() => {});
+      }
+      if (await docker.volumeExists(cloneVolumeName)) {
+        await docker.removeVolume(cloneVolumeName, true).catch(() => {});
+      }
+      if (await docker.volumeExists(cloneDockerVolume)) {
+        await docker.removeVolume(cloneDockerVolume, true).catch(() => {});
+      }
+
+      await this.state.deleteWorkspace(cloneName).catch(() => {});
+
+      if (wasRunning && !(await docker.containerRunning(sourceContainerName))) {
+        await docker.startContainer(sourceContainerName).catch(() => {});
+      }
+
+      throw err;
+    }
+  }
 }
