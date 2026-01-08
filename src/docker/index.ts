@@ -485,6 +485,10 @@ export async function getLogs(
 }
 
 export async function cloneVolume(sourceVolume: string, destVolume: string): Promise<void> {
+  if (!(await volumeExists(sourceVolume))) {
+    throw new Error(`Source volume '${sourceVolume}' does not exist`);
+  }
+
   if (await volumeExists(destVolume)) {
     throw new Error(`Volume '${destVolume}' already exists`);
   }
