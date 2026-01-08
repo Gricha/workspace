@@ -49,11 +49,16 @@ jobs:
             ~/.bun/install/cache
             node_modules
             mobile/node_modules
-          key: ${{ runner.os }}-bun-mobile-android-${{ hashFiles('mobile/bun.lock', 'bun.lock') }}
+            web/node_modules
+          key: ${{ runner.os }}-bun-mobile-android-${{ hashFiles('mobile/bun.lock', 'bun.lock', 'web/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-mobile-android-
 
       - name: Install root dependencies
+        run: bun install
+
+      - name: Install web dependencies
+        working-directory: web
         run: bun install
 
       - name: Install mobile dependencies
