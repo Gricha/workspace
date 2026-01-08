@@ -55,32 +55,43 @@ export const claudeCodeSync: AgentSyncProvider = {
 
   async getGeneratedConfigs(context: SyncContext): Promise<GeneratedConfig[]> {
     const hostConfigContent = await context.readHostFile('~/.claude.json');
+    const containerConfigContent = await context.readContainerFile('/home/workspace/.claude.json');
 
-    let mcpServers: Record<string, unknown> = {};
-
+    let hostMcpServers: Record<string, unknown> = {};
     if (hostConfigContent) {
       try {
         const parsed = JSON.parse(hostConfigContent);
         if (parsed.mcpServers && typeof parsed.mcpServers === 'object') {
-          mcpServers = parsed.mcpServers;
+          hostMcpServers = parsed.mcpServers;
         }
       } catch {
         // Invalid JSON, ignore
       }
     }
 
-    const claudeJson: Record<string, unknown> = {
-      hasCompletedOnboarding: true,
-    };
+    let containerConfig: Record<string, unknown> = {};
+    if (containerConfigContent) {
+      try {
+        containerConfig = JSON.parse(containerConfigContent);
+      } catch {
+        // Invalid JSON, start fresh
+      }
+    }
 
-    if (Object.keys(mcpServers).length > 0) {
-      claudeJson.mcpServers = mcpServers;
+    containerConfig.hasCompletedOnboarding = true;
+
+    if (Object.keys(hostMcpServers).length > 0) {
+      const existingMcp =
+        containerConfig.mcpServers && typeof containerConfig.mcpServers === 'object'
+          ? (containerConfig.mcpServers as Record<string, unknown>)
+          : {};
+      containerConfig.mcpServers = { ...existingMcp, ...hostMcpServers };
     }
 
     return [
       {
         dest: '/home/workspace/.claude.json',
-        content: JSON.stringify(claudeJson, null, 2),
+        content: JSON.stringify(containerConfig, null, 2),
         permissions: '644',
         category: 'preference',
       },
