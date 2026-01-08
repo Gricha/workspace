@@ -18,6 +18,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
     'cli',
+    'workflows',
     'web-ui',
     'troubleshooting',
   ],
