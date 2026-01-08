@@ -441,12 +441,9 @@ export class OpenCodeServerSession {
           console.error(
             `[opencode-server] No heartbeat received for ${timeSinceLastHeartbeat}ms, connection may be lost`
           );
-          this.streamError = new Error('Connection to OpenCode server lost (no heartbeat)');
-          this.onMessage({
-            type: 'error',
-            content: 'Connection to OpenCode server lost. Please try again.',
-            timestamp: new Date().toISOString(),
-          });
+          this.streamError = new Error(
+            'Connection to OpenCode server lost. Please try again.'
+          );
           proc.kill();
           resolveDone!();
         }
@@ -541,16 +538,13 @@ export class OpenCodeServerSession {
       }
     }, SSE_READY_TIMEOUT_MS);
 
-    // Overall stream timeout with user-visible error
+    // Overall stream timeout
     setTimeout(() => {
       if (!this.responseComplete && !doneResolved) {
         console.warn(`[opencode-server] SSE stream timeout after ${SSE_STREAM_TIMEOUT_MS}ms`);
-        this.streamError = new Error('Request timed out. The operation took too long to complete.');
-        this.onMessage({
-          type: 'error',
-          content: 'Request timed out. Please try again or check if OpenCode is responding.',
-          timestamp: new Date().toISOString(),
-        });
+        this.streamError = new Error(
+          'Request timed out. Please try again or check if OpenCode is responding.'
+        );
         proc.kill();
         resolveDone!();
       }
