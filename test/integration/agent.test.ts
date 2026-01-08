@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { startTestAgent, generateTestWorkspaceName, type TestAgent } from '../helpers/agent';
+import { startTestAgent, type TestAgent } from '../helpers/agent';
 import pkg from '../../package.json';
 
 describe('Agent', () => {
@@ -62,6 +62,7 @@ describe('Agent - State Persistence', () => {
 
     const agent2 = await startTestAgent({
       config: { port: agent1.port },
+      testId: agent1.testId,
     });
 
     const listAfter = await agent2.api.listWorkspaces();
@@ -73,10 +74,11 @@ describe('Agent - State Persistence', () => {
 
 describe('Agent - Name Collision', () => {
   let agent: TestAgent;
-  const testWorkspaceName = generateTestWorkspaceName();
+  let testWorkspaceName: string;
 
   beforeAll(async () => {
     agent = await startTestAgent();
+    testWorkspaceName = agent.generateWorkspaceName();
   }, 30000);
 
   afterAll(async () => {
@@ -104,25 +106,19 @@ describe('Agent - Name Collision', () => {
 
 describe('Agent - Workspace Lifecycle', () => {
   let agent: TestAgent;
-  const testWorkspaceName = generateTestWorkspaceName();
 
   beforeAll(async () => {
     agent = await startTestAgent();
   }, 30000);
 
   afterAll(async () => {
-    try {
-      await agent.api.deleteWorkspace(testWorkspaceName);
-    } catch {
-      // Ignore cleanup errors
-    }
     if (agent) {
       await agent.cleanup();
     }
   });
 
   it('creates workspace when starting non-existent workspace', async () => {
-    const name = `nonexistent-${Date.now()}`;
+    const name = agent.generateWorkspaceName();
     const result = await agent.api.startWorkspace(name);
     expect(result.status).toBe(200);
     expect((result.data as { name: string }).name).toBe(name);

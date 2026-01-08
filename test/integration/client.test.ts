@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { startTestAgent, generateTestWorkspaceName, type TestAgent } from '../helpers/agent';
+import { startTestAgent, type TestAgent } from '../helpers/agent';
 import { ApiClient, ApiClientError, createApiClient } from '../../src/client/api';
 import { loadClientConfig, saveClientConfig, getWorker, setWorker } from '../../src/client/config';
 
@@ -66,7 +66,7 @@ describe('API Client - Workspace Operations', () => {
   });
 
   beforeEach(() => {
-    workspaceName = generateTestWorkspaceName();
+    workspaceName = agent.generateWorkspaceName();
   });
 
   afterEach(async () => {

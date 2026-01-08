@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import WebSocket from 'ws';
-import { startTestAgent, generateTestWorkspaceName, type TestAgent } from '../helpers/agent';
+import { startTestAgent, type TestAgent } from '../helpers/agent';
 import type { ControlMessage } from '../../src/terminal/types';
 
 function waitForMessage(ws: WebSocket, timeout = 5000): Promise<Buffer | string> {
@@ -66,7 +66,7 @@ describe('Terminal WebSocket', () => {
 
   beforeAll(async () => {
     agent = await startTestAgent();
-    workspaceName = generateTestWorkspaceName();
+    workspaceName = agent.generateWorkspaceName();
 
     const result = await agent.api.createWorkspace({ name: workspaceName });
     if (result.status === 201) {

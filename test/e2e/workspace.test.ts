@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { startTestAgent, generateTestWorkspaceName, type TestAgent } from '../helpers/agent';
+import { startTestAgent, type TestAgent } from '../helpers/agent';
 import * as docker from '../../src/docker';
 
 describe('E2E - Workspace Creation', () => {
@@ -9,7 +9,7 @@ describe('E2E - Workspace Creation', () => {
 
   beforeAll(async () => {
     agent = await startTestAgent();
-    workspaceName = generateTestWorkspaceName();
+    workspaceName = agent.generateWorkspaceName();
     containerName = `workspace-${workspaceName}`;
   }, 60000);
 

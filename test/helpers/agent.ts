@@ -42,15 +42,18 @@ export interface TestAgent {
   port: number;
   baseUrl: string;
   configDir: string;
+  testId: string;
   api: ApiClient;
   process: ChildProcess;
   exec(workspaceName: string, command: string): Promise<ExecResult>;
   cleanup(): Promise<void>;
   getOutput(): string;
+  generateWorkspaceName(): string;
 }
 
 interface TestAgentOptions {
   config?: Partial<AgentConfig>;
+  testId?: string;
 }
 
 export async function getRandomPort(): Promise<number> {
@@ -269,6 +272,8 @@ export async function startTestAgent(options: TestAgentOptions = {}): Promise<Te
   const port = options.config?.port || (await getRandomPort());
   const configDir = await createTempConfig({ ...options.config, port });
   const baseUrl = `http://127.0.0.1:${port}`;
+  // Generate a unique testId for this agent instance to scope cleanup
+  const testId = options.testId || `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
   const agentPath = path.join(process.cwd(), 'dist/agent/index.js');
 
@@ -312,11 +317,17 @@ export async function startTestAgent(options: TestAgentOptions = {}): Promise<Te
     port,
     baseUrl,
     configDir,
+    testId,
     api,
     process: proc,
 
     async exec(workspaceName: string, command: string): Promise<ExecResult> {
       return execInWorkspace(`workspace-${workspaceName}`, command);
+    },
+
+    generateWorkspaceName(): string {
+      // Workspace names include testId prefix for scoped cleanup
+      return `${testId}-${Math.random().toString(36).slice(2, 8)}`;
     },
 
     async cleanup(): Promise<void> {
@@ -349,11 +360,9 @@ export async function startTestAgent(options: TestAgentOptions = {}): Promise<Te
         setTimeout(resolve, 2000);
       });
 
-      // Clean up only our own containers and volumes by specific names
-      for (const name of allWorkspaces) {
-        await cleanupContainers(`workspace-${name}`);
-        await cleanupVolumes(`workspace-${name}`);
-      }
+      // Clean up containers/volumes matching this agent's testId prefix
+      await cleanupContainers(`workspace-${testId}-`);
+      await cleanupVolumes(`workspace-${testId}-`);
 
       await fs.rm(configDir, { recursive: true, force: true });
     },

@@ -10,8 +10,10 @@ export default defineConfig({
         singleFork: true,
       },
     },
-    // Disable file parallelism - tests share Docker resources and conflict
-    // CI parallelization is achieved via GitHub Actions matrix sharding instead
+    // File parallelism disabled due to Docker port allocation race conditions.
+    // When multiple tests run in parallel, they can both find the same port
+    // available, then both try to bind it, causing "docker start" failures.
+    // CI parallelization is achieved via GitHub Actions matrix sharding instead.
     fileParallelism: false,
     globalSetup: './test/setup/global.js',
     exclude: ['**/node_modules/**', '**/test/web/**', '**/test/tui/**', '**/web/e2e/**'],

@@ -3,7 +3,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import os from 'os';
 import { runCLI, runCLIExpecting, runCLIExpectingError } from '../helpers/cli-runner';
-import { startTestAgent, generateTestWorkspaceName, type TestAgent } from '../helpers/agent';
+import { startTestAgent, type TestAgent } from '../helpers/agent';
 
 describe('CLI commands', () => {
   let agent: TestAgent;
@@ -44,7 +44,7 @@ describe('CLI commands', () => {
 
   describe('workspace start (create)', () => {
     it('creates a workspace when it does not exist', async () => {
-      const name = generateTestWorkspaceName();
+      const name = agent.generateWorkspaceName();
       const result = await runCLIExpecting(['start', name], [`Workspace '${name}' started`], {
         env: cliEnv(),
         timeout: 30000,
@@ -55,7 +55,7 @@ describe('CLI commands', () => {
     });
 
     it('creates workspace with --clone option and clones the repository', async () => {
-      const name = generateTestWorkspaceName();
+      const name = agent.generateWorkspaceName();
       const repoUrl = 'https://github.com/octocat/Hello-World';
       const result = await runCLI(['start', name, '--clone', repoUrl], {
         env: cliEnv(),
@@ -101,7 +101,7 @@ describe('CLI commands', () => {
     }, 120000);
 
     it('starts existing workspace without error', async () => {
-      const name = generateTestWorkspaceName();
+      const name = agent.generateWorkspaceName();
       await agent.api.createWorkspace({ name });
 
       const result = await runCLIExpecting(['start', name], [`Workspace '${name}' started`], {
@@ -123,7 +123,7 @@ describe('CLI commands', () => {
     });
 
     it('shows workspace info when name provided', async () => {
-      const name = generateTestWorkspaceName();
+      const name = agent.generateWorkspaceName();
       await agent.api.createWorkspace({ name });
 
       const result = await runCLIExpecting(['info', name], [`Workspace: ${name}`, 'Status:'], {
@@ -145,7 +145,7 @@ describe('CLI commands', () => {
 
   describe('workspace start/stop', () => {
     it('stops a running workspace', async () => {
-      const name = generateTestWorkspaceName();
+      const name = agent.generateWorkspaceName();
       await agent.api.createWorkspace({ name });
 
       const result = await runCLIExpecting(['stop', name], [`Workspace '${name}' stopped`], {
@@ -158,7 +158,7 @@ describe('CLI commands', () => {
     });
 
     it('starts a stopped workspace', async () => {
-      const name = generateTestWorkspaceName();
+      const name = agent.generateWorkspaceName();
       await agent.api.createWorkspace({ name });
       await agent.api.stopWorkspace(name);
 
@@ -174,7 +174,7 @@ describe('CLI commands', () => {
 
   describe('workspace delete', () => {
     it('deletes a workspace', async () => {
-      const name = generateTestWorkspaceName();
+      const name = agent.generateWorkspaceName();
       await agent.api.createWorkspace({ name });
 
       const result = await runCLIExpecting(['delete', name], [`Workspace '${name}' deleted`], {
@@ -188,7 +188,7 @@ describe('CLI commands', () => {
     });
 
     it('supports rm alias', async () => {
-      const name = generateTestWorkspaceName();
+      const name = agent.generateWorkspaceName();
       await agent.api.createWorkspace({ name });
 
       const result = await runCLIExpecting(['rm', name], [`Workspace '${name}' deleted`], {
@@ -207,7 +207,7 @@ describe('CLI commands', () => {
 
   describe('workspace logs', () => {
     it('shows workspace logs', async () => {
-      const name = generateTestWorkspaceName();
+      const name = agent.generateWorkspaceName();
       await agent.api.createWorkspace({ name });
 
       const result = await runCLI(['logs', name], { env: cliEnv(), timeout: 30000 });
@@ -217,7 +217,7 @@ describe('CLI commands', () => {
     });
 
     it('supports --tail option', async () => {
-      const name = generateTestWorkspaceName();
+      const name = agent.generateWorkspaceName();
       await agent.api.createWorkspace({ name });
 
       const result = await runCLI(['logs', name, '--tail', '10'], {

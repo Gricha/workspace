@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { startTestAgent, generateTestWorkspaceName, type TestAgent } from '../helpers/agent';
+import { startTestAgent, type TestAgent } from '../helpers/agent';
 
 describe('Credential Injection', () => {
   let agent: TestAgent;
@@ -63,7 +63,7 @@ echo "POST_START_RAN" > /home/workspace/.post-start-marker
   });
 
   beforeEach(() => {
-    workspaceName = generateTestWorkspaceName();
+    workspaceName = agent.generateWorkspaceName();
   });
 
   afterEach(async () => {
