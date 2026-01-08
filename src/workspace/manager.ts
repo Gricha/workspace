@@ -17,6 +17,7 @@ import {
   SSH_PORT_RANGE_END,
 } from '../shared/constants';
 import { collectAuthorizedKeys, collectCopyKeys } from '../ssh/sync';
+import { syncAllAgents } from '../agents';
 
 async function findAvailablePort(start: number, end: number): Promise<number> {
   for (let port = start; port <= end; port++) {
@@ -169,131 +170,6 @@ export class WorkspaceManager {
     }
   }
 
-  private async setupClaudeCodeConfig(containerName: string): Promise<void> {
-    const localClaudeCredentials = expandPath('~/.claude/.credentials.json');
-
-    const configContent = JSON.stringify({ hasCompletedOnboarding: true });
-    const tempFile = path.join(os.tmpdir(), `ws-claude-config-${Date.now()}.json`);
-    try {
-      await fs.writeFile(tempFile, configContent);
-      await docker.copyToContainer(containerName, tempFile, '/home/workspace/.claude.json');
-      await docker.execInContainer(
-        containerName,
-        ['chown', 'workspace:workspace', '/home/workspace/.claude.json'],
-        { user: 'root' }
-      );
-      await docker.execInContainer(
-        containerName,
-        ['chmod', '644', '/home/workspace/.claude.json'],
-        { user: 'workspace' }
-      );
-    } finally {
-      await fs.unlink(tempFile).catch(() => {});
-    }
-
-    try {
-      await fs.access(localClaudeCredentials);
-      await docker.execInContainer(containerName, ['mkdir', '-p', '/home/workspace/.claude'], {
-        user: 'workspace',
-      });
-      await copyCredentialToContainer({
-        source: '~/.claude/.credentials.json',
-        dest: '/home/workspace/.claude/.credentials.json',
-        containerName,
-        filePermissions: '600',
-        tempPrefix: 'ws-claude-creds',
-      });
-    } catch {
-      // No credentials file - that's OK, user may use oauth_token env var instead
-    }
-  }
-
-  private async copyCodexCredentials(containerName: string): Promise<void> {
-    const codexDir = expandPath('~/.codex');
-    try {
-      await fs.access(codexDir);
-    } catch {
-      return;
-    }
-
-    await docker.execInContainer(containerName, ['mkdir', '-p', '/home/workspace/.codex'], {
-      user: 'workspace',
-    });
-
-    await copyCredentialToContainer({
-      source: '~/.codex/auth.json',
-      dest: '/home/workspace/.codex/auth.json',
-      containerName,
-      filePermissions: '600',
-      tempPrefix: 'ws-codex-auth',
-    });
-
-    await copyCredentialToContainer({
-      source: '~/.codex/config.toml',
-      dest: '/home/workspace/.codex/config.toml',
-      containerName,
-      filePermissions: '600',
-      tempPrefix: 'ws-codex-config',
-    });
-  }
-
-  private async setupOpencodeConfig(containerName: string): Promise<void> {
-    const zenToken = this.config.agents?.opencode?.zen_token;
-    if (!zenToken) {
-      return;
-    }
-
-    const config = {
-      provider: {
-        opencode: {
-          options: {
-            apiKey: zenToken,
-          },
-        },
-      },
-      model: 'opencode/claude-sonnet-4',
-    };
-
-    const configJson = JSON.stringify(config, null, 2);
-    const tempFile = `/tmp/ws-opencode-config-${Date.now()}.json`;
-
-    await fs.writeFile(tempFile, configJson, 'utf-8');
-
-    try {
-      await docker.execInContainer(
-        containerName,
-        ['mkdir', '-p', '/home/workspace/.config/opencode'],
-        {
-          user: 'workspace',
-        }
-      );
-
-      await docker.copyToContainer(
-        containerName,
-        tempFile,
-        '/home/workspace/.config/opencode/opencode.json'
-      );
-
-      await docker.execInContainer(
-        containerName,
-        ['chown', 'workspace:workspace', '/home/workspace/.config/opencode/opencode.json'],
-        { user: 'root' }
-      );
-
-      await docker.execInContainer(
-        containerName,
-        ['chmod', '600', '/home/workspace/.config/opencode/opencode.json'],
-        { user: 'workspace' }
-      );
-    } finally {
-      try {
-        await fs.unlink(tempFile);
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
-  }
-
   private async copyGitConfig(containerName: string): Promise<void> {
     await copyCredentialToContainer({
       source: '~/.gitconfig',
@@ -381,9 +257,7 @@ export class WorkspaceManager {
   ): Promise<void> {
     await this.copyGitConfig(containerName);
     await this.copyCredentialFiles(containerName);
-    await this.setupClaudeCodeConfig(containerName);
-    await this.copyCodexCredentials(containerName);
-    await this.setupOpencodeConfig(containerName);
+    await syncAllAgents(containerName, this.config);
     await this.copyPerryWorker(containerName);
     if (workspaceName) {
       await this.setupSSHKeys(containerName, workspaceName);

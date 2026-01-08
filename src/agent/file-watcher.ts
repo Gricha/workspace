@@ -2,13 +2,9 @@ import { watch, type FSWatcher } from 'fs';
 import { access } from 'fs/promises';
 import type { AgentConfig } from '../shared/types';
 import { expandPath } from '../config/loader';
+import { getCredentialFilePaths } from '../agents';
 
-const STANDARD_CREDENTIAL_FILES = [
-  '~/.gitconfig',
-  '~/.claude/.credentials.json',
-  '~/.codex/auth.json',
-  '~/.codex/config.toml',
-];
+const STANDARD_CREDENTIAL_FILES = ['~/.gitconfig', ...getCredentialFilePaths()];
 
 interface FileWatcherOptions {
   config: AgentConfig;
