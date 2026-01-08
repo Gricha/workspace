@@ -1,15 +1,19 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Keyboard,
+  Animated,
+  Platform,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import { useQuery } from '@tanstack/react-query'
-import { api, getTerminalUrl, getBaseUrl, HOST_WORKSPACE_NAME } from '../lib/api'
+import { api, getTerminalUrl, HOST_WORKSPACE_NAME } from '../lib/api'
+import { ExtraKeysBar } from '../components/ExtraKeysBar'
 
 const TERMINAL_HTML = `
 <!DOCTYPE html>
@@ -121,11 +125,32 @@ const TERMINAL_HTML = `
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error' }));
       };
 
+      let ctrlActive = false;
+
       term.onData((data) => {
         if (ws.readyState === WebSocket.OPEN) {
+          if (ctrlActive && data.length === 1) {
+            const code = data.charCodeAt(0);
+            if (code >= 97 && code <= 122) {
+              ws.send(String.fromCharCode(code - 96));
+              ctrlActive = false;
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ctrlReleased' }));
+              return;
+            }
+            if (code >= 65 && code <= 90) {
+              ws.send(String.fromCharCode(code - 64));
+              ctrlActive = false;
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ctrlReleased' }));
+              return;
+            }
+          }
           ws.send(data);
         }
       });
+
+      window.setCtrlActive = (active) => {
+        ctrlActive = active;
+      };
 
       term.onResize(({ cols, rows }) => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -142,6 +167,18 @@ const TERMINAL_HTML = `
       }
     });
 
+    function handleMessage(event) {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'sendKey' && ws?.readyState === WebSocket.OPEN) {
+          ws.send(data.key);
+        }
+      } catch {}
+    }
+
+    window.addEventListener('message', handleMessage);
+    document.addEventListener('message', handleMessage);
+
     window.initTerminal = connect;
   </script>
 </body>
@@ -154,6 +191,40 @@ export function TerminalScreen({ route, navigation }: any) {
   const webViewRef = useRef<WebView>(null)
   const [connected, setConnected] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
+  const [ctrlActive, setCtrlActive] = useState(false)
+  const keyboardAnim = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height)
+      Animated.timing(keyboardAnim, {
+        toValue: 1,
+        duration: Platform.OS === 'ios' ? e.duration : 200,
+        useNativeDriver: false,
+      }).start()
+    })
+
+    const hideSub = Keyboard.addListener(hideEvent, (e) => {
+      Animated.timing(keyboardAnim, {
+        toValue: 0,
+        duration: Platform.OS === 'ios' ? e.duration : 200,
+        useNativeDriver: false,
+      }).start(({ finished }) => {
+        if (finished) {
+          setKeyboardHeight(0)
+        }
+      })
+    })
+
+    return () => {
+      showSub.remove()
+      hideSub.remove()
+    }
+  }, [keyboardAnim])
 
   const isHost = name === HOST_WORKSPACE_NAME
 
@@ -171,6 +242,18 @@ export function TerminalScreen({ route, navigation }: any) {
 
   const isRunning = isHost ? (hostInfo?.enabled ?? false) : workspace?.status === 'running'
 
+  const sendKey = useCallback((sequence: string) => {
+    webViewRef.current?.postMessage(JSON.stringify({
+      type: 'sendKey',
+      key: sequence,
+    }))
+  }, [])
+
+  const handleCtrlToggle = useCallback((active: boolean) => {
+    setCtrlActive(active)
+    webViewRef.current?.injectJavaScript(`window.setCtrlActive && window.setCtrlActive(${active}); true;`)
+  }, [])
+
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data)
@@ -179,6 +262,8 @@ export function TerminalScreen({ route, navigation }: any) {
         setLoading(false)
       } else if (data.type === 'disconnected' || data.type === 'error') {
         setConnected(false)
+      } else if (data.type === 'ctrlReleased') {
+        setCtrlActive(false)
       }
     } catch {}
   }
@@ -223,7 +308,17 @@ export function TerminalScreen({ route, navigation }: any) {
         <View style={styles.placeholder} />
       </View>
 
-      <View style={[styles.terminalContainer, { paddingBottom: insets.bottom }]}>
+      <Animated.View
+        style={[
+          styles.terminalContainer,
+          {
+            paddingBottom: keyboardAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [insets.bottom, keyboardHeight + 50],
+            }),
+          },
+        ]}
+      >
         {loading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#0a84ff" />
@@ -245,7 +340,21 @@ export function TerminalScreen({ route, navigation }: any) {
           bounces={false}
           keyboardDisplayRequiresUserAction={false}
         />
-      </View>
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.extraKeysContainer,
+          {
+            bottom: keyboardAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [-50, keyboardHeight],
+            }),
+            opacity: keyboardAnim,
+          },
+        ]}
+      >
+        <ExtraKeysBar onSendKey={sendKey} ctrlActive={ctrlActive} onCtrlToggle={handleCtrlToggle} />
+      </Animated.View>
     </View>
   )
 }
@@ -303,6 +412,11 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: '#0d1117',
+  },
+  extraKeysContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
   },
   loadingOverlay: {
     position: 'absolute',
