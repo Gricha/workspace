@@ -62,13 +62,6 @@ async function waitForMessageType(
 }
 
 /**
- * Helper to check if error message was received
- */
-function hasErrorMessage(messages: WSMessage[]): boolean {
-  return messages.some((m) => m.type === 'error');
-}
-
-/**
  * Helper to get all error messages
  */
 function getErrorMessages(messages: WSMessage[]): WSMessage[] {
