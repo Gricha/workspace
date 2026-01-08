@@ -29,6 +29,8 @@ It can be connected directly to your host, or it can create docker containers so
 
 Continue your sessions on the go!
 
+**[Get Started →](https://gricha.github.io/perry/docs/getting-started)**
+
 ## Features
 
 - **AI Coding Agents** - Claude Code, OpenCode, Codex CLI pre-installed
