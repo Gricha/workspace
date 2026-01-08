@@ -34,6 +34,7 @@ interface RawMessage {
 interface ChatProps {
   workspaceName: string
   sessionId?: string
+  projectPath?: string
   onSessionId?: (sessionId: string) => void
   agentType?: AgentType
   hideHeader?: boolean
@@ -239,7 +240,7 @@ function StreamingMessage({ parts }: { parts: ChatMessagePart[] }) {
 
 const MESSAGES_PER_PAGE = 50
 
-export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, agentType = 'claude-code', hideHeader, onConnectionChange, onBack }: ChatProps) {
+export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, onSessionId, agentType = 'claude-code', hideHeader, onConnectionChange, onBack }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isConnected, setIsConnected] = useState(false)
@@ -626,13 +627,17 @@ export function Chat({ workspaceName, sessionId: initialSessionId, onSessionId, 
       messagePayload.model = selectedModel
     }
 
+    if (projectPath) {
+      messagePayload.projectPath = projectPath
+    }
+
     wsRef.current.send(JSON.stringify(messagePayload))
 
     setInput('')
     setIsStreaming(true)
     streamingPartsRef.current = []
     setStreamingParts([])
-  }, [input, sessionId, selectedModel])
+  }, [input, sessionId, selectedModel, projectPath])
 
   const interrupt = useCallback(() => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

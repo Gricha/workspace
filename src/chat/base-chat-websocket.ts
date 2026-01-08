@@ -19,6 +19,7 @@ export interface IncomingChatMessage {
   content?: string;
   sessionId?: string;
   model?: string;
+  projectPath?: string;
 }
 
 export interface BaseChatWebSocketOptions {
@@ -40,7 +41,8 @@ export abstract class BaseChatWebSocketServer<
   protected abstract createHostSession(
     sessionId: string | undefined,
     onMessage: (message: ChatMessage) => void,
-    model?: string
+    model?: string,
+    projectPath?: string
   ): ChatSessionInterface;
 
   protected abstract createContainerSession(
@@ -97,7 +99,8 @@ export abstract class BaseChatWebSocketServer<
               connection.session = this.createHostSession(
                 message.sessionId,
                 onMessage,
-                message.model
+                message.model,
+                message.projectPath
               );
             } else {
               const containerName = getContainerName(workspaceName);

@@ -44,7 +44,8 @@ export class OpencodeWebSocketServer extends BaseChatWebSocketServer<OpencodeCon
   protected createHostSession(
     sessionId: string | undefined,
     onMessage: (message: ChatMessage) => void,
-    messageModel?: string
+    messageModel?: string,
+    _projectPath?: string
   ): ChatSessionInterface {
     const model = messageModel || this.getConfig?.()?.agents?.opencode?.model;
     return createHostOpencodeSession({ sessionId, model }, onMessage);

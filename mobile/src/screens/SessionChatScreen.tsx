@@ -251,7 +251,7 @@ function StreamingBubble({ parts }: { parts: MessagePart[] }) {
 
 export function SessionChatScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets()
-  const { workspaceName, sessionId: initialSessionId, agentType = 'claude-code', isNew } = route.params
+  const { workspaceName, sessionId: initialSessionId, agentType = 'claude-code', isNew, projectPath } = route.params
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -564,6 +564,10 @@ export function SessionChatScreen({ route, navigation }: any) {
 
     if (selectedModel) {
       payload.model = selectedModel
+    }
+
+    if (projectPath) {
+      payload.projectPath = projectPath
     }
 
     wsRef.current.send(JSON.stringify(payload))
