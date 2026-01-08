@@ -138,6 +138,7 @@ curl -s -X POST "http://localhost:7391/rpc/sessions/list" \
 - Use `docker exec` for user interaction (use SSH)
 - Skip failing tests
 - Write complex bash in docker exec (escaping issues - use TypeScript)
+- **Add pre-commit hooks** (husky, lint-staged, etc.) - CI is the appropriate place to catch errors
 
 ## Do
 
