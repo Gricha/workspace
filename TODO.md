@@ -16,7 +16,29 @@
 
 ## Tasks
 
-_No tasks pending._
+### OpenCode Session Resume Bug
+
+**Problem**: When trying to resume an OpenCode session that was created via the interactive CLI (not through Perry's web UI), the UI hangs with a loading indicator.
+
+**Root Cause**: Perry uses `opencode serve` (HTTP server mode) for container chat. The server maintains its own session state. Sessions created via the interactive OpenCode CLI are NOT known to this server.
+
+**Flow breakdown**:
+1. **Listing works** - Perry reads OpenCode's storage directly via `perry worker sessions list`
+2. **History loads** - Perry reads messages via `perry worker sessions messages <id>`
+3. **Resume fails** - Perry starts `opencode serve` and tries to POST to `/session/<oldId>/message`, but the server doesn't know about that session ID (it wasn't created via POST /session)
+
+**Evidence**:
+- `src/chat/opencode-server.ts:140-165`: Only creates a new session if `sessionId` is undefined
+- `src/chat/opencode-server.ts:178-194`: Tries to POST to existing session without checking if it exists
+- The SSE stream waits for events that never come, causing the hang
+
+**Possible fixes**:
+1. Before using an existing sessionId, verify the session exists on the server (GET /session/<id>)
+2. If session doesn't exist on server, create it first or fall back to CLI mode
+3. Alternative: use CLI mode (`opencode run --resume <id>`) for existing sessions instead of server mode
+
+**Files to modify**:
+- `src/chat/opencode-server.ts` - Add session existence check before message POST
 
 ---
 

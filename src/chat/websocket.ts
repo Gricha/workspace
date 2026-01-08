@@ -41,11 +41,12 @@ export class ChatWebSocketServer extends BaseChatWebSocketServer<ChatConnection>
   protected createHostSession(
     sessionId: string | undefined,
     onMessage: (message: ChatMessage) => void,
-    messageModel?: string
+    messageModel?: string,
+    projectPath?: string
   ): ChatSessionInterface {
     const config = this.getConfig();
     const model = messageModel || config.agents?.claude_code?.model;
-    return createHostChatSession({ sessionId, model }, onMessage);
+    return createHostChatSession({ sessionId, model, workDir: projectPath }, onMessage);
   }
 
   protected createContainerSession(

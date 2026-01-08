@@ -280,4 +280,65 @@ test.describe('Web UI - Sessions', () => {
       await agent.api.deleteWorkspace(workspaceName);
     }
   }, 120000);
+
+  test('resuming session sends projectPath in WebSocket message', async ({ agent, page }) => {
+    const workspaceName = generateTestWorkspaceName();
+    const sessionId = `project-path-test-${Date.now()}`;
+    const projectDir = '-home-workspace-myproject';
+    const expectedProjectPath = '/home/workspace/myproject';
+    const filePath = `/home/workspace/.claude/projects/${projectDir}/${sessionId}.jsonl`;
+    const sessionContent = [
+      '{"type":"user","content":"Test message","timestamp":"2026-01-01T00:00:00.000Z"}',
+      '{"type":"assistant","content":"Test response","timestamp":"2026-01-01T00:00:01.000Z"}',
+    ].join('\n');
+
+    await agent.api.createWorkspace({ name: workspaceName });
+    await agent.exec(
+      workspaceName,
+      `mkdir -p /home/workspace/.claude/projects/${projectDir} && cat <<'EOF' > "${filePath}"\n${sessionContent}\nEOF`
+    );
+
+    try {
+      let capturedMessage: { sessionId?: string; projectPath?: string } | null = null;
+
+      page.on('websocket', (ws) => {
+        if (ws.url().includes('/rpc/chat/')) {
+          ws.on('framesent', (frame) => {
+            try {
+              const data = JSON.parse(frame.payload as string);
+              if (data.type === 'message') {
+                capturedMessage = data;
+              }
+            } catch {
+              // Ignore non-JSON frames
+            }
+          });
+        }
+      });
+
+      await page.goto(`http://127.0.0.1:${agent.port}/workspaces/${workspaceName}?tab=sessions`);
+
+      const sessionItem = page
+        .getByTestId('session-list-item')
+        .filter({ hasText: 'Test message' })
+        .first();
+      await expect(sessionItem).toBeVisible({ timeout: 30000 });
+
+      await sessionItem.click();
+
+      await expect(page.getByPlaceholder('Send a message...')).toBeVisible({ timeout: 30000 });
+
+      const input = page.getByPlaceholder('Send a message...');
+      await input.fill('Hello test');
+      await input.press('Enter');
+
+      await page.waitForTimeout(1000);
+
+      expect(capturedMessage).not.toBeNull();
+      expect(capturedMessage?.sessionId).toBe(sessionId);
+      expect(capturedMessage?.projectPath).toBe(expectedProjectPath);
+    } finally {
+      await agent.api.deleteWorkspace(workspaceName);
+    }
+  }, 120000);
 });

@@ -358,6 +358,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
                   workspaceName: name,
                   sessionId: item.session.id,
                   agentType: item.session.agentType,
+                  projectPath: item.session.projectPath,
                 })}
               />
             )
