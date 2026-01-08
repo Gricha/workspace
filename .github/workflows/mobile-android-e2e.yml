@@ -1,0 +1,185 @@
+name: Mobile Android E2E Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-android-e2e.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-android-e2e.yml'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  maestro-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            mobile/node_modules
+          key: ${{ runner.os }}-bun-mobile-android-${{ hashFiles('mobile/bun.lock', 'bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-mobile-android-
+
+      - name: Install root dependencies
+        run: bun install
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: bun install
+
+      - name: Generate Android native code
+        working-directory: mobile
+        run: bunx expo prebuild --platform android --clean
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build Android APK
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build workspace image (with cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./perry
+          load: true
+          tags: perry:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-test
+
+      - name: Build CLI
+        run: bun run build
+
+      - name: Start agent
+        run: |
+          bun run src/index.ts agent run --port 7391 &
+          sleep 5
+          curl -s http://localhost:7391/health || (echo "Agent failed to start" && exit 1)
+
+      - name: Create test workspace
+        run: |
+          bun run src/index.ts start test
+          bun run src/index.ts list
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api-34-${{ runner.os }}
+
+      - name: Create AVD and generate snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: echo "Generated AVD snapshot for caching"
+
+      - name: Run Maestro tests on Android
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            # Install APK
+            adb install mobile/android/app/build/outputs/apk/release/app-release.apk
+
+            # Wait for app to be ready
+            sleep 5
+
+            # Take debug screenshot
+            adb exec-out screencap -p > /tmp/android-before-test.png || true
+
+            # Run Maestro tests (exclude chat tests for now to compare with iOS)
+            $HOME/.maestro/bin/maestro test mobile/.maestro/flows/ --exclude-tags=chat --format junit --output mobile/maestro-android-report.xml
+        env:
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 120000
+
+      - name: Upload debug screenshot
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: android-debug-screenshot
+          path: /tmp/android-before-test.png
+          retention-days: 7
+
+      - name: Upload Maestro report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maestro-android-report
+          path: mobile/maestro-android-report.xml
+          retention-days: 7
+
+      - name: Upload Maestro screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: maestro-android-screenshots
+          path: ~/.maestro/tests/
+          retention-days: 7
