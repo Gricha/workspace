@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, expect, test, beforeEach, afterEach } from 'vitest';
 import {
   SessionMonitor,
   MONITOR_PRESETS,
