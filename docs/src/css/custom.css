@@ -668,3 +668,23 @@ td code {
   color: var(--perry-accent);
   font-size: 0.875em;
 }
+
+/* ============================================
+   GITHUB LINK IN NAVBAR
+   ============================================ */
+.header-github-link::before {
+  content: '';
+  width: 24px;
+  height: 24px;
+  display: flex;
+  background: url('/img/github-mark.png') no-repeat center center;
+  background-size: 24px 24px;
+}
+
+[data-theme='dark'] .header-github-link::before {
+  filter: invert(1);
+}
+
+.header-github-link:hover {
+  opacity: 0.7;
+}
