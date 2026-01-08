@@ -145,13 +145,7 @@ export class OpenCodeServerSession {
     try {
       const result = await execInContainer(
         this.containerName,
-        [
-          'curl',
-          '-s',
-          '--max-time',
-          '5',
-          `http://localhost:${port}/session/status`,
-        ],
+        ['curl', '-s', '--max-time', '5', `http://localhost:${port}/session/status`],
         { user: 'workspace' }
       );
 
@@ -210,7 +204,9 @@ export class OpenCodeServerSession {
       if (this.sessionId) {
         const sessionExists = await this.verifySession(port);
         if (!sessionExists) {
-          console.log(`[opencode-server] Session ${this.sessionId} no longer exists, creating new one`);
+          console.log(
+            `[opencode-server] Session ${this.sessionId} no longer exists, creating new one`
+          );
           this.sessionId = undefined;
           this.onMessage({
             type: 'system',
@@ -278,7 +274,10 @@ export class OpenCodeServerSession {
 
       // Wait for SSE stream to be ready with timeout
       const readyTimeout = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout waiting for connection to OpenCode server')), SSE_READY_TIMEOUT_MS);
+        setTimeout(
+          () => reject(new Error('Timeout waiting for connection to OpenCode server')),
+          SSE_READY_TIMEOUT_MS
+        );
       });
 
       try {
@@ -325,7 +324,9 @@ export class OpenCodeServerSession {
       if (httpStatus && !httpStatus.startsWith('2')) {
         this.cleanup();
         const errorBody = lines.join('\n');
-        throw new Error(`OpenCode server error (HTTP ${httpStatus}): ${errorBody || 'Unknown error'}`);
+        throw new Error(
+          `OpenCode server error (HTTP ${httpStatus}): ${errorBody || 'Unknown error'}`
+        );
       }
 
       // Wait for the response stream to complete
@@ -437,7 +438,9 @@ export class OpenCodeServerSession {
       this.heartbeatTimer = setInterval(() => {
         const timeSinceLastHeartbeat = Date.now() - this.lastHeartbeat;
         if (timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT_MS) {
-          console.error(`[opencode-server] No heartbeat received for ${timeSinceLastHeartbeat}ms, connection may be lost`);
+          console.error(
+            `[opencode-server] No heartbeat received for ${timeSinceLastHeartbeat}ms, connection may be lost`
+          );
           this.streamError = new Error('Connection to OpenCode server lost (no heartbeat)');
           this.onMessage({
             type: 'error',

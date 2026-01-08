@@ -1,5 +1,10 @@
 import { describe, expect, test, beforeEach, afterEach, mock } from 'bun:test';
-import { SessionMonitor, MONITOR_PRESETS, formatErrorMessage, withTimeout } from '../../src/chat/session-monitor';
+import {
+  SessionMonitor,
+  MONITOR_PRESETS,
+  formatErrorMessage,
+  withTimeout,
+} from '../../src/chat/session-monitor';
 import type { ChatMessage } from '../../src/chat/types';
 
 describe('SessionMonitor', () => {

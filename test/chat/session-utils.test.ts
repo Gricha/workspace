@@ -14,7 +14,12 @@ describe('OpenCodeSessionVerifier', () => {
       exitCode: 0,
     }));
 
-    const verifier = new OpenCodeSessionVerifier('test-session-id', 'test-container', 8080, mockExec);
+    const verifier = new OpenCodeSessionVerifier(
+      'test-session-id',
+      'test-container',
+      8080,
+      mockExec
+    );
 
     const result = await verifier.verify();
 
@@ -30,7 +35,12 @@ describe('OpenCodeSessionVerifier', () => {
       exitCode: 0,
     }));
 
-    const verifier = new OpenCodeSessionVerifier('test-session-id', 'test-container', 8080, mockExec);
+    const verifier = new OpenCodeSessionVerifier(
+      'test-session-id',
+      'test-container',
+      8080,
+      mockExec
+    );
 
     const result = await verifier.verify();
 
@@ -42,7 +52,12 @@ describe('OpenCodeSessionVerifier', () => {
       throw new Error('Container not running');
     });
 
-    const verifier = new OpenCodeSessionVerifier('test-session-id', 'test-container', 8080, mockExec);
+    const verifier = new OpenCodeSessionVerifier(
+      'test-session-id',
+      'test-container',
+      8080,
+      mockExec
+    );
 
     const result = await verifier.verify();
 
@@ -71,7 +86,12 @@ describe('OpenCodeSessionVerifier', () => {
       exitCode: 0,
     }));
 
-    const verifier = new OpenCodeSessionVerifier('test-session-id', 'test-container', 8080, mockExec);
+    const verifier = new OpenCodeSessionVerifier(
+      'test-session-id',
+      'test-container',
+      8080,
+      mockExec
+    );
 
     const status = await verifier.getStatus();
 
@@ -86,7 +106,12 @@ describe('OpenCodeSessionVerifier', () => {
       exitCode: 0,
     }));
 
-    const verifier = new OpenCodeSessionVerifier('test-session-id', 'test-container', 8080, mockExec);
+    const verifier = new OpenCodeSessionVerifier(
+      'test-session-id',
+      'test-container',
+      8080,
+      mockExec
+    );
 
     const status = await verifier.getStatus();
 
@@ -99,7 +124,12 @@ describe('OpenCodeSessionVerifier', () => {
       exitCode: 0,
     }));
 
-    const verifier = new OpenCodeSessionVerifier('test-session-id', 'test-container', 8080, mockExec);
+    const verifier = new OpenCodeSessionVerifier(
+      'test-session-id',
+      'test-container',
+      8080,
+      mockExec
+    );
 
     const status = await verifier.getStatus();
 
@@ -111,7 +141,12 @@ describe('OpenCodeSessionVerifier', () => {
       throw new Error('Network error');
     });
 
-    const verifier = new OpenCodeSessionVerifier('test-session-id', 'test-container', 8080, mockExec);
+    const verifier = new OpenCodeSessionVerifier(
+      'test-session-id',
+      'test-container',
+      8080,
+      mockExec
+    );
 
     const status = await verifier.getStatus();
 
@@ -185,7 +220,12 @@ describe('verifyAndNotify', () => {
     const messages: ChatMessage[] = [];
     let expiredCalled = false;
 
-    const verifier = new OpenCodeSessionVerifier('test-session-id', 'test-container', 8080, mockExec);
+    const verifier = new OpenCodeSessionVerifier(
+      'test-session-id',
+      'test-container',
+      8080,
+      mockExec
+    );
 
     const result = await verifier.verifyAndNotify({
       onMessage: (msg) => messages.push(msg),
@@ -217,7 +257,12 @@ describe('verifyAndNotify', () => {
     const messages: ChatMessage[] = [];
     let busyCalled = false;
 
-    const verifier = new OpenCodeSessionVerifier('test-session-id', 'test-container', 8080, mockExec);
+    const verifier = new OpenCodeSessionVerifier(
+      'test-session-id',
+      'test-container',
+      8080,
+      mockExec
+    );
 
     const result = await verifier.verifyAndNotify({
       onMessage: (msg) => messages.push(msg),
@@ -248,7 +293,12 @@ describe('verifyAndNotify', () => {
 
     const messages: ChatMessage[] = [];
 
-    const verifier = new OpenCodeSessionVerifier('test-session-id', 'test-container', 8080, mockExec);
+    const verifier = new OpenCodeSessionVerifier(
+      'test-session-id',
+      'test-container',
+      8080,
+      mockExec
+    );
 
     const result = await verifier.verifyAndNotify({
       onMessage: (msg) => messages.push(msg),
@@ -266,7 +316,12 @@ describe('verifyAndNotify', () => {
 
     const messages: ChatMessage[] = [];
 
-    const verifier = new OpenCodeSessionVerifier('test-session-id', 'test-container', 8080, mockExec);
+    const verifier = new OpenCodeSessionVerifier(
+      'test-session-id',
+      'test-container',
+      8080,
+      mockExec
+    );
 
     const result = await verifier.verifyAndNotify({
       onMessage: (msg) => messages.push(msg),
