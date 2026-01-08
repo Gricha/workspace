@@ -12,6 +12,8 @@ import {
   Keyboard,
   ActionSheetIOS,
   Animated,
+  AppState,
+  type AppStateStatus,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
@@ -312,6 +314,33 @@ export function SessionChatScreen({ route, navigation }: any) {
       hideSub.remove()
     }
   }, [])
+
+  const reloadMessages = useCallback(async () => {
+    if (!currentSessionId) return
+    try {
+      const fresh = await api.getSession(workspaceName, currentSessionId, agentType, MESSAGES_PER_PAGE, 0)
+      if (fresh?.messages) {
+        const converted = parseMessages(fresh.messages)
+        setMessages(converted)
+        setHasMoreMessages(fresh.hasMore || false)
+        setMessageOffset(fresh.messages.length)
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 100)
+      }
+    } catch {}
+  }, [currentSessionId, workspaceName, agentType, parseMessages])
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (nextState === 'active') {
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+          wsRef.current?.close()
+          connect()
+          reloadMessages()
+        }
+      }
+    })
+    return () => subscription.remove()
+  }, [connect, reloadMessages])
 
   const generateId = useCallback(() => {
     messageIdCounter.current += 1

@@ -595,6 +595,38 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
     }
   }, [connect])
 
+  const reloadMessages = useCallback(async () => {
+    if (!sessionId || !workspaceName) return
+    try {
+      const detail = await api.getSession(workspaceName, sessionId, agentType, MESSAGES_PER_PAGE, 0)
+      if (detail?.messages) {
+        const historicalMessages = parseMessages(detail.messages as SessionMessage[])
+        setMessages(historicalMessages)
+        setHasMoreMessages(detail.hasMore)
+        setMessageOffset(MESSAGES_PER_PAGE)
+        setTimeout(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
+          }
+        }, 100)
+      }
+    } catch {}
+  }, [sessionId, workspaceName, agentType, parseMessages])
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+          wsRef.current?.close()
+          connect()
+          reloadMessages()
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [connect, reloadMessages])
+
   useEffect(() => {
     onConnectionChange?.(isConnected)
   }, [isConnected, onConnectionChange])

@@ -130,10 +130,6 @@ export abstract class BaseChatWebSocketServer<
     });
 
     ws.on('close', () => {
-      const conn = this.connections.get(ws);
-      if (conn?.session) {
-        conn.session.interrupt().catch(() => {});
-      }
       this.connections.delete(ws);
     });
 
