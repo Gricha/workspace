@@ -101,7 +101,6 @@ const client = createORPCClient<{
   info: () => Promise<InfoResponse>
   host: {
     info: () => Promise<HostInfo>
-    updateAccess: (input: { enabled: boolean }) => Promise<HostInfo>
   }
   config: {
     credentials: {

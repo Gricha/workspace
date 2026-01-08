@@ -187,7 +187,6 @@ function createClient() {
     info: () => Promise<InfoResponse>
     host: {
       info: () => Promise<HostInfo>
-      updateAccess: (input: { enabled: boolean }) => Promise<HostInfo>
     }
     config: {
       credentials: {
@@ -268,7 +267,6 @@ export const api = {
     client.sessions.recordAccess({ workspaceName, sessionId, agentType }),
   getInfo: () => client.info(),
   getHostInfo: () => client.host.info(),
-  updateHostAccess: (enabled: boolean) => client.host.updateAccess({ enabled }),
   getCredentials: () => client.config.credentials.get(),
   updateCredentials: (data: Credentials) => client.config.credentials.update(data),
   getScripts: () => client.config.scripts.get(),
