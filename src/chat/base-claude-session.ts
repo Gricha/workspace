@@ -1,5 +1,6 @@
 import type { ChatProcess, ClaudeStreamMessage, MessageCallback, SpawnConfig } from './types';
 import { DEFAULT_CLAUDE_MODEL } from '../shared/constants';
+import { SessionMonitor, MONITOR_PRESETS, formatErrorMessage } from './session-monitor';
 
 export abstract class BaseClaudeSession {
   protected process: ChatProcess | null = null;
@@ -8,6 +9,7 @@ export abstract class BaseClaudeSession {
   protected sessionModel: string;
   protected onMessage: MessageCallback;
   protected buffer: string = '';
+  private monitor: SessionMonitor | null = null;
 
   constructor(
     sessionId: string | undefined,
@@ -35,6 +37,31 @@ export abstract class BaseClaudeSession {
       timestamp: new Date().toISOString(),
     });
 
+    // Create monitor with activity tracking to detect frozen subprocesses
+    this.monitor = new SessionMonitor(
+      {
+        ...MONITOR_PRESETS.claudeCode,
+        activityTimeout: 60000, // Detect if no output for 60s
+      },
+      {
+        onError: this.onMessage,
+        onTimeout: () => {
+          if (this.process) {
+            console.warn(`[${logPrefix}] Killing process due to timeout`);
+            this.process.kill();
+          }
+        },
+        onActivityTimeout: () => {
+          if (this.process) {
+            console.warn(`[${logPrefix}] Killing process due to inactivity`);
+            this.process.kill();
+          }
+        },
+      }
+    );
+
+    this.monitor.start();
+
     try {
       const proc = Bun.spawn(command, {
         stdin: 'ignore',
@@ -57,11 +84,23 @@ export abstract class BaseClaudeSession {
       let receivedAnyOutput = false;
 
       for await (const chunk of proc.stdout) {
+        // Mark activity so monitor knows subprocess is alive
+        if (this.monitor) {
+          this.monitor.markActivity();
+        }
+
         const text = decoder.decode(chunk);
         console.log(`[${logPrefix}] Received chunk:`, text.length, 'bytes');
         receivedAnyOutput = true;
         this.buffer += text;
         this.processBuffer();
+
+        // Check if monitor has timed out
+        if (this.monitor?.isCompleted()) {
+          console.warn(`[${logPrefix}] Monitor timeout, breaking from output loop`);
+          proc.kill();
+          break;
+        }
       }
 
       const exitCode = await proc.exited;
@@ -72,15 +111,28 @@ export abstract class BaseClaudeSession {
         receivedAnyOutput
       );
 
+      // Stop monitoring before handling results
+      if (this.monitor && !this.monitor.isCompleted()) {
+        this.monitor.complete();
+      }
+
       const stderrText = await stderrPromise;
       if (stderrText) {
         console.error(`[${logPrefix}] stderr:`, stderrText);
       }
 
+      // Don't send error if monitor already sent one
+      if (this.monitor?.isCompleted()) {
+        return;
+      }
+
       if (exitCode !== 0) {
         this.onMessage({
           type: 'error',
-          content: stderrText || `Claude exited with code ${exitCode}`,
+          content: formatErrorMessage(
+            new Error(stderrText || `Claude exited with code ${exitCode}`),
+            'Claude Code'
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
@@ -104,10 +156,13 @@ export abstract class BaseClaudeSession {
       console.error(`[${logPrefix}] Error:`, err);
       this.onMessage({
         type: 'error',
-        content: (err as Error).message,
+        content: formatErrorMessage(err, 'Claude Code'),
         timestamp: new Date().toISOString(),
       });
     } finally {
+      if (this.monitor) {
+        this.monitor.complete();
+      }
       this.process = null;
     }
   }
@@ -175,6 +230,9 @@ export abstract class BaseClaudeSession {
   }
 
   async interrupt(): Promise<void> {
+    if (this.monitor) {
+      this.monitor.complete();
+    }
     if (this.process) {
       this.process.kill();
       this.process = null;
