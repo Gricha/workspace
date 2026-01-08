@@ -147,6 +147,22 @@ perry shell myproject
 
 Uses direct Docker exec for local agents, WebSocket for remote agents.
 
+### `perry clone <source> <clone-name>`
+
+Clone an existing workspace with all its data.
+
+```bash
+perry clone myproject myproject-copy
+```
+
+This creates a new workspace by:
+- Copying the home volume (all files in `/home/workspace`)
+- Copying the Docker-in-Docker volume
+- Creating a new container with copied volumes
+- Assigning a new SSH port
+
+The source workspace is temporarily stopped during cloning to ensure data consistency.
+
 ### `perry sync <name>`
 
 Re-sync credentials and files to a running workspace.

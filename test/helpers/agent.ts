@@ -33,6 +33,10 @@ interface ApiClient {
   info(): Promise<InfoResponse & { terminalConnections?: number }>;
   listWorkspaces(): Promise<WorkspaceInfo[]>;
   createWorkspace(data: CreateWorkspaceRequest): Promise<ApiResponse<WorkspaceInfo | ApiError>>;
+  cloneWorkspace(
+    sourceName: string,
+    cloneName: string
+  ): Promise<ApiResponse<WorkspaceInfo | ApiError>>;
   getWorkspace(name: string): Promise<WorkspaceInfo | null>;
   deleteWorkspace(name: string): Promise<{ status: number }>;
   startWorkspace(name: string): Promise<ApiResponse<WorkspaceInfo | ApiError>>;
@@ -129,6 +133,23 @@ export function createApiClient(baseUrl: string): ApiClient {
     ): Promise<ApiResponse<WorkspaceInfo | ApiError>> {
       try {
         const workspace = await client.workspaces.create(data);
+        return { status: 201, data: workspace };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        const orpcErr = err as { code?: string; status?: number };
+        return {
+          status: orpcErr.status || 500,
+          data: { error: message, code: orpcErr.code } as ApiError,
+        };
+      }
+    },
+
+    async cloneWorkspace(
+      sourceName: string,
+      cloneName: string
+    ): Promise<ApiResponse<WorkspaceInfo | ApiError>> {
+      try {
+        const workspace = await client.workspaces.clone({ sourceName, cloneName });
         return { status: 201, data: workspace };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';

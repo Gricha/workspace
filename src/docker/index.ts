@@ -483,3 +483,33 @@ export async function getLogs(
   const { stdout, stderr } = await docker(args);
   return stdout + stderr;
 }
+
+export async function cloneVolume(sourceVolume: string, destVolume: string): Promise<void> {
+  if (!(await volumeExists(sourceVolume))) {
+    throw new Error(`Source volume '${sourceVolume}' does not exist`);
+  }
+
+  if (await volumeExists(destVolume)) {
+    throw new Error(`Volume '${destVolume}' already exists`);
+  }
+
+  await createVolume(destVolume);
+
+  try {
+    await docker([
+      'run',
+      '--rm',
+      '-v',
+      `${sourceVolume}:/source:ro`,
+      '-v',
+      `${destVolume}:/dest`,
+      'alpine',
+      'sh',
+      '-c',
+      'cp -a /source/. /dest/',
+    ]);
+  } catch (err) {
+    await removeVolume(destVolume, true).catch(() => {});
+    throw new Error(`Failed to clone volume: ${(err as Error).message}`);
+  }
+}

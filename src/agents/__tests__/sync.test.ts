@@ -14,6 +14,7 @@ function createMockContext(overrides: Partial<SyncContext> = {}): SyncContext {
     hostFileExists: async () => false,
     hostDirExists: async () => false,
     readHostFile: async () => null,
+    readContainerFile: async () => null,
     ...overrides,
   };
 }

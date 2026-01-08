@@ -283,6 +283,22 @@ export function createRouter(ctx: RouterContext) {
       }
     });
 
+  const cloneWorkspace = os
+    .input(
+      z.object({
+        sourceName: z.string(),
+        cloneName: z.string(),
+      })
+    )
+    .output(WorkspaceInfoSchema)
+    .handler(async ({ input }) => {
+      try {
+        return await ctx.workspaces.clone(input.sourceName, input.cloneName);
+      } catch (err) {
+        mapErrorToORPC(err, 'Failed to clone workspace');
+      }
+    });
+
   const getInfo = os.handler(async () => {
     let dockerVersion = 'unknown';
     try {
@@ -1080,6 +1096,7 @@ export function createRouter(ctx: RouterContext) {
       list: listWorkspaces,
       get: getWorkspace,
       create: createWorkspace,
+      clone: cloneWorkspace,
       delete: deleteWorkspace,
       start: startWorkspace,
       stop: stopWorkspace,

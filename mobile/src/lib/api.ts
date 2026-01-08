@@ -156,6 +156,7 @@ function createClient() {
       logs: (input: { name: string; tail?: number }) => Promise<string>
       sync: (input: { name: string }) => Promise<{ success: boolean }>
       syncAll: () => Promise<{ synced: number; failed: number; results: { name: string; success: boolean; error?: string }[] }>
+      clone: (input: { sourceName: string; cloneName: string }) => Promise<WorkspaceInfo>
     }
     sessions: {
       list: (input: {
@@ -236,6 +237,8 @@ export const api = {
   getLogs: (name: string, tail = 100) => client.workspaces.logs({ name, tail }),
   syncWorkspace: (name: string) => client.workspaces.sync({ name }),
   syncAllWorkspaces: () => client.workspaces.syncAll(),
+  cloneWorkspace: (sourceName: string, cloneName: string) =>
+    client.workspaces.clone({ sourceName, cloneName }),
   listSessions: (workspaceName: string, agentType?: AgentType, limit?: number, offset?: number) =>
     client.sessions.list({ workspaceName, agentType, limit, offset }),
   listAllSessions: (agentType?: AgentType, limit?: number, offset?: number) =>

@@ -9,6 +9,7 @@ import { opencodeSync } from './sync/opencode';
 import { codexSync } from './sync/codex';
 import { createDockerFileCopier } from './sync/copier';
 import { expandPath } from '../config/loader';
+import * as docker from '../docker';
 
 export const agents: Record<AgentType, Agent> = {
   'claude-code': {
@@ -57,6 +58,20 @@ export function createSyncContext(containerName: string, agentConfig: AgentConfi
       try {
         const expanded = expandPath(filePath);
         return await fs.readFile(expanded, 'utf-8');
+      } catch {
+        return null;
+      }
+    },
+
+    async readContainerFile(filePath: string): Promise<string | null> {
+      try {
+        const result = await docker.execInContainer(containerName, ['cat', filePath], {
+          user: 'workspace',
+        });
+        if (result.exitCode !== 0) {
+          return null;
+        }
+        return result.stdout;
       } catch {
         return null;
       }
@@ -168,6 +183,7 @@ export function getCredentialFilePaths(): string[] {
       hostFileExists: async () => false,
       hostDirExists: async () => false,
       readHostFile: async () => null,
+      readContainerFile: async () => null,
     };
 
     const filesPromise = agent.sync.getFilesToSync(dummyContext);

@@ -32,6 +32,7 @@ export interface SyncContext {
   hostFileExists: (path: string) => Promise<boolean>;
   hostDirExists: (path: string) => Promise<boolean>;
   readHostFile: (path: string) => Promise<string | null>;
+  readContainerFile: (path: string) => Promise<string | null>;
 }
 
 export interface SyncResult {

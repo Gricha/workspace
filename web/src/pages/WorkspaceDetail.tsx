@@ -16,6 +16,7 @@ import {
   Bot,
   Loader2,
   Copy,
+  CopyPlus,
   Check,
   Info,
   AlertTriangle,
@@ -348,6 +349,8 @@ export function WorkspaceDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
   const [deleteSessionDialog, setDeleteSessionDialog] = useState<SessionInfo | null>(null)
+  const [showCloneDialog, setShowCloneDialog] = useState(false)
+  const [cloneName, setCloneName] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
 
@@ -435,6 +438,16 @@ export function WorkspaceDetail() {
 
   const syncMutation = useMutation({
     mutationFn: () => api.syncWorkspace(name!),
+  })
+
+  const cloneMutation = useMutation({
+    mutationFn: (cloneName: string) => api.cloneWorkspace(name!, cloneName),
+    onSuccess: (newWorkspace) => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      setShowCloneDialog(false)
+      setCloneName('')
+      navigate(`/workspaces/${encodeURIComponent(newWorkspace.name)}`)
+    },
   })
 
   const deleteSessionMutation = useMutation({
@@ -653,18 +666,30 @@ export function WorkspaceDetail() {
           ))}
         </div>
         {tabs.some(tab => tab.id === 'settings') && (
-          <button
-            onClick={() => setTab('settings')}
-            className={cn(
-              'ml-auto p-2 rounded-md transition-colors',
-              currentTab === 'settings'
-                ? 'text-foreground bg-accent'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-            )}
-            title="Settings"
-          >
-            <Settings className="h-5 w-5" />
-          </button>
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              onClick={() => {
+                setShowCloneDialog(true)
+                setCloneName('')
+              }}
+              className="p-2 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              title="Clone workspace"
+            >
+              <CopyPlus className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setTab('settings')}
+              className={cn(
+                'p-2 rounded-md transition-colors',
+                currentTab === 'settings'
+                  ? 'text-foreground bg-accent'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+              )}
+              title="Settings"
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -935,6 +960,48 @@ export function WorkspaceDetail() {
                 </CardContent>
               </Card>
 
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CopyPlus className="h-4 w-4 text-muted-foreground" />
+                    Clone Workspace
+                  </CardTitle>
+                  <CardDescription>
+                    Create a copy of this workspace with all its data
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
+                    <div>
+                      <p className="font-medium text-sm">Clone</p>
+                      <p className="text-sm text-muted-foreground">
+                        Creates a new workspace with copied volumes and configuration
+                      </p>
+                      {cloneMutation.error && (
+                        <p className="text-sm text-destructive mt-1">
+                          {(cloneMutation.error as Error).message || 'Clone failed'}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowCloneDialog(true)
+                        setCloneName('')
+                      }}
+                      disabled={cloneMutation.isPending}
+                    >
+                      {cloneMutation.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <CopyPlus className="mr-2 h-4 w-4" />
+                      )}
+                      {cloneMutation.isPending ? 'Cloning...' : 'Clone'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               <PortForwardsCard workspaceName={name!} currentPorts={workspace.ports.forwards || []} />
 
               <Card className="border-destructive/30">
@@ -1079,6 +1146,57 @@ export function WorkspaceDetail() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteSessionMutation.isPending ? 'Deleting...' : 'Delete Session'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showCloneDialog} onOpenChange={(open) => !open && setShowCloneDialog(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clone Workspace</AlertDialogTitle>
+            <AlertDialogDescription>
+              Create a copy of <span className="font-mono font-semibold text-foreground">{workspace?.name}</span> with all its data.
+              The source workspace will be temporarily stopped during cloning.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="clone-name" className="text-sm text-muted-foreground">
+              New workspace name
+            </Label>
+            <Input
+              id="clone-name"
+              value={cloneName}
+              onChange={(e) => setCloneName(e.target.value)}
+              placeholder="e.g., my-project-copy"
+              className="mt-2"
+              autoComplete="off"
+              data-testid="clone-name-input"
+            />
+            {cloneMutation.error && (
+              <p className="text-sm text-destructive mt-2">
+                {(cloneMutation.error as Error).message || 'Clone failed'}
+              </p>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowCloneDialog(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (cloneName.trim()) {
+                  cloneMutation.mutate(cloneName.trim())
+                }
+              }}
+              disabled={!cloneName.trim() || cloneMutation.isPending}
+            >
+              {cloneMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cloning...
+                </>
+              ) : (
+                'Clone Workspace'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
