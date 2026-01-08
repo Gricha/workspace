@@ -1,21 +1,41 @@
 # syntax=docker/dockerfile:1
 # Workspace Ubuntu Noble Dockerfile
 # Provides a reusable Docker-in-Docker environment with SSH access.
-# Migrated from Alpine to Ubuntu Noble (24.04 LTS)
 
+# Stage 1: Build Neovim from source
+FROM ubuntu:noble AS neovim-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ninja-build \
+    gettext \
+    cmake \
+    build-essential \
+    curl \
+    ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 --branch v0.11.4 https://github.com/neovim/neovim.git /tmp/neovim \
+  && cd /tmp/neovim \
+  && make CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFIX=/usr/local \
+  && make install \
+  && rm -rf /tmp/neovim
+
+# Stage 2: Final image
 FROM ubuntu:noble
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisites for adding Docker repository
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     gnupg \
-    lsb-release
+    lsb-release \
+  && rm -rf /var/lib/apt/lists/*
 
 # Add Docker's official GPG key and repository
 RUN install -m 0755 -d /etc/apt/keyrings \
@@ -25,9 +45,7 @@ RUN install -m 0755 -d /etc/apt/keyrings \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 # Install Docker Engine, CLI, and development tools
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     docker-ce \
     docker-ce-cli \
     containerd.io \
@@ -46,6 +64,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     rsync \
     unzip \
     zip \
+    less \
     nano \
     vim \
     iproute2 \
@@ -59,19 +78,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     zsh \
     luarocks \
     imagemagick \
-    ninja-build \
-    gettext \
-    cmake \
-    build-essential
+  && rm -rf /var/lib/apt/lists/*
 
-# Build Neovim v0.11.4 from source
-RUN git clone --depth 1 --branch v0.11.4 https://github.com/neovim/neovim.git /tmp/neovim \
-  && cd /tmp/neovim \
-  && make CMAKE_BUILD_TYPE=RelWithDebInfo \
-  && make install \
-  && cd / \
-  && rm -rf /tmp/neovim \
-  && nvim --version
+# Copy Neovim from builder stage
+COPY --from=neovim-builder /usr/local/bin/nvim /usr/local/bin/nvim
+COPY --from=neovim-builder /usr/local/lib/nvim /usr/local/lib/nvim
+COPY --from=neovim-builder /usr/local/share/nvim /usr/local/share/nvim
 
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
   && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
@@ -124,10 +136,6 @@ ENV BUN_INSTALL=/usr/local
 RUN bash -lc "curl -fsSL https://bun.sh/install | bash" \
   && bun --version
 
-RUN curl -fsSL https://deno.land/install.sh | sh \
-  && mv /root/.deno/bin/deno /usr/local/bin/deno \
-  && deno --version
-
 RUN ARCH=$(dpkg --print-architecture) \
   && if [ "$ARCH" = "amd64" ]; then GO_ARCH="amd64"; elif [ "$ARCH" = "arm64" ]; then GO_ARCH="arm64"; else GO_ARCH="$ARCH"; fi \
   && curl -fsSL "https://go.dev/dl/go1.23.4.linux-${GO_ARCH}.tar.gz" -o /tmp/go.tar.gz \
@@ -136,14 +144,6 @@ RUN ARCH=$(dpkg --print-architecture) \
   && /usr/local/go/bin/go version
 
 ENV PATH="/usr/local/go/bin:${PATH}"
-
-RUN ARCH=$(dpkg --print-architecture) \
-  && if [ "$ARCH" = "amd64" ]; then LAZYGIT_ARCH="x86_64"; elif [ "$ARCH" = "arm64" ]; then LAZYGIT_ARCH="arm64"; else LAZYGIT_ARCH="$ARCH"; fi \
-  && LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') \
-  && curl -fsSL "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_${LAZYGIT_ARCH}.tar.gz" -o /tmp/lazygit.tar.gz \
-  && tar -C /usr/local/bin -xzf /tmp/lazygit.tar.gz lazygit \
-  && rm /tmp/lazygit.tar.gz \
-  && lazygit --version
 
 RUN ARCH=$(dpkg --print-architecture) \
   && if [ "$ARCH" = "amd64" ]; then TECTONIC_ARCH="x86_64-unknown-linux-musl"; elif [ "$ARCH" = "arm64" ]; then TECTONIC_ARCH="aarch64-unknown-linux-musl"; else TECTONIC_ARCH="$ARCH"; fi \
@@ -164,8 +164,7 @@ RUN useradd -m -s /bin/bash workspace \
 USER workspace
 RUN mkdir -p /home/workspace/.npm-global \
   && npm config set prefix '/home/workspace/.npm-global' \
-  && npm install -g yarn \
-  && npm install -g @mermaid-js/mermaid-cli
+  && npm install -g yarn
 
 USER root
 ENV PATH="/home/workspace/.npm-global/bin:/root/.local/bin:/home/workspace/.local/bin:${PATH}"
