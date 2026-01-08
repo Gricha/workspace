@@ -289,14 +289,11 @@ export function WorkspaceList() {
                   autoFocus
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Repository <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                <RepoSelector
-                  value={newRepo}
-                  onChange={setNewRepo}
-                  placeholder="https://github.com/user/repo"
-                />
-              </div>
+              <RepoSelector
+                value={newRepo}
+                onChange={setNewRepo}
+                placeholder="https://github.com/user/repo"
+              />
               <div className="flex gap-2 pt-2">
                 <Button type="submit" disabled={createMutation.isPending || !newName.trim()}>
                   {createMutation.isPending ? 'Creating...' : 'Create Workspace'}

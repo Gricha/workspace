@@ -25,6 +25,7 @@ export function RepoSelector({
   placeholder = 'https://github.com/user/repo',
 }: RepoSelectorProps) {
   const { colors } = useTheme()
+  const [mode, setMode] = useState<'github' | 'manual'>('github')
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -51,42 +52,21 @@ export function RepoSelector({
     setSearch('')
   }
 
-  if (!isConfigured) {
-    return (
-      <TextInput
-        style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textMuted}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="url"
-      />
-    )
+  const switchToManual = () => {
+    setMode('manual')
+    setIsOpen(false)
+    setSearch('')
   }
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.fieldGroup}>
-        <View style={styles.labelRow}>
-          <Text style={[styles.githubIcon, { color: colors.text }]}>GH</Text>
-          <Text style={[styles.label, { color: colors.textMuted }]}>Search your repositories</Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.searchButton, { backgroundColor: colors.surface }]}
-          onPress={() => setIsOpen(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.searchIcon, { color: colors.textMuted }]}>🔍</Text>
-          <Text style={[styles.searchPlaceholder, { color: colors.textMuted }]}>
-            Search repositories...
-          </Text>
-        </TouchableOpacity>
-      </View>
+  const switchToGithub = () => {
+    setMode('github')
+    onChange('')
+  }
 
-      <View style={styles.fieldGroup}>
-        <Text style={[styles.label, { color: colors.textMuted }]}>Or enter URL directly</Text>
+  if (!isConfigured) {
+    return (
+      <View>
+        <Text style={[styles.label, { color: colors.textMuted }]}>Repository (optional)</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
           value={value}
@@ -98,6 +78,51 @@ export function RepoSelector({
           keyboardType="url"
         />
       </View>
+    )
+  }
+
+  if (mode === 'manual') {
+    return (
+      <View>
+        <Text style={[styles.label, { color: colors.textMuted }]}>Repository (optional)</Text>
+        <TextInput
+          style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
+          value={value}
+          onChangeText={onChange}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textMuted}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+        />
+        <TouchableOpacity onPress={switchToGithub} style={styles.switchButton}>
+          <Text style={[styles.githubIcon, { color: colors.textMuted }]}>GH</Text>
+          <Text style={[styles.switchText, { color: colors.textMuted }]}>or select from GitHub</Text>
+        </TouchableOpacity>
+      </View>
+    )
+  }
+
+  return (
+    <View>
+      <Text style={[styles.label, { color: colors.textMuted }]}>Repository (optional)</Text>
+      <TouchableOpacity
+        style={[styles.searchButton, { backgroundColor: colors.surface }]}
+        onPress={() => setIsOpen(true)}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.githubIconLarge, { color: colors.textMuted }]}>GH</Text>
+        <Text
+          style={[styles.searchPlaceholder, { color: value ? colors.text : colors.textMuted }]}
+          numberOfLines={1}
+        >
+          {value || 'Search your repositories...'}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={switchToManual} style={styles.switchButton}>
+        <Text style={[styles.switchText, { color: colors.textMuted }]}>or type in any repository URL</Text>
+      </TouchableOpacity>
 
       <Modal
         visible={isOpen}
@@ -178,24 +203,9 @@ export function RepoSelector({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 16,
-  },
-  fieldGroup: {
-    gap: 6,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  githubIcon: {
-    fontSize: 12,
-    fontWeight: '600',
-    opacity: 0.7,
-  },
   label: {
-    fontSize: 12,
+    fontSize: 13,
+    marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -209,13 +219,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 10,
     padding: 14,
-    gap: 8,
+    gap: 10,
   },
-  searchIcon: {
+  githubIcon: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  githubIconLarge: {
     fontSize: 16,
+    fontWeight: '600',
   },
   searchPlaceholder: {
     fontSize: 17,
+    flex: 1,
+  },
+  switchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 6,
+  },
+  switchText: {
+    fontSize: 13,
   },
   modalContainer: {
     flex: 1,

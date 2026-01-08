@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Lock, Globe, Loader2, Github } from 'lucide-react'
+import { Lock, Globe, Loader2, Github } from 'lucide-react'
 import { api, type GitHubRepo } from '@/lib/api'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +12,7 @@ interface RepoSelectorProps {
 }
 
 export function RepoSelector({ value, onChange, placeholder = 'https://github.com/user/repo' }: RepoSelectorProps) {
+  const [mode, setMode] = useState<'github' | 'manual'>('github')
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -49,26 +50,60 @@ export function RepoSelector({ value, onChange, placeholder = 'https://github.co
     setSearch('')
   }
 
+  const switchToManual = () => {
+    setMode('manual')
+    setIsOpen(false)
+    setSearch('')
+  }
+
+  const switchToGithub = () => {
+    setMode('github')
+    onChange('')
+  }
+
   if (!isConfigured) {
     return (
-      <Input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
+      <div className="space-y-2">
+        <Label>Repository <span className="text-muted-foreground font-normal">(optional)</span></Label>
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
+      </div>
+    )
+  }
+
+  if (mode === 'manual') {
+    return (
+      <div className="space-y-2">
+        <Label>Repository <span className="text-muted-foreground font-normal">(optional)</span></Label>
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          data-testid="repo-input"
+        />
+        <button
+          type="button"
+          onClick={switchToGithub}
+          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+        >
+          <Github className="h-3 w-3" />
+          or select from GitHub
+        </button>
+      </div>
     )
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
+      <Label>Repository <span className="text-muted-foreground font-normal">(optional)</span></Label>
       <div ref={containerRef} className="relative">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1.5">
-          <Github className="h-3.5 w-3.5" />
-          Search your repositories
-        </Label>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Github className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
             value={search}
@@ -77,7 +112,7 @@ export function RepoSelector({ value, onChange, placeholder = 'https://github.co
               setIsOpen(true)
             }}
             onFocus={() => setIsOpen(true)}
-            placeholder="Search repositories..."
+            placeholder="Search your repositories..."
             className="pl-9"
             data-testid="repo-search"
           />
@@ -126,20 +161,21 @@ export function RepoSelector({ value, onChange, placeholder = 'https://github.co
             </div>
           </div>
         )}
+
+        {value && (
+          <div className="mt-2 text-sm text-muted-foreground">
+            Selected: <span className="font-mono text-foreground">{value}</span>
+          </div>
+        )}
       </div>
 
-      <div>
-        <Label className="text-xs text-muted-foreground mb-1.5 block">
-          Or enter URL directly
-        </Label>
-        <Input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          data-testid="repo-input"
-        />
-      </div>
+      <button
+        type="button"
+        onClick={switchToManual}
+        className="text-xs text-muted-foreground hover:text-foreground"
+      >
+        or type in any repository URL
+      </button>
     </div>
   )
 }
