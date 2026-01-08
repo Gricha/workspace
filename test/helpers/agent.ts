@@ -273,7 +273,8 @@ export async function startTestAgent(options: TestAgentOptions = {}): Promise<Te
   const configDir = await createTempConfig({ ...options.config, port });
   const baseUrl = `http://127.0.0.1:${port}`;
   // Generate a unique testId for this agent instance to scope cleanup
-  const testId = options.testId || `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const testId =
+    options.testId || `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
   const agentPath = path.join(process.cwd(), 'dist/agent/index.js');
 
