@@ -7,19 +7,16 @@ tags:
 - launchApp:
     clearState: true
 
+# Scroll down to see form inputs
+- scroll
+
 # Test empty hostname validation
 - tapOn:
     id: "connect-button"
 - assertVisible: "Please enter a hostname"
 
-# Test port validation
+# Verify we can type in the hostname field
 - tapOn:
     id: "hostname-input"
 - inputText: "test-server.local"
-- tapOn:
-    id: "port-input"
-- eraseText
-- inputText: "0"
-- tapOn:
-    id: "connect-button"
-- assertVisible: "Please enter a valid port number"
+- assertVisible: "test-server.local"

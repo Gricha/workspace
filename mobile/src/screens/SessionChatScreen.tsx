@@ -12,6 +12,7 @@ import {
   Keyboard,
   ActionSheetIOS,
   Animated,
+  AppState,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
@@ -357,10 +358,16 @@ export function SessionChatScreen({ route, navigation }: any) {
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50)
       }
     })
-    const hideSub = Keyboard.addListener('keyboardWillHide', () => setKeyboardVisible(false))
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false))
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        Keyboard.dismiss()
+      }
+    })
     return () => {
       showSub.remove()
       hideSub.remove()
+      appStateSub.remove()
     }
   }, [])
 

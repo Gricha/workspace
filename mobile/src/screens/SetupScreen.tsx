@@ -8,9 +8,14 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image,
+  Linking,
+  ScrollView,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { saveServerConfig, getDefaultPort, refreshClient, api } from '../lib/api'
+
+const SETUP_GUIDE_URL = 'https://gricha.github.io/perry/docs/introduction'
 
 interface SetupScreenProps {
   onComplete: () => void
@@ -56,67 +61,93 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
     }
   }
 
+  const handleSetupGuide = () => {
+    Linking.openURL(SETUP_GUIDE_URL)
+  }
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.logo}>Perry</Text>
-          <Text style={styles.subtitle}>Connect to your workspace server</Text>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Server Hostname</Text>
-            <TextInput
-              style={styles.input}
-              value={host}
-              onChangeText={setHost}
-              placeholder="my-server.tailnet.ts.net"
-              placeholderTextColor="#666"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              testID="hostname-input"
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.logoImage}
             />
-            <Text style={styles.hint}>Your Tailscale hostname or IP address</Text>
+            <Text style={styles.logo}>Perry</Text>
+            <Text style={styles.tagline} testID="tagline">Isolated, self-hosted workspaces{'\n'}accessible over Tailscale</Text>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Port</Text>
-            <TextInput
-              style={styles.input}
-              value={port}
-              onChangeText={setPort}
-              placeholder="7391"
-              placeholderTextColor="#666"
-              keyboardType="number-pad"
-              testID="port-input"
-            />
-          </View>
+          <View style={styles.divider} />
 
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.setupGuideCard} onPress={handleSetupGuide}>
+            <View style={styles.setupGuideContent}>
+              <Text style={styles.setupGuideTitle}>Setup Guide</Text>
+              <Text style={styles.setupGuideSubtitle}>New to Perry? Learn how to set up your server</Text>
             </View>
-          )}
-
-          <TouchableOpacity
-            style={[styles.button, isConnecting && styles.buttonDisabled]}
-            onPress={handleConnect}
-            disabled={isConnecting}
-            testID="connect-button"
-          >
-            {isConnecting ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Connect</Text>
-            )}
+            <Text style={styles.setupGuideArrow}>→</Text>
           </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <View style={styles.form}>
+            <Text style={styles.formHeader}>Already have a server?</Text>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Server Hostname</Text>
+              <TextInput
+                style={styles.input}
+                value={host}
+                onChangeText={setHost}
+                placeholder="my-server.tailnet.ts.net"
+                placeholderTextColor="#666"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                testID="hostname-input"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Port</Text>
+              <TextInput
+                style={styles.input}
+                value={port}
+                onChangeText={setPort}
+                placeholder="7391"
+                placeholderTextColor="#666"
+                keyboardType="number-pad"
+                testID="port-input"
+              />
+            </View>
+
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.button, isConnecting && styles.buttonDisabled]}
+              onPress={handleConnect}
+              disabled={isConnecting}
+              testID="connect-button"
+            >
+              {isConnecting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Connect</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }
@@ -126,27 +157,73 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
+  },
+  content: {
     padding: 24,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 24,
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    marginBottom: 16,
   },
   logo: {
-    fontSize: 42,
+    fontSize: 36,
     fontWeight: '700',
     color: '#fff',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  subtitle: {
+  tagline: {
     fontSize: 16,
     color: '#8e8e93',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#2c2c2e',
+    marginVertical: 24,
+  },
+  setupGuideCard: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  setupGuideContent: {
+    flex: 1,
+  },
+  setupGuideTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#0a84ff',
+    marginBottom: 4,
+  },
+  setupGuideSubtitle: {
+    fontSize: 14,
+    color: '#8e8e93',
+  },
+  setupGuideArrow: {
+    fontSize: 20,
+    color: '#0a84ff',
+    marginLeft: 12,
   },
   form: {
-    gap: 20,
+    gap: 16,
+  },
+  formHeader: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#8e8e93',
+    marginBottom: 4,
   },
   inputGroup: {
     gap: 8,
@@ -162,10 +239,6 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 17,
     color: '#fff',
-  },
-  hint: {
-    fontSize: 13,
-    color: '#8e8e93',
   },
   errorContainer: {
     backgroundColor: 'rgba(255, 59, 48, 0.15)',

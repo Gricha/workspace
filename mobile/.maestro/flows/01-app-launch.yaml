@@ -9,7 +9,8 @@ tags:
 
 # On fresh install, should show setup screen with Perry branding
 - assertVisible: "Perry"
-- assertVisible: "Connect to your workspace server"
+- assertVisible:
+    id: "tagline"
 - assertVisible:
     id: "hostname-input"
 - assertVisible:
