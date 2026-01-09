@@ -174,6 +174,10 @@ export class ClaudeCodeAdapter implements AgentAdapter {
 
     if (msg.type === 'system' && msg.subtype === 'init') {
       this.agentSessionId = msg.session_id;
+      // Trigger status callback so manager can update session.info.agentSessionId
+      if (this.statusCallback) {
+        this.statusCallback(this.status);
+      }
       this.emitMessage({
         type: 'system',
         content: `Session started: ${msg.session_id?.slice(0, 8)}...`,

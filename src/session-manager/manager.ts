@@ -278,6 +278,21 @@ export class SessionManager {
     return session?.info ?? null;
   }
 
+  findSession(id: string): { sessionId: string; info: SessionInfo } | null {
+    // First try direct lookup by internal sessionId
+    const direct = this.sessions.get(id);
+    if (direct) {
+      return { sessionId: id, info: direct.info };
+    }
+    // Then search by agentSessionId (Claude session ID)
+    for (const [sessionId, session] of this.sessions) {
+      if (session.info.agentSessionId === id) {
+        return { sessionId, info: session.info };
+      }
+    }
+    return null;
+  }
+
   getSessionStatus(sessionId: string): SessionStatus | null {
     const session = this.sessions.get(sessionId);
     return session?.info.status ?? null;

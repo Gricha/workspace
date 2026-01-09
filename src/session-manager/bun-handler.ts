@@ -140,15 +140,16 @@ export class LiveChatHandler {
     const agentType = message.agentType || this.agentType;
 
     if (message.sessionId) {
-      const existingSession = sessionManager.getSession(message.sessionId);
-      if (existingSession) {
-        connection.sessionId = message.sessionId;
+      // Look up by internal sessionId or agentSessionId (Claude session ID)
+      const found = sessionManager.findSession(message.sessionId);
+      if (found) {
+        connection.sessionId = found.sessionId;
 
         const sendFn = (msg: ChatMessage) => {
           safeSend(ws, JSON.stringify(msg));
         };
 
-        const clientId = sessionManager.connectClient(message.sessionId, sendFn, {
+        const clientId = sessionManager.connectClient(found.sessionId, sendFn, {
           resumeFromId: message.resumeFromId,
         });
 
@@ -158,9 +159,9 @@ export class LiveChatHandler {
             ws,
             JSON.stringify({
               type: 'session_joined',
-              sessionId: message.sessionId,
-              status: existingSession.status,
-              agentSessionId: existingSession.agentSessionId,
+              sessionId: found.sessionId,
+              status: found.info.status,
+              agentSessionId: found.info.agentSessionId,
               timestamp: new Date().toISOString(),
             })
           );

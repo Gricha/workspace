@@ -260,6 +260,8 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
   const [messageOffset, setMessageOffset] = useState(0)
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([])
   const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined)
+  const selectedModelRef = useRef<string | undefined>(undefined)
+  selectedModelRef.current = selectedModel
   const onSessionIdRef = useRef(onSessionId)
   onSessionIdRef.current = onSessionId
 
@@ -488,10 +490,11 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
         agentType: agentType === 'opencode' ? 'opencode' : 'claude',
       }
       if (sessionId) {
-        connectMsg.agentSessionId = sessionId
+        // Send as sessionId for session manager lookup
+        connectMsg.sessionId = sessionId
       }
-      if (selectedModel) {
-        connectMsg.model = selectedModel
+      if (selectedModelRef.current) {
+        connectMsg.model = selectedModelRef.current
       }
       if (projectPath) {
         connectMsg.projectPath = projectPath
@@ -508,11 +511,38 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
         }
 
         if (msg.type === 'session_started' || msg.type === 'session_joined') {
-          if (msg.agentSessionId) {
-            setSessionId(msg.agentSessionId)
+          // Use sessionId (internal session manager ID) for reconnection
+          // Fall back to agentSessionId for backwards compatibility
+          const newSessionId = msg.sessionId || msg.agentSessionId
+          if (newSessionId) {
+            setSessionId(newSessionId)
             hasLoadedHistoryRef.current = true
-            onSessionIdRef.current?.(msg.agentSessionId)
+            onSessionIdRef.current?.(msg.agentSessionId || newSessionId)
           }
+          // If rejoining a running session, show streaming indicator
+          if (msg.type === 'session_joined' && msg.status === 'running') {
+            setIsStreaming(true)
+            // Trigger re-render with any accumulated streaming parts
+            setStreamingParts([...streamingPartsRef.current])
+          }
+          return
+        }
+
+        // Handle replayed user messages from server (on reconnect)
+        // Skip if we already have this message (it was added locally when sent)
+        if (msg.type === 'user') {
+          setMessages(prev => {
+            const lastUserMsg = [...prev].reverse().find(m => m.type === 'user')
+            // Skip if the last user message has the same content (avoid duplicates)
+            if (lastUserMsg && lastUserMsg.content === msg.content) {
+              return prev
+            }
+            return [...prev, {
+              type: 'user',
+              content: msg.content,
+              timestamp: msg.timestamp,
+            }]
+          })
           return
         }
 
@@ -614,15 +644,18 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
 
     ws.onerror = (error) => {
       console.error('Chat WebSocket error:', error)
-      setMessages(prev => [...prev, {
-        type: 'error',
-        content: 'Connection error - is the workspace running?',
-        timestamp: new Date().toISOString(),
-      }])
+      // Only show error if connection is actually closed/closing, not during transient issues
+      if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+        setMessages(prev => [...prev, {
+          type: 'error',
+          content: 'Connection error - is the workspace running?',
+          timestamp: new Date().toISOString(),
+        }])
+      }
     }
 
     return ws
-  }, [workspaceName, agentType, finalizeStreaming, sessionId, selectedModel, projectPath])
+  }, [workspaceName, agentType, finalizeStreaming, sessionId, projectPath])
 
   useEffect(() => {
     const ws = connect()
