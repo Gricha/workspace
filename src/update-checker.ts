@@ -35,7 +35,7 @@ async function writeCache(cache: UpdateCache): Promise<void> {
   }
 }
 
-async function fetchLatestVersion(): Promise<string | null> {
+export async function fetchLatestVersion(): Promise<string | null> {
   try {
     const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
       signal: AbortSignal.timeout(3000),
@@ -53,7 +53,7 @@ async function fetchLatestVersion(): Promise<string | null> {
   }
 }
 
-function compareVersions(current: string, latest: string): number {
+export function compareVersions(current: string, latest: string): number {
   const currentParts = current.split('.').map(Number);
   const latestParts = latest.split('.').map(Number);
 

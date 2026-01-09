@@ -733,9 +733,31 @@ sshCmd
 program
   .command('update')
   .description('Update Perry to the latest version')
-  .action(async () => {
+  .option('-f, --force', 'Force update even if already on latest version')
+  .action(async (options) => {
+    const { fetchLatestVersion, compareVersions } = await import('./update-checker.js');
+    const currentVersion = pkg.version;
+
+    console.log(`Current version: ${currentVersion}`);
+    console.log('Checking for updates...');
+
+    const latestVersion = await fetchLatestVersion();
+
+    if (!latestVersion) {
+      console.error('Failed to fetch latest version. Please try again later.');
+      process.exit(1);
+    }
+
+    console.log(`Latest version: ${latestVersion}`);
+
+    if (compareVersions(currentVersion, latestVersion) <= 0 && !options.force) {
+      console.log('Already up to date.');
+      process.exit(0);
+    }
+
+    console.log(`Updating Perry from ${currentVersion} to ${latestVersion}...`);
+
     const { spawn } = await import('child_process');
-    console.log('Updating Perry...');
     const child = spawn(
       'bash',
       ['-c', 'curl -fsSL https://raw.githubusercontent.com/gricha/perry/main/install.sh | bash'],
