@@ -49,7 +49,7 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
     mutationFn: () => api.deleteWorkspace(name),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspaces'] })
-      navigation.navigate('Home')
+      navigation.popToTop()
     },
     onError: (err) => Alert.alert('Error', parseNetworkError(err)),
   })
@@ -67,7 +67,7 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
       setShowCloneModal(false)
       setCloneName('')
       Alert.alert('Success', `Workspace cloned as "${newWorkspace.name}"`)
-      navigation.navigate('Workspace', { name: newWorkspace.name })
+      navigation.replace('WorkspaceDetail', { name: newWorkspace.name })
     },
     onError: (err) => Alert.alert('Error', parseNetworkError(err)),
   })
