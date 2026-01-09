@@ -257,6 +257,7 @@ export class OpenCodeAdapter implements AgentAdapter {
     return new Promise((resolve, reject) => {
       const seenTools = new Set<string>();
       let resolved = false;
+      let receivedIdle = false;
 
       const proc = Bun.spawn(
         [
@@ -315,6 +316,7 @@ export class OpenCodeAdapter implements AgentAdapter {
                 const event: OpenCodeServerEvent = JSON.parse(data);
 
                 if (event.type === 'session.idle') {
+                  receivedIdle = true;
                   clearTimeout(timeout);
                   proc.kill();
                   finish();
@@ -359,7 +361,12 @@ export class OpenCodeAdapter implements AgentAdapter {
         }
 
         clearTimeout(timeout);
-        finish();
+        if (receivedIdle) {
+          finish();
+        } else if (!resolved) {
+          resolved = true;
+          reject(new Error('SSE stream ended unexpectedly without session.idle'));
+        }
       })();
     });
   }
