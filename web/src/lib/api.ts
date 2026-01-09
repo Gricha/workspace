@@ -186,6 +186,6 @@ export function getTerminalUrl(name: string): string {
 
 export function getChatUrl(name: string, agentType: AgentType = 'claude-code'): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const endpoint = agentType === 'opencode' ? 'opencode' : 'chat'
+  const endpoint = agentType === 'opencode' ? 'live/opencode' : 'live/claude'
   return `${protocol}//${window.location.host}/rpc/${endpoint}/${encodeURIComponent(name)}`
 }

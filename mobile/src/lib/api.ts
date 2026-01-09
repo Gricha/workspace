@@ -238,7 +238,7 @@ export function getTerminalUrl(workspaceName: string): string {
 
 export function getChatUrl(workspaceName: string, agentType: AgentType = 'claude-code'): string {
   const wsUrl = baseUrl.replace(/^http/, 'ws')
-  const endpoint = agentType === 'opencode' ? 'opencode' : 'chat'
+  const endpoint = agentType === 'opencode' ? 'live/opencode' : 'live/claude'
   return `${wsUrl}/rpc/${endpoint}/${encodeURIComponent(workspaceName)}`
 }
 

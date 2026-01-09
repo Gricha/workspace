@@ -411,6 +411,20 @@ export function SessionChatScreen({ route, navigation }: any) {
 
     ws.onopen = () => {
       setConnected(true)
+      const connectMsg: Record<string, unknown> = {
+        type: 'connect',
+        agentType: agentType === 'opencode' ? 'opencode' : 'claude',
+      }
+      if (currentSessionId) {
+        connectMsg.agentSessionId = currentSessionId
+      }
+      if (selectedModel) {
+        connectMsg.model = selectedModel
+      }
+      if (projectPath) {
+        connectMsg.projectPath = projectPath
+      }
+      ws.send(JSON.stringify(connectMsg))
     }
 
     ws.onmessage = (event) => {
@@ -421,12 +435,25 @@ export function SessionChatScreen({ route, navigation }: any) {
           return
         }
 
+        if (msg.type === 'session_started' || msg.type === 'session_joined') {
+          if (msg.agentSessionId) {
+            setCurrentSessionId(msg.agentSessionId)
+          }
+          return
+        }
+
         if (msg.type === 'system') {
-          if (msg.content?.startsWith('Session started') || msg.content?.includes('Session ')) {
-            const match = msg.content.match(/Session (\S+)/)
-            if (match) {
-              setCurrentSessionId(match[1])
+          try {
+            const parsed = JSON.parse(msg.content)
+            if (parsed.agentSessionId) {
+              setCurrentSessionId(parsed.agentSessionId)
+              return
             }
+          } catch {
+            // Not JSON, check for skip patterns
+          }
+          if (msg.content?.startsWith('Session started') || msg.content?.startsWith('Connected to session')) {
+            return
           }
           return
         }
@@ -518,7 +545,7 @@ export function SessionChatScreen({ route, navigation }: any) {
     }
 
     return () => ws.close()
-  }, [workspaceName, agentType])
+  }, [workspaceName, agentType, currentSessionId, selectedModel, projectPath])
 
   useEffect(() => {
     const cleanup = connect()
@@ -556,15 +583,6 @@ export function SessionChatScreen({ route, navigation }: any) {
     const payload: Record<string, unknown> = {
       type: 'message',
       content: msg,
-      sessionId: currentSessionId,
-    }
-
-    if (selectedModel) {
-      payload.model = selectedModel
-    }
-
-    if (projectPath) {
-      payload.projectPath = projectPath
     }
 
     wsRef.current.send(JSON.stringify(payload))

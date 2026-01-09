@@ -24,7 +24,17 @@ interface ChatMessage {
 }
 
 interface RawMessage {
-  type: 'user' | 'assistant' | 'system' | 'tool_use' | 'tool_result' | 'error' | 'done' | 'connected'
+  type:
+    | 'user'
+    | 'assistant'
+    | 'system'
+    | 'tool_use'
+    | 'tool_result'
+    | 'error'
+    | 'done'
+    | 'connected'
+    | 'session_started'
+    | 'session_joined'
   content: string
   timestamp: string
   toolName?: string
@@ -473,13 +483,36 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
 
     ws.onopen = () => {
       setIsConnected(true)
+      const connectMsg: Record<string, unknown> = {
+        type: 'connect',
+        agentType: agentType === 'opencode' ? 'opencode' : 'claude',
+      }
+      if (sessionId) {
+        connectMsg.agentSessionId = sessionId
+      }
+      if (selectedModel) {
+        connectMsg.model = selectedModel
+      }
+      if (projectPath) {
+        connectMsg.projectPath = projectPath
+      }
+      ws.send(JSON.stringify(connectMsg))
     }
 
     ws.onmessage = (event) => {
       try {
-        const msg: RawMessage = JSON.parse(event.data)
+        const msg: RawMessage & { sessionId?: string; status?: string; agentSessionId?: string } = JSON.parse(event.data)
 
         if (msg.type === 'connected') {
+          return
+        }
+
+        if (msg.type === 'session_started' || msg.type === 'session_joined') {
+          if (msg.agentSessionId) {
+            setSessionId(msg.agentSessionId)
+            hasLoadedHistoryRef.current = true
+            onSessionIdRef.current?.(msg.agentSessionId)
+          }
           return
         }
 
@@ -534,14 +567,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
         }
 
         if (msg.type === 'system') {
-          if (msg.content.startsWith('Session started')) {
-            const match = msg.content.match(/Session started:?\s+(\S+)/)
-            if (match) {
-              const newSessionId = match[1].replace(/\.+$/, '')
-              setSessionId(newSessionId)
-              hasLoadedHistoryRef.current = true
-              onSessionIdRef.current?.(newSessionId)
-            }
+          if (msg.content.startsWith('Session started') || msg.content.startsWith('Connected to session')) {
             return
           }
           if (msg.content === 'Processing your message...') {
@@ -559,6 +585,17 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
         }
 
         if (msg.type === 'system') {
+          try {
+            const parsed = JSON.parse(msg.content)
+            if (parsed.agentSessionId) {
+              setSessionId(parsed.agentSessionId)
+              onSessionIdRef.current?.(parsed.agentSessionId)
+              return
+            }
+          } catch {
+            // Not JSON, treat as regular system message
+          }
+
           setMessages(prev => [...prev, {
             type: 'system',
             content: msg.content,
@@ -585,7 +622,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
     }
 
     return ws
-  }, [workspaceName, agentType, finalizeStreaming])
+  }, [workspaceName, agentType, finalizeStreaming, sessionId, selectedModel, projectPath])
 
   useEffect(() => {
     const ws = connect()
@@ -618,15 +655,6 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
     const messagePayload: Record<string, unknown> = {
       type: 'message',
       content: input.trim(),
-      sessionId,
-    }
-
-    if (selectedModel) {
-      messagePayload.model = selectedModel
-    }
-
-    if (projectPath) {
-      messagePayload.projectPath = projectPath
     }
 
     wsRef.current.send(JSON.stringify(messagePayload))
@@ -635,7 +663,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
     setIsStreaming(true)
     streamingPartsRef.current = []
     setStreamingParts([])
-  }, [input, sessionId, selectedModel, projectPath])
+  }, [input])
 
   const interrupt = useCallback(() => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

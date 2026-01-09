@@ -309,7 +309,10 @@ test.describe('Web UI - Sessions', () => {
     }
   }, 120000);
 
-  test('resuming session sends projectPath in WebSocket message', async ({ agent, page }) => {
+  test('resuming session sends projectPath in WebSocket connect message', async ({
+    agent,
+    page,
+  }) => {
     const workspaceName = generateTestWorkspaceName();
     const sessionId = `project-path-test-${Date.now()}`;
     const projectDir = '-home-workspace-myproject';
@@ -327,21 +330,19 @@ test.describe('Web UI - Sessions', () => {
     );
 
     try {
-      let capturedMessage: { sessionId?: string; projectPath?: string } | null = null;
+      let capturedConnectMessage: { agentSessionId?: string; projectPath?: string } | null = null;
 
       page.on('websocket', (ws) => {
-        if (ws.url().includes('/rpc/chat/')) {
-          ws.on('framesent', (frame) => {
-            try {
-              const data = JSON.parse(frame.payload as string);
-              if (data.type === 'message') {
-                capturedMessage = data;
-              }
-            } catch {
-              // Ignore non-JSON frames
+        ws.on('framesent', (frame) => {
+          try {
+            const data = JSON.parse(frame.payload as string);
+            if (data.type === 'connect' && ws.url().includes('/rpc/live/claude/')) {
+              capturedConnectMessage = data;
             }
-          });
-        }
+          } catch {
+            // Ignore non-JSON frames
+          }
+        });
       });
 
       await page.goto(`http://127.0.0.1:${agent.port}/workspaces/${workspaceName}?tab=sessions`);
@@ -356,15 +357,11 @@ test.describe('Web UI - Sessions', () => {
 
       await expect(page.getByPlaceholder('Send a message...')).toBeVisible({ timeout: 30000 });
 
-      const input = page.getByPlaceholder('Send a message...');
-      await input.fill('Hello test');
-      await input.press('Enter');
-
       await page.waitForTimeout(1000);
 
-      expect(capturedMessage).not.toBeNull();
-      expect(capturedMessage?.sessionId).toBe(sessionId);
-      expect(capturedMessage?.projectPath).toBe(expectedProjectPath);
+      expect(capturedConnectMessage).not.toBeNull();
+      expect(capturedConnectMessage?.agentSessionId).toBe(sessionId);
+      expect(capturedConnectMessage?.projectPath).toBe(expectedProjectPath);
     } finally {
       await agent.api.deleteWorkspace(workspaceName);
     }

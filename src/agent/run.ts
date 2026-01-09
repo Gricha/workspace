@@ -8,8 +8,7 @@ import { WorkspaceManager } from '../workspace/manager';
 import { containerRunning, getContainerName } from '../docker';
 import { startEagerImagePull, stopEagerImagePull } from '../docker/eager-pull';
 import { TerminalWebSocketServer } from '../terminal/websocket';
-import { ChatWebSocketServer } from '../chat/websocket';
-import { OpencodeWebSocketServer } from '../chat/opencode-websocket';
+import { LiveChatWebSocketServer } from '../session-manager/websocket';
 import { createRouter } from './router';
 import { serveStatic } from './static';
 import { SessionsCacheManager } from '../sessions/cache';
@@ -79,16 +78,16 @@ function createAgentServer(configDir: string, config: AgentConfig, tailscale?: T
     getPreferredShell,
   });
 
-  const chatServer = new ChatWebSocketServer({
+  const liveClaudeServer = new LiveChatWebSocketServer({
     isWorkspaceRunning,
-    getConfig: () => currentConfig,
     isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
+    agentType: 'claude',
   });
 
-  const opencodeServer = new OpencodeWebSocketServer({
+  const liveOpencodeServer = new LiveChatWebSocketServer({
     isWorkspaceRunning,
     isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
-    getConfig: () => currentConfig,
+    agentType: 'opencode',
   });
 
   const triggerAutoSync = () => {
@@ -166,25 +165,31 @@ function createAgentServer(configDir: string, config: AgentConfig, tailscale?: T
   server.on('upgrade', async (request, socket, head) => {
     const url = new URL(request.url || '/', 'http://localhost');
     const terminalMatch = url.pathname.match(/^\/rpc\/terminal\/([^/]+)$/);
-    const chatMatch = url.pathname.match(/^\/rpc\/chat\/([^/]+)$/);
-    const opencodeMatch = url.pathname.match(/^\/rpc\/opencode\/([^/]+)$/);
+    const liveClaudeMatch = url.pathname.match(/^\/rpc\/live\/claude\/([^/]+)$/);
+    const liveOpencodeMatch = url.pathname.match(/^\/rpc\/live\/opencode\/([^/]+)$/);
 
     if (terminalMatch) {
       const workspaceName = decodeURIComponent(terminalMatch[1]);
       await terminalServer.handleUpgrade(request, socket, head, workspaceName);
-    } else if (chatMatch) {
-      const workspaceName = decodeURIComponent(chatMatch[1]);
-      await chatServer.handleUpgrade(request, socket, head, workspaceName);
-    } else if (opencodeMatch) {
-      const workspaceName = decodeURIComponent(opencodeMatch[1]);
-      await opencodeServer.handleUpgrade(request, socket, head, workspaceName);
+    } else if (liveClaudeMatch) {
+      const workspaceName = decodeURIComponent(liveClaudeMatch[1]);
+      await liveClaudeServer.handleUpgrade(request, socket, head, workspaceName);
+    } else if (liveOpencodeMatch) {
+      const workspaceName = decodeURIComponent(liveOpencodeMatch[1]);
+      await liveOpencodeServer.handleUpgrade(request, socket, head, workspaceName);
     } else {
       socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
       socket.destroy();
     }
   });
 
-  return { server, terminalServer, chatServer, opencodeServer, fileWatcher };
+  return {
+    server,
+    terminalServer,
+    liveClaudeServer,
+    liveOpencodeServer,
+    fileWatcher,
+  };
 }
 
 export interface StartAgentOptions {
@@ -264,11 +269,8 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
         }
       : undefined;
 
-  const { server, terminalServer, chatServer, opencodeServer, fileWatcher } = createAgentServer(
-    configDir,
-    config,
-    tailscaleInfo
-  );
+  const { server, terminalServer, liveClaudeServer, liveOpencodeServer, fileWatcher } =
+    createAgentServer(configDir, config, tailscaleInfo);
 
   server.on('error', async (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
@@ -296,8 +298,8 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
     }
     console.log(`[agent] oRPC endpoint: http://localhost:${port}/rpc`);
     console.log(`[agent] WebSocket terminal: ws://localhost:${port}/rpc/terminal/:name`);
-    console.log(`[agent] WebSocket chat (Claude): ws://localhost:${port}/rpc/chat/:name`);
-    console.log(`[agent] WebSocket chat (OpenCode): ws://localhost:${port}/rpc/opencode/:name`);
+    console.log(`[agent] WebSocket chat (Claude): ws://localhost:${port}/rpc/live/claude/:name`);
+    console.log(`[agent] WebSocket chat (OpenCode): ws://localhost:${port}/rpc/live/opencode/:name`);
 
     startEagerImagePull();
   });
@@ -327,8 +329,8 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
       await stopTailscaleServe();
     }
 
-    chatServer.close();
-    opencodeServer.close();
+    liveClaudeServer.close();
+    liveOpencodeServer.close();
     terminalServer.close();
 
     server.closeAllConnections();

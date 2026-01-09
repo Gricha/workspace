@@ -149,6 +149,30 @@ export class ApiClient {
     return `${wsUrl}/rpc/terminal/${encodeURIComponent(name)}`;
   }
 
+  getChatUrl(name: string): string {
+    const wsUrl = this.baseUrl.replace(/^http/, 'ws');
+    return `${wsUrl}/rpc/chat/${encodeURIComponent(name)}`;
+  }
+
+  getOpencodeUrl(name: string): string {
+    const wsUrl = this.baseUrl.replace(/^http/, 'ws');
+    return `${wsUrl}/rpc/opencode/${encodeURIComponent(name)}`;
+  }
+
+  getLiveClaudeUrl(name: string): string {
+    const wsUrl = this.baseUrl.replace(/^http/, 'ws');
+    return `${wsUrl}/rpc/live/claude/${encodeURIComponent(name)}`;
+  }
+
+  getLiveOpencodeUrl(name: string): string {
+    const wsUrl = this.baseUrl.replace(/^http/, 'ws');
+    return `${wsUrl}/rpc/live/opencode/${encodeURIComponent(name)}`;
+  }
+
+  get live() {
+    return this.client.live;
+  }
+
   private wrapError(err: unknown): ApiClientError {
     if (err instanceof ApiClientError) {
       return err;
