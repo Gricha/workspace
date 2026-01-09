@@ -6,7 +6,7 @@ async function cleanupOrphanedResources() {
 
   try {
     const containers = execSync(
-      'docker ps -aq --filter "name=workspace-test-" 2>/dev/null || true',
+      'docker ps -aq --filter "name=workspace-perrytest-" 2>/dev/null || true',
       { encoding: 'utf-8' }
     ).trim();
 
@@ -16,7 +16,7 @@ async function cleanupOrphanedResources() {
     }
 
     const volumes = execSync(
-      'docker volume ls -q --filter "name=workspace-test-" 2>/dev/null || true',
+      'docker volume ls -q --filter "name=workspace-perrytest-" 2>/dev/null || true',
       { encoding: 'utf-8' }
     ).trim();
 
