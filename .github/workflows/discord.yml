@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Post to Discord
         run: |
-          curl -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
+          curl -X POST "${{ secrets.DISCORD_PR_WEBHOOK }}" \
             -H "Content-Type: application/json" \
             -d @- << EOF
           {

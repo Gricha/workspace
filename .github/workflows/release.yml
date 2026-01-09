@@ -283,7 +283,21 @@ jobs:
           generate_release_notes: true
 
       - name: Notify Discord
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          # Fetch release notes from GitHub
+          RELEASE_BODY=$(gh release view ${{ github.ref_name }} --json body -q .body | head -c 1500)
+
+          # Escape for JSON
+          RELEASE_BODY_ESCAPED=$(echo "$RELEASE_BODY" | jq -Rs '.')
+
+          # Build and send Discord message
+          jq -n \
+            --arg title "Perry ${{ github.ref_name }}" \
+            --arg url "https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}" \
+            --argjson desc "$RELEASE_BODY_ESCAPED" \
+            '{embeds:[{title:$title,description:$desc,url:$url,color:5025616}]}' | \
           curl -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
             -H "Content-Type: application/json" \
-            -d '{"embeds":[{"title":"Perry ${{ github.ref_name }}","description":"Run perry update to upgrade","url":"https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}","color":5025616}]}'
+            -d @-
