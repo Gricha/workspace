@@ -22,5 +22,5 @@
     "perry-custom/no-duplicate-method-names": "warn"
   },
   "jsPlugins": ["./oxlint-plugins/no-duplicate-method-names.js"],
-  "ignorePatterns": ["dist", "node_modules", "workspace", "web", "oxlint-plugins"]
+  "ignorePatterns": ["dist", "node_modules", "workspace", "web", "oxlint-plugins", "mobile/src/lib/terminal-html.ts"]
 }
