@@ -7,7 +7,10 @@ import type { AgentConfig } from '../shared/types';
 import { HOST_WORKSPACE_NAME } from '../shared/client-types';
 import { getDockerVersion, execInContainer } from '../docker';
 import type { WorkspaceManager } from '../workspace/manager';
-import type { TerminalWebSocketServer } from '../terminal/websocket';
+interface TerminalServerLike {
+  closeConnectionsForWorkspace(workspaceName: string): void;
+  getConnectionCount(): number;
+}
 import { saveAgentConfig } from '../config/loader';
 import {
   setSessionName,
@@ -125,7 +128,7 @@ export interface RouterContext {
   configDir: string;
   stateDir: string;
   startTime: number;
-  terminalServer: TerminalWebSocketServer;
+  terminalServer: TerminalServerLike;
   sessionsCache: SessionsCacheManager;
   modelCache: ModelCacheManager;
   tailscale?: TailscaleInfo;

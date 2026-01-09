@@ -1,5 +1,5 @@
-import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { RPCHandler } from '@orpc/server/node';
+import type { Server, ServerWebSocket } from 'bun';
+import { RPCHandler } from '@orpc/server/fetch';
 import { loadAgentConfig, getConfigDir, ensureConfigDir } from '../config/loader';
 import type { AgentConfig } from '../shared/types';
 import { HOST_WORKSPACE_NAME } from '../shared/client-types';
@@ -7,10 +7,10 @@ import { DEFAULT_AGENT_PORT } from '../shared/constants';
 import { WorkspaceManager } from '../workspace/manager';
 import { containerRunning, getContainerName } from '../docker';
 import { startEagerImagePull, stopEagerImagePull } from '../docker/eager-pull';
-import { TerminalWebSocketServer } from '../terminal/websocket';
-import { LiveChatWebSocketServer } from '../session-manager/websocket';
+import { TerminalHandler } from '../terminal/bun-handler';
+import { LiveChatHandler } from '../session-manager/bun-handler';
 import { createRouter } from './router';
-import { serveStatic } from './static';
+import { serveStaticBun } from './static';
 import { SessionsCacheManager } from '../sessions/cache';
 import { ModelCacheManager } from '../models/cache';
 import { FileWatcher } from './file-watcher';
@@ -24,11 +24,6 @@ import pkg from '../../package.json';
 
 const startTime = Date.now();
 
-function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
 interface TailscaleInfo {
   running: boolean;
   dnsName?: string;
@@ -36,7 +31,17 @@ interface TailscaleInfo {
   httpsUrl?: string;
 }
 
-function createAgentServer(configDir: string, config: AgentConfig, tailscale?: TailscaleInfo) {
+interface WebSocketData {
+  type: 'terminal' | 'live-claude' | 'live-opencode';
+  workspaceName: string;
+}
+
+function createAgentServer(
+  configDir: string,
+  config: AgentConfig,
+  port: number,
+  tailscale?: TailscaleInfo
+) {
   let currentConfig = config;
   const workspaces = new WorkspaceManager(configDir, currentConfig);
   const sessionsCache = new SessionsCacheManager(configDir);
@@ -71,20 +76,20 @@ function createAgentServer(configDir: string, config: AgentConfig, tailscale?: T
     return currentConfig.terminal?.preferredShell || process.env.SHELL;
   };
 
-  const terminalServer = new TerminalWebSocketServer({
+  const terminalHandler = new TerminalHandler({
     getContainerName,
     isWorkspaceRunning,
     isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
     getPreferredShell,
   });
 
-  const liveClaudeServer = new LiveChatWebSocketServer({
+  const liveClaudeHandler = new LiveChatHandler({
     isWorkspaceRunning,
     isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
     agentType: 'claude',
   });
 
-  const liveOpencodeServer = new LiveChatWebSocketServer({
+  const liveOpencodeHandler = new LiveChatHandler({
     isWorkspaceRunning,
     isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
     agentType: 'opencode',
@@ -109,7 +114,7 @@ function createAgentServer(configDir: string, config: AgentConfig, tailscale?: T
     configDir,
     stateDir: configDir,
     startTime,
-    terminalServer,
+    terminalServer: terminalHandler,
     sessionsCache,
     modelCache,
     tailscale,
@@ -118,76 +123,133 @@ function createAgentServer(configDir: string, config: AgentConfig, tailscale?: T
 
   const rpcHandler = new RPCHandler(router);
 
-  const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
-    const url = new URL(req.url || '/', 'http://localhost');
-    const method = req.method;
-    const pathname = url.pathname;
+  const server = Bun.serve<WebSocketData>({
+    port,
+    hostname: '::',
 
-    const identity = getTailscaleIdentity(req);
+    async fetch(req, server) {
+      const url = new URL(req.url);
+      const pathname = url.pathname;
+      const method = req.method;
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      };
 
-    if (method === 'OPTIONS') {
-      res.writeHead(204);
-      res.end();
-      return;
-    }
+      if (method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: corsHeaders });
+      }
 
-    try {
+      const terminalMatch = pathname.match(/^\/rpc\/terminal\/([^/]+)$/);
+      const liveClaudeMatch = pathname.match(/^\/rpc\/live\/claude\/([^/]+)$/);
+      const liveOpencodeMatch = pathname.match(/^\/rpc\/live\/opencode\/([^/]+)$/);
+
+      if (terminalMatch || liveClaudeMatch || liveOpencodeMatch) {
+        let type: WebSocketData['type'];
+        let workspaceName: string;
+
+        if (terminalMatch) {
+          type = 'terminal';
+          workspaceName = decodeURIComponent(terminalMatch[1]);
+        } else if (liveClaudeMatch) {
+          type = 'live-claude';
+          workspaceName = decodeURIComponent(liveClaudeMatch[1]);
+        } else {
+          type = 'live-opencode';
+          workspaceName = decodeURIComponent(liveOpencodeMatch![1]);
+        }
+
+        const running = await isWorkspaceRunning(workspaceName);
+        if (!running) {
+          return new Response('Not Found', { status: 404 });
+        }
+
+        const upgraded = server.upgrade(req, {
+          data: { type, workspaceName },
+        });
+
+        if (upgraded) {
+          return undefined;
+        }
+        return new Response('WebSocket upgrade failed', { status: 400 });
+      }
+
       if (pathname === '/health' && method === 'GET') {
+        const identity = getTailscaleIdentity(req);
         const response: Record<string, unknown> = { status: 'ok', version: pkg.version };
         if (identity) {
           response.user = identity.email;
         }
-        sendJson(res, 200, response);
-        return;
+        return Response.json(response, { headers: corsHeaders });
       }
 
       if (pathname.startsWith('/rpc')) {
-        const { matched } = await rpcHandler.handle(req, res, {
+        const { matched, response } = await rpcHandler.handle(req, {
           prefix: '/rpc',
         });
-        if (matched) return;
+        if (matched && response) {
+          const newHeaders = new Headers(response.headers);
+          Object.entries(corsHeaders).forEach(([k, v]) => newHeaders.set(k, v));
+          return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: newHeaders,
+          });
+        }
       }
 
-      const served = await serveStatic(req, res, pathname);
-      if (served) return;
+      const staticResponse = await serveStaticBun(pathname);
+      if (staticResponse) {
+        return staticResponse;
+      }
 
-      sendJson(res, 404, { error: 'Not found' });
-    } catch (err) {
-      console.error('Request error:', err);
-      sendJson(res, 500, { error: 'Internal server error' });
-    }
-  });
+      return Response.json({ error: 'Not found' }, { status: 404, headers: corsHeaders });
+    },
 
-  server.on('upgrade', async (request, socket, head) => {
-    const url = new URL(request.url || '/', 'http://localhost');
-    const terminalMatch = url.pathname.match(/^\/rpc\/terminal\/([^/]+)$/);
-    const liveClaudeMatch = url.pathname.match(/^\/rpc\/live\/claude\/([^/]+)$/);
-    const liveOpencodeMatch = url.pathname.match(/^\/rpc\/live\/opencode\/([^/]+)$/);
+    websocket: {
+      open(ws: ServerWebSocket<WebSocketData>) {
+        const { type, workspaceName } = ws.data;
+        if (type === 'terminal') {
+          terminalHandler.handleOpen(ws, workspaceName);
+        } else if (type === 'live-claude') {
+          liveClaudeHandler.handleOpen(ws, workspaceName);
+        } else if (type === 'live-opencode') {
+          liveOpencodeHandler.handleOpen(ws, workspaceName);
+        }
+      },
 
-    if (terminalMatch) {
-      const workspaceName = decodeURIComponent(terminalMatch[1]);
-      await terminalServer.handleUpgrade(request, socket, head, workspaceName);
-    } else if (liveClaudeMatch) {
-      const workspaceName = decodeURIComponent(liveClaudeMatch[1]);
-      await liveClaudeServer.handleUpgrade(request, socket, head, workspaceName);
-    } else if (liveOpencodeMatch) {
-      const workspaceName = decodeURIComponent(liveOpencodeMatch[1]);
-      await liveOpencodeServer.handleUpgrade(request, socket, head, workspaceName);
-    } else {
-      socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
-      socket.destroy();
-    }
+      message(ws: ServerWebSocket<WebSocketData>, message: string | Buffer) {
+        const { type } = ws.data;
+        const data = typeof message === 'string' ? message : message.toString();
+        if (type === 'terminal') {
+          terminalHandler.handleMessage(ws, data);
+        } else if (type === 'live-claude') {
+          liveClaudeHandler.handleMessage(ws, data);
+        } else if (type === 'live-opencode') {
+          liveOpencodeHandler.handleMessage(ws, data);
+        }
+      },
+
+      close(ws: ServerWebSocket<WebSocketData>, code: number, reason: string) {
+        const { type } = ws.data;
+        if (type === 'terminal') {
+          terminalHandler.handleClose(ws, code, reason);
+        } else if (type === 'live-claude') {
+          liveClaudeHandler.handleClose(ws, code, reason);
+        } else if (type === 'live-opencode') {
+          liveOpencodeHandler.handleClose(ws, code, reason);
+        }
+      },
+    },
   });
 
   return {
     server,
-    terminalServer,
-    liveClaudeServer,
-    liveOpencodeServer,
+    terminalHandler,
+    liveClaudeHandler,
+    liveOpencodeHandler,
     fileWatcher,
   };
 }
@@ -269,11 +331,22 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
         }
       : undefined;
 
-  const { server, terminalServer, liveClaudeServer, liveOpencodeServer, fileWatcher } =
-    createAgentServer(configDir, config, tailscaleInfo);
+  let server: Server<WebSocketData>;
+  let fileWatcher: FileWatcher;
+  let terminalHandler: TerminalHandler;
+  let liveClaudeHandler: LiveChatHandler;
+  let liveOpencodeHandler: LiveChatHandler;
 
-  server.on('error', async (err: NodeJS.ErrnoException) => {
-    if (err.code === 'EADDRINUSE') {
+  try {
+    const result = createAgentServer(configDir, config, port, tailscaleInfo);
+    server = result.server;
+    fileWatcher = result.fileWatcher;
+    terminalHandler = result.terminalHandler;
+    liveClaudeHandler = result.liveClaudeHandler;
+    liveOpencodeHandler = result.liveOpencodeHandler;
+  } catch (err) {
+    const error = err as Error & { code?: string };
+    if (error.code === 'EADDRINUSE') {
       console.error(`[agent] Error: Port ${port} is already in use.`);
       const processInfo = await getProcessUsingPort(port);
       if (processInfo) {
@@ -281,30 +354,24 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
       }
       console.error(`[agent] Try using a different port with: perry agent run --port <port>`);
       process.exit(1);
-    } else {
-      console.error(`[agent] Server error: ${err.message}`);
-      process.exit(1);
     }
-  });
+    throw err;
+  }
 
-  server.listen(port, '::', () => {
-    console.log(`[agent] Agent running at http://localhost:${port}`);
-    if (tailscale.running && tailscale.dnsName) {
-      const shortName = tailscale.dnsName.split('.')[0];
-      console.log(`[agent] Tailnet: http://${shortName}:${port}`);
-      if (tailscaleServeActive) {
-        console.log(`[agent] Tailnet HTTPS: https://${tailscale.dnsName}`);
-      }
+  console.log(`[agent] Agent running at http://localhost:${port}`);
+  if (tailscale.running && tailscale.dnsName) {
+    const shortName = tailscale.dnsName.split('.')[0];
+    console.log(`[agent] Tailnet: http://${shortName}:${port}`);
+    if (tailscaleServeActive) {
+      console.log(`[agent] Tailnet HTTPS: https://${tailscale.dnsName}`);
     }
-    console.log(`[agent] oRPC endpoint: http://localhost:${port}/rpc`);
-    console.log(`[agent] WebSocket terminal: ws://localhost:${port}/rpc/terminal/:name`);
-    console.log(`[agent] WebSocket chat (Claude): ws://localhost:${port}/rpc/live/claude/:name`);
-    console.log(
-      `[agent] WebSocket chat (OpenCode): ws://localhost:${port}/rpc/live/opencode/:name`
-    );
+  }
+  console.log(`[agent] oRPC endpoint: http://localhost:${port}/rpc`);
+  console.log(`[agent] WebSocket terminal: ws://localhost:${port}/rpc/terminal/:name`);
+  console.log(`[agent] WebSocket chat (Claude): ws://localhost:${port}/rpc/live/claude/:name`);
+  console.log(`[agent] WebSocket chat (OpenCode): ws://localhost:${port}/rpc/live/opencode/:name`);
 
-    startEagerImagePull();
-  });
+  startEagerImagePull();
 
   let isShuttingDown = false;
 
@@ -331,17 +398,15 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
       await stopTailscaleServe();
     }
 
-    liveClaudeServer.close();
-    liveOpencodeServer.close();
-    terminalServer.close();
+    liveClaudeHandler.close();
+    liveOpencodeHandler.close();
+    terminalHandler.close();
 
-    server.closeAllConnections();
+    server.stop();
 
-    server.close(() => {
-      clearTimeout(forceExitTimeout);
-      console.log('[agent] Server closed');
-      process.exit(0);
-    });
+    clearTimeout(forceExitTimeout);
+    console.log('[agent] Server closed');
+    process.exit(0);
   };
 
   process.on('SIGTERM', shutdown);

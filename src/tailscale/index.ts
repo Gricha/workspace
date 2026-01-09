@@ -108,16 +108,30 @@ export async function stopTailscaleServe(): Promise<boolean> {
   }
 }
 
-export function getTailscaleIdentity(req: IncomingMessage): TailscaleIdentity | null {
-  const login = req.headers['tailscale-user-login'];
-  const name = req.headers['tailscale-user-name'];
-  const pic = req.headers['tailscale-user-profile-pic'];
+export function getTailscaleIdentity(req: IncomingMessage | Request): TailscaleIdentity | null {
+  let login: string | null;
+  let name: string | null;
+  let pic: string | null;
+
+  if ('headers' in req && req.headers instanceof Headers) {
+    login = req.headers.get('tailscale-user-login');
+    name = req.headers.get('tailscale-user-name');
+    pic = req.headers.get('tailscale-user-profile-pic');
+  } else {
+    const nodeReq = req as IncomingMessage;
+    const loginHeader = nodeReq.headers['tailscale-user-login'];
+    const nameHeader = nodeReq.headers['tailscale-user-name'];
+    const picHeader = nodeReq.headers['tailscale-user-profile-pic'];
+    login = Array.isArray(loginHeader) ? loginHeader[0] : loginHeader || null;
+    name = Array.isArray(nameHeader) ? nameHeader[0] : nameHeader || null;
+    pic = Array.isArray(picHeader) ? picHeader[0] : picHeader || null;
+  }
 
   if (!login) return null;
 
   return {
-    email: Array.isArray(login) ? login[0] : login,
-    name: Array.isArray(name) ? name[0] : name,
-    profilePic: Array.isArray(pic) ? pic[0] : pic,
+    email: login,
+    name: name || undefined,
+    profilePic: pic || undefined,
   };
 }

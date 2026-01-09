@@ -76,3 +76,38 @@ export async function serveStatic(
   res.end(content);
   return true;
 }
+
+export async function serveStaticBun(pathname: string): Promise<Response | null> {
+  const webDir = getWebDir();
+  const indexPath = path.join(webDir, 'index.html');
+
+  try {
+    await fs.access(indexPath);
+  } catch {
+    return null;
+  }
+
+  const ext = path.extname(pathname).toLowerCase();
+  const isAsset = ext && ext !== '.html';
+
+  if (isAsset) {
+    const filePath = path.join(webDir, pathname);
+    try {
+      const file = Bun.file(filePath);
+      if (await file.exists()) {
+        const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+        return new Response(file, {
+          headers: { 'Content-Type': contentType },
+        });
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  const file = Bun.file(indexPath);
+  return new Response(file, {
+    headers: { 'Content-Type': 'text/html' },
+  });
+}

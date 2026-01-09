@@ -365,21 +365,23 @@ export async function startTestAgent(options: TestAgentOptions = {}): Promise<Te
     },
 
     async cleanup(): Promise<void> {
-      // Get all workspaces from this agent (includes CLI-created ones)
-      let allWorkspaces: string[] = [...createdWorkspaces];
+      // Only delete workspaces that belong to this test instance
+      // Either explicitly tracked or matching our testId prefix
+      const workspacesToDelete: string[] = [...createdWorkspaces];
       try {
         const workspaces = await api.listWorkspaces();
         for (const ws of workspaces) {
-          if (!allWorkspaces.includes(ws.name)) {
-            allWorkspaces.push(ws.name);
+          // Only add workspaces that match this test's testId prefix
+          if (ws.name.startsWith(testId) && !workspacesToDelete.includes(ws.name)) {
+            workspacesToDelete.push(ws.name);
           }
         }
       } catch {
         // Agent may already be down
       }
 
-      // Delete workspaces through the API (cleanest approach)
-      for (const name of allWorkspaces) {
+      // Delete only test workspaces through the API
+      for (const name of workspacesToDelete) {
         try {
           await api.deleteWorkspace(name);
         } catch {

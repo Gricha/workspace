@@ -1,6 +1,9 @@
 import { IncomingMessage } from 'http';
 import { Duplex } from 'stream';
-import { WebSocket, WebSocketServer } from 'ws';
+import { createHash } from 'crypto';
+import { WebSocket } from 'ws';
+
+const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 export interface BaseConnection {
   ws: WebSocket;
@@ -19,15 +22,64 @@ export function safeSend(ws: WebSocket, data: string | Buffer): boolean {
   }
 }
 
+function manualWebSocketUpgrade(
+  request: IncomingMessage,
+  socket: Duplex,
+  head: Buffer,
+  callback: (ws: WebSocket) => void
+): void {
+  const key = request.headers['sec-websocket-key'];
+  if (!key) {
+    socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
+    socket.destroy();
+    return;
+  }
+
+  const acceptKey = createHash('sha1')
+    .update(key + WEBSOCKET_GUID)
+    .digest('base64');
+
+  const responseHeaders = [
+    'HTTP/1.1 101 Switching Protocols',
+    'Upgrade: websocket',
+    'Connection: Upgrade',
+    `Sec-WebSocket-Accept: ${acceptKey}`,
+  ];
+
+  const protocol = request.headers['sec-websocket-protocol'];
+  if (protocol) {
+    const protocols = protocol.split(',').map((p) => p.trim());
+    if (protocols.length > 0) {
+      responseHeaders.push(`Sec-WebSocket-Protocol: ${protocols[0]}`);
+    }
+  }
+
+  responseHeaders.push('', '');
+  socket.write(responseHeaders.join('\r\n'));
+
+  const wsOptions = {
+    allowSynchronousEvents: true,
+    maxPayload: 100 * 1024 * 1024,
+    skipUTF8Validation: false,
+  };
+
+  const ws = new WebSocket(null as unknown as string, undefined, wsOptions);
+
+  (ws as WebSocket & { setSocket: (socket: Duplex, head: Buffer, opts: object) => void }).setSocket(
+    socket,
+    head,
+    wsOptions
+  );
+
+  callback(ws);
+}
+
 export abstract class BaseWebSocketServer<TConnection extends BaseConnection> {
-  protected wss: WebSocketServer;
   protected connections: Map<WebSocket, TConnection> = new Map();
   protected isWorkspaceRunning: (workspaceName: string) => Promise<boolean>;
 
   constructor(options: { isWorkspaceRunning: (workspaceName: string) => Promise<boolean> }) {
-    this.wss = new WebSocketServer({ noServer: true });
     this.isWorkspaceRunning = options.isWorkspaceRunning;
-    this.wss.on('connection', this.onConnection.bind(this));
   }
 
   async handleUpgrade(
@@ -43,9 +95,9 @@ export abstract class BaseWebSocketServer<TConnection extends BaseConnection> {
       return;
     }
 
-    this.wss.handleUpgrade(request, socket, head, (ws) => {
+    manualWebSocketUpgrade(request, socket, head, (ws) => {
       (ws as WebSocket & { workspaceName: string }).workspaceName = workspaceName;
-      this.wss.emit('connection', ws, request);
+      this.onConnection(ws as WebSocket & { workspaceName: string });
     });
   }
 
@@ -83,6 +135,5 @@ export abstract class BaseWebSocketServer<TConnection extends BaseConnection> {
       ws.close(1001, 'Server shutting down');
     }
     this.connections.clear();
-    this.wss.close();
   }
 }
