@@ -11,6 +11,10 @@ export default defineConfig({
       '@shared': path.resolve(__dirname, '../src/shared'),
     },
   },
+  build: {
+    outDir: '../dist/agent/web',
+    emptyOutDir: true,
+  },
   server: {
     allowedHosts: true,
     proxy: {
