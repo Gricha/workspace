@@ -1,33 +1,12 @@
 name: Discord Notifications
 
 on:
-  release:
-    types: [published]
   pull_request:
     types: [closed]
 
 jobs:
-  notify-release:
-    if: github.event_name == 'release'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Post to Discord
-        run: |
-          curl -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
-            -H "Content-Type: application/json" \
-            -d @- << 'EOF'
-          {
-            "embeds": [{
-              "title": "Perry ${{ github.event.release.tag_name }}",
-              "description": "Run \`perry update\` to upgrade",
-              "url": "${{ github.event.release.html_url }}",
-              "color": 5025616
-            }]
-          }
-          EOF
-
   notify-pr-merged:
-    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Post to Discord
