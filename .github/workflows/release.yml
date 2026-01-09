@@ -286,13 +286,4 @@ jobs:
         run: |
           curl -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
             -H "Content-Type: application/json" \
-            -d @- << 'EOF'
-          {
-            "embeds": [{
-              "title": "Perry ${{ github.ref_name }}",
-              "description": "Run \`perry update\` to upgrade",
-              "url": "https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}",
-              "color": 5025616
-            }]
-          }
-          EOF
+            -d '{"embeds":[{"title":"Perry ${{ github.ref_name }}","description":"Run perry update to upgrade","url":"https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}","color":5025616}]}'
