@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import type { PortForward } from "./port-forward";
+import type { PortForward } from './port-forward';
 import { parsePortForward, formatPortForwards } from './port-forward';
 
 export { PortForward, parsePortForward, formatPortForwards };
