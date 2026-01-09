@@ -70,32 +70,50 @@ function getToolSummary(toolName: string, content: string): string | null {
   return null
 }
 
-function ToolBubble({
+interface ToolItem {
+  toolName: string
+  input: string
+  result?: string
+  key: string
+}
+
+function ExpandableToolRow({
   toolName,
   input,
   result,
+  isFirst,
+  isLast,
+  isGrouped,
 }: {
   toolName: string
   input: string
   result?: string
+  isFirst: boolean
+  isLast: boolean
+  isGrouped: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const summary = getToolSummary(toolName, input)
   const hasResult = result && result.length > 0
 
+  const displayText = summary ? `${toolName} - ${summary}` : toolName
+
   return (
     <TouchableOpacity
-      style={styles.toolBubble}
+      style={[
+        styles.compactToolRow,
+        isGrouped && !isFirst && styles.compactToolRowGrouped,
+        isGrouped && isFirst && styles.compactToolRowFirst,
+        isGrouped && isLast && styles.compactToolRowLast,
+        !isGrouped && styles.compactToolRowSingle,
+      ]}
       onPress={() => setExpanded(!expanded)}
       activeOpacity={0.7}
     >
-      <View style={styles.toolHeader}>
+      <View style={styles.compactToolHeader}>
         <Text style={styles.toolChevron}>{expanded ? '▼' : '▶'}</Text>
         <View style={[styles.toolStatusDot, { backgroundColor: hasResult ? '#34c759' : '#8e8e93' }]} />
-        <Text style={styles.toolName}>{toolName}</Text>
-        {summary && !expanded && (
-          <Text style={styles.toolSummary} numberOfLines={1}>{summary}</Text>
-        )}
+        <Text style={styles.compactToolText} numberOfLines={1}>{displayText}</Text>
       </View>
       {expanded && (
         <View style={styles.toolDetails}>
@@ -123,6 +141,26 @@ function ToolBubble({
   )
 }
 
+function ToolGroup({ tools }: { tools: ToolItem[] }) {
+  const isGrouped = tools.length > 1
+
+  return (
+    <View style={[styles.toolGroup, isGrouped && styles.toolGroupMultiple]}>
+      {tools.map((tool, index) => (
+        <ExpandableToolRow
+          key={tool.key}
+          toolName={tool.toolName}
+          input={tool.input}
+          result={tool.result}
+          isFirst={index === 0}
+          isLast={index === tools.length - 1}
+          isGrouped={isGrouped}
+        />
+      ))}
+    </View>
+  )
+}
+
 function renderPartsWithPairedTools(parts: MessagePart[]) {
   const elements: React.ReactNode[] = []
   const resultsByToolId = new Map<string, string>()
@@ -134,11 +172,22 @@ function renderPartsWithPairedTools(parts: MessagePart[]) {
   }
 
   const renderedToolIds = new Set<string>()
+  let pendingTools: ToolItem[] = []
+
+  const flushTools = () => {
+    if (pendingTools.length > 0) {
+      elements.push(
+        <ToolGroup key={`toolgroup-${pendingTools[0].key}`} tools={pendingTools} />
+      )
+      pendingTools = []
+    }
+  }
 
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i]
     const trimmedContent = part.content?.trim()
     if (part.type === 'text' && trimmedContent) {
+      flushTools()
       elements.push(
         <View key={`text-${i}`} style={styles.assistantBubble}>
           <Text style={styles.messageText}>{trimmedContent}</Text>
@@ -149,17 +198,17 @@ function renderPartsWithPairedTools(parts: MessagePart[]) {
       if (!renderedToolIds.has(toolId)) {
         renderedToolIds.add(toolId)
         const result = part.toolId ? resultsByToolId.get(part.toolId) : undefined
-        elements.push(
-          <ToolBubble
-            key={`tool-${i}`}
-            toolName={part.toolName || 'unknown'}
-            input={part.content}
-            result={result}
-          />
-        )
+        pendingTools.push({
+          toolName: part.toolName || 'unknown',
+          input: part.content,
+          result,
+          key: `tool-${i}`,
+        })
       }
     }
   }
+
+  flushTools()
 
   return elements
 }
@@ -883,20 +932,6 @@ const styles = StyleSheet.create({
     color: '#636366',
     textAlign: 'center',
   },
-  toolBubble: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#2c2c2e',
-    padding: 10,
-    alignSelf: 'flex-start',
-    maxWidth: '90%',
-  },
-  toolHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
   toolChevron: {
     fontSize: 10,
     color: '#8e8e93',
@@ -905,18 +940,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-  },
-  toolName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#fff',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  toolSummary: {
-    flex: 1,
-    fontSize: 12,
-    color: '#8e8e93',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   toolDetails: {
     marginTop: 10,
@@ -1014,5 +1037,49 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#fff',
+  },
+  toolGroup: {
+    alignSelf: 'flex-start',
+    maxWidth: '95%',
+  },
+  toolGroupMultiple: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+    overflow: 'hidden',
+  },
+  compactToolRow: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  compactToolHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  compactToolRowSingle: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2c2c2e',
+  },
+  compactToolRowFirst: {
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  compactToolRowLast: {
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+  },
+  compactToolRowGrouped: {
+    borderTopWidth: 1,
+    borderTopColor: '#2c2c2e',
+  },
+  compactToolText: {
+    fontSize: 13,
+    color: '#fff',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    flexShrink: 1,
   },
 })
