@@ -731,6 +731,24 @@ sshCmd
   );
 
 program
+  .command('update')
+  .description('Update Perry to the latest version')
+  .action(async () => {
+    const { spawn } = await import('child_process');
+    console.log('Updating Perry...');
+    const child = spawn(
+      'bash',
+      ['-c', 'curl -fsSL https://raw.githubusercontent.com/gricha/perry/main/install.sh | bash'],
+      {
+        stdio: 'inherit',
+      }
+    );
+    child.on('close', (code) => {
+      process.exit(code ?? 0);
+    });
+  });
+
+program
   .command('build')
   .description('Build the workspace Docker image')
   .option('--no-cache', 'Build without cache')

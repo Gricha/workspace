@@ -83,16 +83,7 @@ export async function checkForUpdates(currentVersion: string): Promise<void> {
     if (latestVersion && compareVersions(currentVersion, latestVersion) > 0) {
       console.log('');
       console.log(
-        `\x1b[33m╭──────────────────────────────────────────────────────────────────────────────────╮\x1b[0m`
-      );
-      console.log(
-        `\x1b[33m│\x1b[0m  Update available: \x1b[90m${currentVersion}\x1b[0m → \x1b[32m${latestVersion}\x1b[0m                                                  \x1b[33m│\x1b[0m`
-      );
-      console.log(
-        `\x1b[33m│\x1b[0m  Run: \x1b[36mcurl -fsSL https://raw.githubusercontent.com/${GITHUB_REPO}/main/install.sh | bash\x1b[0m  \x1b[33m│\x1b[0m`
-      );
-      console.log(
-        `\x1b[33m╰──────────────────────────────────────────────────────────────────────────────────╯\x1b[0m`
+        `\x1b[33mUpdate available: \x1b[90m${currentVersion}\x1b[0m → \x1b[32m${latestVersion}\x1b[0m  \x1b[33mRun: \x1b[36mperry update\x1b[0m`
       );
       console.log('');
     }
