@@ -262,6 +262,8 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
   const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined)
   const selectedModelRef = useRef<string | undefined>(undefined)
   selectedModelRef.current = selectedModel
+  const sessionIdRef = useRef<string | undefined>(initialSessionId)
+  sessionIdRef.current = sessionId
   const onSessionIdRef = useRef(onSessionId)
   onSessionIdRef.current = onSessionId
 
@@ -489,9 +491,9 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
         type: 'connect',
         agentType: agentType === 'opencode' ? 'opencode' : 'claude',
       }
-      if (sessionId) {
+      if (sessionIdRef.current) {
         // Send as sessionId for session manager lookup
-        connectMsg.sessionId = sessionId
+        connectMsg.sessionId = sessionIdRef.current
       }
       if (selectedModelRef.current) {
         connectMsg.model = selectedModelRef.current
@@ -655,7 +657,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
     }
 
     return ws
-  }, [workspaceName, agentType, finalizeStreaming, sessionId, projectPath])
+  }, [workspaceName, agentType, finalizeStreaming, projectPath])
 
   useEffect(() => {
     const ws = connect()
