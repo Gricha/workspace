@@ -330,7 +330,7 @@ test.describe('Web UI - Sessions', () => {
     );
 
     try {
-      let capturedConnectMessage: { agentSessionId?: string; projectPath?: string } | null = null;
+      let capturedConnectMessage: { sessionId?: string; projectPath?: string } | null = null;
 
       page.on('websocket', (ws) => {
         ws.on('framesent', (frame) => {
@@ -360,7 +360,7 @@ test.describe('Web UI - Sessions', () => {
       await page.waitForTimeout(1000);
 
       expect(capturedConnectMessage).not.toBeNull();
-      expect(capturedConnectMessage?.agentSessionId).toBe(sessionId);
+      expect(capturedConnectMessage?.sessionId).toBe(sessionId);
       expect(capturedConnectMessage?.projectPath).toBe(expectedProjectPath);
     } finally {
       await agent.api.deleteWorkspace(workspaceName);

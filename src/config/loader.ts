@@ -2,6 +2,9 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { DEFAULT_CONFIG_DIR, CONFIG_FILE, type AgentConfig } from '../shared/types';
 import { DEFAULT_AGENT_PORT } from '../shared/constants';
+import { expandPath } from '../shared/path-utils';
+
+export { expandPath };
 
 export function getConfigDir(configDir?: string): string {
   return configDir || process.env.WS_CONFIG_DIR || DEFAULT_CONFIG_DIR;
@@ -90,11 +93,4 @@ export async function saveAgentConfig(config: AgentConfig, configDir?: string): 
   await ensureConfigDir(dir);
   const configPath = path.join(dir, CONFIG_FILE);
   await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
-}
-
-export function expandPath(filePath: string): string {
-  if (filePath.startsWith('~/')) {
-    return path.join(process.env.HOME || '', filePath.slice(2));
-  }
-  return filePath;
 }

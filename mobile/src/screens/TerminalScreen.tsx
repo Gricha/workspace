@@ -265,7 +265,9 @@ export function TerminalScreen({ route, navigation }: any) {
       } else if (data.type === 'ctrlReleased') {
         setCtrlActive(false)
       }
-    } catch {}
+    } catch {
+      // Ignore JSON parse errors for non-JSON messages
+    }
   }
 
   const wsUrl = getTerminalUrl(name)

@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { api, SessionMessage, AgentType } from '../lib/api'
 
-function AgentBadge({ type }: { type: AgentType }) {
+function SessionAgentBadge({ type }: { type: AgentType }) {
   const labels: Record<AgentType, string> = {
     'claude-code': 'Claude Code',
     opencode: 'OpenCode',
@@ -28,7 +28,7 @@ function AgentBadge({ type }: { type: AgentType }) {
   )
 }
 
-function MessageBubble({ message }: { message: SessionMessage }) {
+function SessionMessageBubble({ message }: { message: SessionMessage }) {
   const isUser = message.type === 'user'
   const isSystem = message.type === 'system'
   const isTool = message.type === 'tool_use' || message.type === 'tool_result'
@@ -97,7 +97,7 @@ export function SessionDetailScreen({ route, navigation }: any) {
           <Text style={styles.headerBackText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerTitle}>
-          <AgentBadge type={agentType} />
+          <SessionAgentBadge type={agentType} />
           <Text style={styles.headerSubtitle}>{workspaceName}</Text>
         </View>
         <View style={{ width: 40 }} />
@@ -110,7 +110,7 @@ export function SessionDetailScreen({ route, navigation }: any) {
 
       <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
         {session.messages.map((msg, idx) => (
-          <MessageBubble key={idx} message={msg} />
+          <SessionMessageBubble key={idx} message={msg} />
         ))}
       </ScrollView>
     </View>

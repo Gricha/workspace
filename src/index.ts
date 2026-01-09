@@ -19,6 +19,7 @@ import { buildImage } from './docker';
 import { DEFAULT_AGENT_PORT, WORKSPACE_IMAGE_LOCAL } from './shared/constants';
 import { checkForUpdates } from './update-checker';
 import { discoverSSHKeys } from './ssh';
+import { formatUptime } from './shared/format-utils';
 
 const program = new Command();
 
@@ -809,20 +810,6 @@ function handleError(err: unknown): never {
     console.error('An unknown error occurred');
   }
   process.exit(1);
-}
-
-function formatUptime(seconds: number): string {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-
-  const parts = [];
-  if (days > 0) parts.push(`${days}d`);
-  if (hours > 0) parts.push(`${hours}h`);
-  if (minutes > 0) parts.push(`${minutes}m`);
-  if (parts.length === 0) parts.push(`${seconds}s`);
-
-  return parts.join(' ');
 }
 
 checkForUpdates(pkg.version);

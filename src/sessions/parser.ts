@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from 'fs/promises';
 import { join, basename } from 'path';
 import type { SessionMetadata, SessionMessage, SessionDetail, AgentType } from './types';
+import { extractContent } from './agents/utils';
 
 function decodeProjectPath(encoded: string): string {
   return encoded.replace(/-/g, '/');
@@ -39,18 +40,6 @@ interface JsonlMessage {
   duration_ms?: number;
   duration_api_ms?: number;
   isMeta?: boolean;
-}
-
-function extractContent(
-  content: string | Array<{ type: string; text?: string }> | undefined
-): string | null {
-  if (!content) return null;
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    const textParts = content.filter((c) => c.type === 'text' && c.text).map((c) => c.text);
-    return textParts.join('\n') || null;
-  }
-  return null;
 }
 
 function extractInterleavedContent(content: Array<ContentPart>): SessionMessage[] {

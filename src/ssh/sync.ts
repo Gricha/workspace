@@ -1,8 +1,7 @@
 import { readFile } from 'fs/promises';
-import { join } from 'path';
-import { homedir } from 'os';
 import type { SSHSettings, SSHKeyConfig } from '../shared/types';
 import { discoverSSHKeys, readPublicKey } from './discovery';
+import { expandPath } from '../shared/path-utils';
 
 export interface SSHSyncResult {
   authorizedKeys: string[];
@@ -94,11 +93,4 @@ export async function collectCopyKeys(
   }
 
   return result;
-}
-
-function expandPath(filePath: string): string {
-  if (filePath.startsWith('~/')) {
-    return join(homedir(), filePath.slice(2));
-  }
-  return filePath;
 }
