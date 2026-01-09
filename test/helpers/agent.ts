@@ -152,7 +152,10 @@ export function createApiClient(baseUrl: string): ApiClient {
       cloneName: string
     ): Promise<ApiResponse<WorkspaceInfo | ApiError>> {
       try {
-        const workspace = await client.workspaces.clone({ sourceName, cloneName });
+        const workspace = await client.workspaces.clone({
+          sourceName,
+          cloneName,
+        });
         return { status: 201, data: workspace };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
@@ -306,8 +309,10 @@ export async function startTestAgent(options: TestAgentOptions = {}): Promise<Te
   const configDir = await createTempConfig({ ...options.config, port });
   const baseUrl = `http://127.0.0.1:${port}`;
   // Generate a unique testId for this agent instance to scope cleanup
+  // Uses perrytest- prefix so global cleanup can catch orphaned resources
   const testId =
-    options.testId || `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    options.testId ||
+    `perrytest-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
   const agentPath = path.join(process.cwd(), 'dist/agent/index.js');
 
