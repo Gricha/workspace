@@ -410,5 +410,5 @@ export async function startTestAgent(options: TestAgentOptions = {}): Promise<Te
 }
 
 export function generateTestWorkspaceName(): string {
-  return `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `perrytest-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
