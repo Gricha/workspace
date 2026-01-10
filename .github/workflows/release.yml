@@ -283,28 +283,13 @@ jobs:
           generate_release_notes: true
 
   notify:
-    needs: [merge, npm, release]
+    needs: [merge, release]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Verify npm package is available
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "Verifying perry@$VERSION is available on npm..."
-          for i in {1..30}; do
-            if npm view perry@$VERSION version 2>/dev/null; then
-              echo "Package perry@$VERSION is available on npm"
-              exit 0
-            fi
-            echo "Attempt $i/30: Package not yet available, waiting 10s..."
-            sleep 10
-          done
-          echo "ERROR: Package perry@$VERSION not available after 5 minutes"
-          exit 1
 
       - name: Notify Discord
         env:
