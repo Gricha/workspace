@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 
 import { Command } from 'commander';
+import { spawn } from 'child_process';
 import pkg from '../package.json';
 import { startAgent } from './agent/run';
-import { installService, uninstallService, showStatus } from './agent/systemd';
+import { installService, uninstallService, showStatus, getServiceStatus } from './agent/systemd';
 import { createApiClient, ApiClientError } from './client/api';
 import { loadClientConfig, getWorker, setWorker } from './client/config';
 import { openWSShell, openDockerExec, getTerminalWSUrl, isLocalWorker } from './client/ws-shell';
@@ -86,6 +87,43 @@ agentCmd
       follow: options.follow,
       lines: parseInt(options.lines, 10),
     });
+  });
+
+agentCmd
+  .command('kill')
+  .description('Stop the running agent daemon')
+  .action(async () => {
+    const status = await getServiceStatus();
+
+    if (status.running) {
+      console.log('Stopping agent via systemd...');
+      const proc = spawn('systemctl', ['--user', 'stop', 'perry-agent'], {
+        stdio: 'inherit',
+      });
+      await new Promise<void>((resolve) => proc.on('close', () => resolve()));
+      console.log('Agent stopped.');
+      return;
+    }
+
+    const agentRunning = await checkLocalAgent();
+    if (!agentRunning) {
+      console.log('No running agent found.');
+      return;
+    }
+
+    console.log('Stopping agent process...');
+    const proc = spawn('pkill', ['-f', 'perry.*agent.*run'], {
+      stdio: 'inherit',
+    });
+    await new Promise<void>((resolve) => proc.on('close', () => resolve()));
+
+    await new Promise((r) => setTimeout(r, 500));
+    const stillRunning = await checkLocalAgent();
+    if (stillRunning) {
+      console.log('Agent still running, sending SIGKILL...');
+      spawn('pkill', ['-9', '-f', 'perry.*agent.*run'], { stdio: 'inherit' });
+    }
+    console.log('Agent stopped.');
   });
 
 async function checkLocalAgent(): Promise<boolean> {
@@ -770,9 +808,21 @@ program
       process.exit(0);
     }
 
+    const agentRunning = await checkLocalAgent();
+    if (agentRunning) {
+      console.error('');
+      console.error('Warning: Perry agent is currently running.');
+      console.error('The update may fail with "Text file busy" error.');
+      console.error('');
+      console.error('Stop the agent first with:');
+      console.error('  perry agent kill');
+      console.error('');
+      console.error('Then run the update again.');
+      process.exit(1);
+    }
+
     console.log(`Updating Perry from ${currentVersion} to ${latestVersion}...`);
 
-    const { spawn } = await import('child_process');
     const child = spawn(
       'bash',
       ['-c', 'curl -fsSL https://raw.githubusercontent.com/gricha/perry/main/install.sh | bash'],
