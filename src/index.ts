@@ -745,9 +745,11 @@ program
 
     if (!result.version) {
       // Only show detailed error messages in interactive mode (TTY)
-      if (process.stdout.isTTY) {
+      if (process.stderr.isTTY) {
         if (result.status === 504) {
-          console.error('GitHub API returned 504 Gateway Timeout. This is usually a temporary issue.');
+          console.error(
+            'GitHub API returned 504 Gateway Timeout. This is usually a temporary issue.'
+          );
           console.error('Please try again in a few moments.');
         } else if (result.status === 403) {
           console.error('GitHub API rate limit exceeded. Please try again later.');
