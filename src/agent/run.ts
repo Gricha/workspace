@@ -229,9 +229,13 @@ function createAgentServer(
         if (type === 'terminal') {
           terminalHandler.handleMessage(ws, data);
         } else if (type === 'live-claude') {
-          liveClaudeHandler.handleMessage(ws, data);
+          liveClaudeHandler.handleMessage(ws, data).catch((err) => {
+            console.error('[ws] Error handling claude message:', err);
+          });
         } else if (type === 'live-opencode') {
-          liveOpencodeHandler.handleMessage(ws, data);
+          liveOpencodeHandler.handleMessage(ws, data).catch((err) => {
+            console.error('[ws] Error handling opencode message:', err);
+          });
         }
       },
 
