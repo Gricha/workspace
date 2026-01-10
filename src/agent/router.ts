@@ -5,7 +5,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { AgentConfig } from '../shared/types';
 import { HOST_WORKSPACE_NAME } from '../shared/client-types';
-import { getDockerVersion, execInContainer } from '../docker';
+import { getDockerVersion, execInContainer, getContainerName } from '../docker';
+import { createWorkerClient } from '../worker/client';
 import type { WorkspaceManager } from '../workspace/manager';
 interface TerminalServerLike {
   closeConnectionsForWorkspace(workspaceName: string): void;
@@ -153,7 +154,20 @@ export function createRouter(ctx: RouterContext) {
     if (!workspace) {
       throw new ORPCError('NOT_FOUND', { message: 'Workspace not found' });
     }
-    return workspace;
+
+    let workerVersion: string | null = null;
+    if (workspace.status === 'running') {
+      try {
+        const containerName = getContainerName(input.name);
+        const client = await createWorkerClient(containerName);
+        const health = await client.health();
+        workerVersion = health.version;
+      } catch {
+        // Worker not reachable
+      }
+    }
+
+    return { ...workspace, workerVersion };
   });
 
   const createWorkspace = os
@@ -253,6 +267,15 @@ export function createRouter(ctx: RouterContext) {
       failed: results.filter((r) => !r.success).length,
       results,
     };
+  });
+
+  const updateWorker = os.input(z.object({ name: z.string() })).handler(async ({ input }) => {
+    try {
+      await ctx.workspaces.updateWorkerBinary(input.name);
+      return { success: true };
+    } catch (err) {
+      mapErrorToORPC(err, 'Failed to update worker');
+    }
   });
 
   const touchWorkspace = os
@@ -1268,6 +1291,7 @@ export function createRouter(ctx: RouterContext) {
       touch: touchWorkspace,
       getPortForwards: getPortForwards,
       setPortForwards: setPortForwards,
+      updateWorker: updateWorker,
     },
     sessions: {
       list: listSessions,

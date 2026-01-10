@@ -7,7 +7,14 @@ const REQUEST_TIMEOUT = 30000;
 const STARTUP_TIMEOUT = 15000;
 const STARTUP_POLL_INTERVAL = 200;
 
+export interface WorkerHealth {
+  status: 'ok';
+  version: string;
+  sessionCount: number;
+}
+
 export interface WorkerClient {
+  health(): Promise<WorkerHealth>;
   listSessions(): Promise<IndexedSession[]>;
   getSession(id: string): Promise<IndexedSession | null>;
   getMessages(
@@ -83,6 +90,14 @@ export async function createWorkerClient(containerName: string): Promise<WorkerC
   const baseUrl = `http://${ip}:${WORKER_PORT}`;
 
   return {
+    async health(): Promise<WorkerHealth> {
+      const response = await fetchWithTimeout(`${baseUrl}/health`);
+      if (!response.ok) {
+        throw new Error(`Failed to get health: ${response.statusText}`);
+      }
+      return response.json();
+    },
+
     async listSessions(): Promise<IndexedSession[]> {
       const response = await fetchWithTimeout(`${baseUrl}/sessions`);
       if (!response.ok) {
