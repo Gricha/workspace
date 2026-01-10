@@ -12,6 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { api, SessionInfo, AgentType, HOST_WORKSPACE_NAME } from '../lib/api'
+import { useTheme } from '../contexts/ThemeContext'
+import { ThemeColors } from '../lib/themes'
 
 type DateGroup = 'Today' | 'Yesterday' | 'This Week' | 'Older'
 
@@ -50,13 +52,13 @@ function AgentBadge({ type }: { type: AgentType }) {
     opencode: 'OC',
     codex: 'CX',
   }
-  const colors: Record<AgentType, string> = {
+  const badgeColors: Record<AgentType, string> = {
     'claude-code': '#8b5cf6',
     opencode: '#22c55e',
     codex: '#f59e0b',
   }
   return (
-    <View style={[styles.agentBadge, { backgroundColor: colors[type] }]}>
+    <View style={[styles.agentBadge, { backgroundColor: badgeColors[type] }]}>
       <Text style={styles.agentBadgeText}>{labels[type]}</Text>
     </View>
   )
@@ -65,9 +67,11 @@ function AgentBadge({ type }: { type: AgentType }) {
 function SessionRow({
   session,
   onPress,
+  colors,
 }: {
   session: SessionInfo
   onPress: () => void
+  colors: ThemeColors
 }) {
   const timeAgo = useMemo(() => {
     const date = new Date(session.lastActivity)
@@ -82,32 +86,33 @@ function SessionRow({
   }, [session.lastActivity])
 
   return (
-    <TouchableOpacity style={styles.sessionRow} onPress={onPress}>
+    <TouchableOpacity style={[styles.sessionRow, { borderBottomColor: colors.border }]} onPress={onPress}>
       <AgentBadge type={session.agentType} />
       <View style={styles.sessionContent}>
-        <Text style={styles.sessionName} numberOfLines={1}>
+        <Text style={[styles.sessionName, { color: colors.text }]} numberOfLines={1}>
           {session.name || session.firstPrompt || 'Empty session'}
         </Text>
-        <Text style={styles.sessionMeta}>
+        <Text style={[styles.sessionMeta, { color: colors.textMuted }]}>
           {session.messageCount} messages • {session.projectPath.split('/').pop()}
         </Text>
       </View>
-      <Text style={styles.sessionTime}>{timeAgo}</Text>
-      <Text style={styles.sessionChevron}>›</Text>
+      <Text style={[styles.sessionTime, { color: colors.textMuted }]}>{timeAgo}</Text>
+      <Text style={[styles.sessionChevron, { color: colors.textMuted }]}>›</Text>
     </TouchableOpacity>
   )
 }
 
-function DateGroupHeader({ title }: { title: string }) {
+function DateGroupHeader({ title, colors }: { title: string; colors: ThemeColors }) {
   return (
     <View style={styles.dateGroupHeader}>
-      <Text style={styles.dateGroupTitle}>{title}</Text>
+      <Text style={[styles.dateGroupTitle, { color: colors.textMuted }]}>{title}</Text>
     </View>
   )
 }
 
 export function WorkspaceDetailScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets()
+  const { colors } = useTheme()
   const { name } = route.params
   const [agentFilter, setAgentFilter] = useState<AgentType | undefined>(undefined)
   const [showAgentPicker, setShowAgentPicker] = useState(false)
@@ -188,18 +193,18 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <Text style={[styles.backBtnText, { color: colors.accent }]}>‹</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerCenter}
           onPress={() => setShowWorkspacePicker(!showWorkspacePicker)}
         >
-          <Text style={[styles.headerTitle, isHost && styles.hostHeaderTitle]} numberOfLines={1}>{displayName}</Text>
-          <View style={[styles.statusIndicator, { backgroundColor: isHost ? '#f59e0b' : (isRunning ? '#34c759' : isCreating ? '#ff9f0a' : '#636366') }]} />
-          <Text style={styles.headerChevron}>▼</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }, isHost && styles.hostHeaderTitle]} numberOfLines={1}>{displayName}</Text>
+          <View style={[styles.statusIndicator, { backgroundColor: isHost ? colors.warning : (isRunning ? colors.success : isCreating ? colors.warning : colors.textMuted) }]} />
+          <Text style={[styles.headerChevron, { color: colors.textMuted }]}>▼</Text>
         </TouchableOpacity>
         {isHost ? (
           <View style={styles.settingsBtn} />
@@ -208,57 +213,57 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
             onPress={() => navigation.navigate('WorkspaceSettings', { name })}
             style={styles.settingsBtn}
           >
-            <Text style={styles.settingsIcon}>⚙</Text>
+            <Text style={[styles.settingsIcon, { color: colors.textMuted }]}>⚙</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      <View style={styles.actionBar}>
+      <View style={[styles.actionBar, { borderBottomColor: colors.border }]}>
         <TouchableOpacity
-          style={styles.filterBtn}
+          style={[styles.filterBtn, { backgroundColor: colors.surface }]}
           onPress={() => setShowAgentPicker(!showAgentPicker)}
         >
-          <Text style={styles.filterBtnText}>
+          <Text style={[styles.filterBtnText, { color: colors.text }]}>
             {agentLabels[agentFilter || 'all']}
           </Text>
-          <Text style={styles.filterBtnArrow}>▼</Text>
+          <Text style={[styles.filterBtnArrow, { color: colors.textMuted }]}>▼</Text>
         </TouchableOpacity>
 
         <View style={styles.actionButtons}>
           <TouchableOpacity
-            style={styles.terminalBtn}
+            style={[styles.terminalBtn, { backgroundColor: colors.surface }]}
             onPress={() => navigation.navigate('Terminal', { name })}
             disabled={!isRunning}
             testID="terminal-button"
           >
-            <Text style={[styles.terminalBtnText, !isRunning && styles.disabledText]}>Terminal</Text>
+            <Text style={[styles.terminalBtnText, { color: colors.text }, !isRunning && styles.disabledText]}>Terminal</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.newChatBtn}
+            style={[styles.newChatBtn, { backgroundColor: colors.accent }]}
             onPress={() => setShowNewChatPicker(!showNewChatPicker)}
             disabled={!isRunning}
             testID="new-chat-button"
           >
-            <Text style={[styles.newChatBtnText, !isRunning && styles.disabledText]}>New Chat ▼</Text>
+            <Text style={[styles.newChatBtnText, { color: colors.accentText }, !isRunning && styles.disabledText]}>New Chat ▼</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {showAgentPicker && (
-        <View style={styles.agentPicker}>
+        <View style={[styles.agentPicker, { backgroundColor: colors.surface }]}>
           {(['all', 'claude-code', 'opencode', 'codex'] as const).map((type) => (
             <TouchableOpacity
               key={type}
               style={[
                 styles.agentPickerItem,
-                (type === 'all' ? !agentFilter : agentFilter === type) && styles.agentPickerItemActive,
+                (type === 'all' ? !agentFilter : agentFilter === type) && [styles.agentPickerItemActive, { backgroundColor: colors.surfaceSecondary }],
               ]}
               onPress={() => {
                 setAgentFilter(type === 'all' ? undefined : type as AgentType)
                 setShowAgentPicker(false)
               }}
             >
-              <Text style={styles.agentPickerText}>{agentLabels[type]}</Text>
+              <Text style={[styles.agentPickerText, { color: colors.text }]}>{agentLabels[type]}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -267,8 +272,8 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
       {showNewChatPicker && (
         <View style={styles.newChatPickerOverlay}>
           <TouchableOpacity style={styles.newChatPickerBackdrop} onPress={() => setShowNewChatPicker(false)} />
-          <View style={styles.newChatPicker}>
-            <Text style={styles.newChatPickerTitle}>Start chat with</Text>
+          <View style={[styles.newChatPicker, { backgroundColor: colors.surfaceSecondary }]}>
+            <Text style={[styles.newChatPickerTitle, { color: colors.textMuted }]}>Start chat with</Text>
             {(['claude-code', 'opencode', 'codex'] as const).map((type) => (
               <TouchableOpacity
                 key={type}
@@ -282,7 +287,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
                 <View style={[styles.agentBadgeLarge, { backgroundColor: type === 'claude-code' ? '#8b5cf6' : type === 'opencode' ? '#22c55e' : '#f59e0b' }]}>
                   <Text style={styles.agentBadgeLargeText}>{type === 'claude-code' ? 'CC' : type === 'opencode' ? 'OC' : 'CX'}</Text>
                 </View>
-                <Text style={styles.newChatPickerItemText}>{agentLabels[type]}</Text>
+                <Text style={[styles.newChatPickerItemText, { color: colors.text }]}>{agentLabels[type]}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -292,12 +297,12 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
       {showWorkspacePicker && (
         <View style={styles.workspacePickerOverlay}>
           <TouchableOpacity style={styles.workspacePickerBackdrop} onPress={() => setShowWorkspacePicker(false)} />
-          <View style={styles.workspacePicker}>
-            <Text style={styles.workspacePickerTitle}>Switch workspace</Text>
+          <View style={[styles.workspacePicker, { backgroundColor: colors.surfaceSecondary }]}>
+            <Text style={[styles.workspacePickerTitle, { color: colors.textMuted }]}>Switch workspace</Text>
             {allWorkspaces?.map((ws) => (
               <TouchableOpacity
                 key={ws.name}
-                style={[styles.workspacePickerItem, ws.name === name && styles.workspacePickerItemActive]}
+                style={[styles.workspacePickerItem, ws.name === name && [styles.workspacePickerItemActive, { backgroundColor: colors.surface }]]}
                 onPress={() => {
                   setShowWorkspacePicker(false)
                   if (ws.name !== name) {
@@ -305,9 +310,9 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
                   }
                 }}
               >
-                <View style={[styles.workspaceStatusDot, { backgroundColor: ws.status === 'running' ? '#34c759' : ws.status === 'creating' ? '#ff9f0a' : '#636366' }]} />
-                <Text style={[styles.workspacePickerItemText, ws.name === name && styles.workspacePickerItemTextActive]}>{ws.name}</Text>
-                {ws.name === name && <Text style={styles.workspaceCheckmark}>✓</Text>}
+                <View style={[styles.workspaceStatusDot, { backgroundColor: ws.status === 'running' ? colors.success : ws.status === 'creating' ? colors.warning : colors.textMuted }]} />
+                <Text style={[styles.workspacePickerItemText, { color: colors.text }, ws.name === name && styles.workspacePickerItemTextActive]}>{ws.name}</Text>
+                {ws.name === name && <Text style={[styles.workspaceCheckmark, { color: colors.accent }]}>✓</Text>}
               </TouchableOpacity>
             ))}
             {!isHost && (
@@ -318,8 +323,8 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
                   navigation.replace('WorkspaceDetail', { name: HOST_WORKSPACE_NAME })
                 }}
               >
-                <View style={[styles.workspaceStatusDot, { backgroundColor: '#f59e0b' }]} />
-                <Text style={styles.workspacePickerItemText}>Host Machine</Text>
+                <View style={[styles.workspaceStatusDot, { backgroundColor: colors.warning }]} />
+                <Text style={[styles.workspacePickerItemText, { color: colors.text }]}>Host Machine</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -327,8 +332,8 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
       )}
 
       {isHost && (
-        <View style={styles.hostWarningBanner}>
-          <Text style={styles.hostWarningText}>
+        <View style={[styles.hostWarningBanner, { borderBottomColor: `${colors.warning}33` }]}>
+          <Text style={[styles.hostWarningText, { color: colors.warning }]}>
             Commands run directly on your machine without isolation
           </Text>
         </View>
@@ -336,29 +341,29 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
 
       {workspaceLoading && !isHost ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#0a84ff" />
+          <ActivityIndicator size="large" color={colors.accent} />
         </View>
       ) : !isRunning && !isHost ? (
         isCreating ? (
           <View style={styles.notRunning}>
-            <ActivityIndicator size="large" color="#ff9f0a" style={{ marginBottom: 16 }} />
-            <Text style={styles.notRunningText}>Workspace is starting</Text>
-            <Text style={styles.notRunningSubtext}>Please wait while the container starts up</Text>
+            <ActivityIndicator size="large" color={colors.warning} style={{ marginBottom: 16 }} />
+            <Text style={[styles.notRunningText, { color: colors.textMuted }]}>Workspace is starting</Text>
+            <Text style={[styles.notRunningSubtext, { color: colors.textMuted }]}>Please wait while the container starts up</Text>
           </View>
         ) : (
           <View style={styles.notRunning}>
-            <Text style={styles.notRunningText}>Workspace is not running</Text>
-            <Text style={styles.notRunningSubtext}>Start it from settings to view sessions</Text>
+            <Text style={[styles.notRunningText, { color: colors.textMuted }]}>Workspace is not running</Text>
+            <Text style={[styles.notRunningSubtext, { color: colors.textMuted }]}>Start it from settings to view sessions</Text>
           </View>
         )
       ) : sessionsLoading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#0a84ff" />
+          <ActivityIndicator size="large" color={colors.accent} />
         </View>
       ) : flatData.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>No sessions yet</Text>
-          <Text style={styles.emptySubtext}>Start a new chat to create one</Text>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>No sessions yet</Text>
+          <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>Start a new chat to create one</Text>
         </View>
       ) : (
         <FlatList
@@ -366,11 +371,12 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
           keyExtractor={(item) => item.type === 'header' ? `header-${item.title}` : `session-${item.session.id}`}
           renderItem={({ item }) => {
             if (item.type === 'header') {
-              return <DateGroupHeader title={item.title} />
+              return <DateGroupHeader title={item.title} colors={colors} />
             }
             return (
               <SessionRow
                 session={item.session}
+                colors={colors}
                 onPress={() => navigation.navigate('SessionChat', {
                   workspaceName: name,
                   sessionId: item.session.id,
@@ -385,7 +391,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
             <RefreshControl
               refreshing={isManualRefresh}
               onRefresh={handleManualRefresh}
-              tintColor="#fff"
+              tintColor={colors.text}
             />
           }
         />

@@ -15,9 +15,11 @@ import { useQuery } from '@tanstack/react-query'
 import { api, getTerminalUrl, HOST_WORKSPACE_NAME } from '../lib/api'
 import { ExtraKeysBar } from '../components/ExtraKeysBar'
 import { TERMINAL_HTML } from '../lib/terminal-html'
+import { useTheme } from '../contexts/ThemeContext'
 
 export function TerminalScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets()
+  const { colors } = useTheme()
   const { name } = route.params
   const webViewRef = useRef<WebView>(null)
   const [connected, setConnected] = useState(false)
@@ -112,31 +114,31 @@ export function TerminalScreen({ route, navigation }: any) {
 
   if (!isRunning) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>‹</Text>
+            <Text style={[styles.backBtnText, { color: colors.accent }]}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Terminal</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Terminal</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.notRunning}>
-          <Text style={styles.notRunningText}>Workspace is not running</Text>
-          <Text style={styles.notRunningSubtext}>Start it to access the terminal</Text>
+          <Text style={[styles.notRunningText, { color: colors.textMuted }]}>Workspace is not running</Text>
+          <Text style={[styles.notRunningSubtext, { color: colors.textMuted }]}>Start it to access the terminal</Text>
         </View>
       </View>
     )
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <Text style={[styles.backBtnText, { color: colors.accent }]}>‹</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Terminal</Text>
-          <View style={[styles.connectionDot, { backgroundColor: connected ? '#34c759' : '#636366' }]} />
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Terminal</Text>
+          <View style={[styles.connectionDot, { backgroundColor: connected ? colors.success : colors.textMuted }]} />
         </View>
         <View style={styles.placeholder} />
       </View>
@@ -154,8 +156,8 @@ export function TerminalScreen({ route, navigation }: any) {
       >
         {loading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#0a84ff" />
-            <Text style={styles.loadingText}>Loading terminal...</Text>
+            <ActivityIndicator size="large" color={colors.accent} />
+            <Text style={[styles.loadingText, { color: colors.textMuted }]}>Loading terminal...</Text>
           </View>
         )}
         <WebView

@@ -14,9 +14,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { parseNetworkError } from '../lib/network'
+import { useTheme } from '../contexts/ThemeContext'
 
 export function WorkspaceSettingsScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets()
+  const { colors } = useTheme()
   const { name } = route.params
   const queryClient = useQueryClient()
   const [showCloneModal, setShowCloneModal] = useState(false)
@@ -91,8 +93,8 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
 
   if (isLoading || !workspace) {
     return (
-      <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#0a84ff" />
+      <View style={[styles.container, styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     )
   }
@@ -101,48 +103,48 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
   const isPending = startMutation.isPending || stopMutation.isPending || deleteMutation.isPending || syncMutation.isPending || cloneMutation.isPending
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <Text style={[styles.backBtnText, { color: colors.accent }]}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Workspace Details</Text>
-          <View style={styles.card}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Name</Text>
-              <Text style={styles.infoValue}>{workspace.name}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Workspace Details</Text>
+          <View style={[styles.card, { backgroundColor: colors.surface }]}>
+            <View style={[styles.infoRow, { borderBottomColor: colors.surfaceSecondary }]}>
+              <Text style={[styles.infoLabel, { color: colors.text }]}>Name</Text>
+              <Text style={[styles.infoValue, { color: colors.textMuted }]}>{workspace.name}</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Status</Text>
-              <Text style={[styles.infoValue, { color: isRunning ? '#34c759' : '#8e8e93' }]}>
+            <View style={[styles.infoRow, { borderBottomColor: colors.surfaceSecondary }]}>
+              <Text style={[styles.infoLabel, { color: colors.text }]}>Status</Text>
+              <Text style={[styles.infoValue, { color: isRunning ? colors.success : colors.textMuted }]}>
                 {workspace.status}
               </Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Container ID</Text>
-              <Text style={styles.infoValue} numberOfLines={1}>
+            <View style={[styles.infoRow, { borderBottomColor: colors.surfaceSecondary }]}>
+              <Text style={[styles.infoLabel, { color: colors.text }]}>Container ID</Text>
+              <Text style={[styles.infoValue, { color: colors.textMuted }]} numberOfLines={1}>
                 {workspace.containerId.slice(0, 12)}
               </Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>SSH Port</Text>
-              <Text style={styles.infoValue}>{workspace.ports.ssh}</Text>
+            <View style={[styles.infoRow, { borderBottomColor: colors.surfaceSecondary }]}>
+              <Text style={[styles.infoLabel, { color: colors.text }]}>SSH Port</Text>
+              <Text style={[styles.infoValue, { color: colors.textMuted }]}>{workspace.ports.ssh}</Text>
             </View>
             {workspace.repo && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Repository</Text>
-                <Text style={styles.infoValue} numberOfLines={1}>{workspace.repo}</Text>
+              <View style={[styles.infoRow, { borderBottomColor: colors.surfaceSecondary }]}>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>Repository</Text>
+                <Text style={[styles.infoValue, { color: colors.textMuted }]} numberOfLines={1}>{workspace.repo}</Text>
               </View>
             )}
             <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-              <Text style={styles.infoLabel}>Created</Text>
-              <Text style={styles.infoValue}>
+              <Text style={[styles.infoLabel, { color: colors.text }]}>Created</Text>
+              <Text style={[styles.infoValue, { color: colors.textMuted }]}>
                 {new Date(workspace.created).toLocaleDateString()}
               </Text>
             </View>
@@ -150,27 +152,27 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sync</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Sync</Text>
           <TouchableOpacity
-            style={[styles.actionBtn, !isRunning && styles.actionBtnDisabled]}
+            style={[styles.actionBtn, { backgroundColor: colors.accent }, !isRunning && [styles.actionBtnDisabled, { backgroundColor: colors.surfaceSecondary }]]}
             onPress={() => syncMutation.mutate()}
             disabled={!isRunning || isPending}
           >
             {syncMutation.isPending ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={colors.accentText} />
             ) : (
-              <Text style={styles.actionBtnText}>Sync Credentials</Text>
+              <Text style={[styles.actionBtnText, { color: colors.accentText }]}>Sync Credentials</Text>
             )}
           </TouchableOpacity>
-          <Text style={styles.actionHint}>
+          <Text style={[styles.actionHint, { color: colors.textMuted }]}>
             Copy environment variables and credential files to workspace
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Clone</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Clone</Text>
           <TouchableOpacity
-            style={styles.actionBtn}
+            style={[styles.actionBtn, { backgroundColor: colors.accent }]}
             onPress={() => {
               setCloneName('')
               setShowCloneModal(true)
@@ -178,59 +180,59 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
             disabled={isPending}
           >
             {cloneMutation.isPending ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={colors.accentText} />
             ) : (
-              <Text style={styles.actionBtnText}>Clone Workspace</Text>
+              <Text style={[styles.actionBtnText, { color: colors.accentText }]}>Clone Workspace</Text>
             )}
           </TouchableOpacity>
-          <Text style={styles.actionHint}>
+          <Text style={[styles.actionHint, { color: colors.textMuted }]}>
             Create a copy of this workspace with all its data
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actions</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Actions</Text>
           {isRunning ? (
             <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnWarning]}
+              style={[styles.actionBtn, { backgroundColor: colors.warning }]}
               onPress={() => stopMutation.mutate()}
               disabled={isPending}
             >
               {stopMutation.isPending ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={colors.accentText} />
               ) : (
-                <Text style={styles.actionBtnText}>Stop Workspace</Text>
+                <Text style={[styles.actionBtnText, { color: colors.accentText }]}>Stop Workspace</Text>
               )}
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnSuccess]}
+              style={[styles.actionBtn, { backgroundColor: colors.success }]}
               onPress={() => startMutation.mutate()}
               disabled={isPending}
             >
               {startMutation.isPending ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={colors.accentText} />
               ) : (
-                <Text style={styles.actionBtnText}>Start Workspace</Text>
+                <Text style={[styles.actionBtnText, { color: colors.accentText }]}>Start Workspace</Text>
               )}
             </TouchableOpacity>
           )}
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: '#ff3b30' }]}>Danger Zone</Text>
+          <Text style={[styles.sectionTitle, { color: colors.error }]}>Danger Zone</Text>
           <TouchableOpacity
-            style={[styles.actionBtn, styles.actionBtnDanger]}
+            style={[styles.actionBtn, { backgroundColor: colors.error }]}
             onPress={handleDelete}
             disabled={isPending}
           >
             {deleteMutation.isPending ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={colors.accentText} />
             ) : (
-              <Text style={styles.actionBtnText}>Delete Workspace</Text>
+              <Text style={[styles.actionBtnText, { color: colors.accentText }]}>Delete Workspace</Text>
             )}
           </TouchableOpacity>
-          <Text style={styles.actionHint}>
+          <Text style={[styles.actionHint, { color: colors.textMuted }]}>
             This will permanently delete the workspace and all its data
           </Text>
         </View>
@@ -243,15 +245,15 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
         onRequestClose={() => setShowCloneModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Clone Workspace</Text>
-            <Text style={styles.modalDescription}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Clone Workspace</Text>
+            <Text style={[styles.modalDescription, { color: colors.textMuted }]}>
               Create a copy of "{name}" with all its data.
             </Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}
               placeholder="New workspace name"
-              placeholderTextColor="#636366"
+              placeholderTextColor={colors.textMuted}
               value={cloneName}
               onChangeText={setCloneName}
               autoCapitalize="none"
@@ -259,21 +261,21 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalBtn, styles.modalBtnCancel]}
+                style={[styles.modalBtn, styles.modalBtnCancel, { backgroundColor: colors.surfaceSecondary }]}
                 onPress={() => setShowCloneModal(false)}
                 disabled={cloneMutation.isPending}
               >
-                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+                <Text style={[styles.modalBtnCancelText, { color: colors.text }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtn, styles.modalBtnConfirm, !cloneName.trim() && styles.modalBtnDisabled]}
+                style={[styles.modalBtn, styles.modalBtnConfirm, { backgroundColor: colors.accent }, !cloneName.trim() && [styles.modalBtnDisabled, { backgroundColor: colors.surfaceSecondary }]]}
                 onPress={handleClone}
                 disabled={!cloneName.trim() || cloneMutation.isPending}
               >
                 {cloneMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={colors.accentText} />
                 ) : (
-                  <Text style={styles.modalBtnConfirmText}>Clone</Text>
+                  <Text style={[styles.modalBtnConfirmText, { color: colors.accentText }]}>Clone</Text>
                 )}
               </TouchableOpacity>
             </View>

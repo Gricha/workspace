@@ -9,6 +9,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { api, SessionMessage, AgentType } from '../lib/api'
+import { useTheme } from '../contexts/ThemeContext'
+import { ThemeColors } from '../lib/themes'
 
 function SessionAgentBadge({ type }: { type: AgentType }) {
   const labels: Record<AgentType, string> = {
@@ -16,30 +18,30 @@ function SessionAgentBadge({ type }: { type: AgentType }) {
     opencode: 'OpenCode',
     codex: 'Codex',
   }
-  const colors: Record<AgentType, string> = {
+  const badgeColors: Record<AgentType, string> = {
     'claude-code': '#ff6b35',
     opencode: '#34c759',
     codex: '#007aff',
   }
   return (
-    <View style={[styles.agentBadge, { backgroundColor: colors[type] }]}>
+    <View style={[styles.agentBadge, { backgroundColor: badgeColors[type] }]}>
       <Text style={styles.agentBadgeText}>{labels[type]}</Text>
     </View>
   )
 }
 
-function SessionMessageBubble({ message }: { message: SessionMessage }) {
+function SessionMessageBubble({ message, colors }: { message: SessionMessage; colors: ThemeColors }) {
   const isUser = message.type === 'user'
   const isSystem = message.type === 'system'
   const isTool = message.type === 'tool_use' || message.type === 'tool_result'
 
   if (isTool) {
     return (
-      <View style={styles.toolMessage}>
-        <Text style={styles.toolLabel}>
+      <View style={[styles.toolMessage, { backgroundColor: colors.background, borderLeftColor: colors.warning }]}>
+        <Text style={[styles.toolLabel, { color: colors.warning }]}>
           {message.type === 'tool_use' ? `Tool: ${message.toolName}` : 'Result'}
         </Text>
-        <Text style={styles.toolContent} numberOfLines={15}>
+        <Text style={[styles.toolContent, { color: colors.textMuted }]} numberOfLines={15}>
           {message.content || message.toolInput || ''}
         </Text>
       </View>
@@ -49,20 +51,21 @@ function SessionMessageBubble({ message }: { message: SessionMessage }) {
   if (isSystem) {
     return (
       <View style={styles.systemMessage}>
-        <Text style={styles.systemText}>{message.content}</Text>
+        <Text style={[styles.systemText, { color: colors.textMuted }]}>{message.content}</Text>
       </View>
     )
   }
 
   return (
-    <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
-      <Text style={styles.bubbleText}>{message.content}</Text>
+    <View style={[styles.bubble, isUser ? [styles.userBubble, { backgroundColor: colors.accent }] : [styles.assistantBubble, { backgroundColor: colors.surface }]]}>
+      <Text style={[styles.bubbleText, { color: isUser ? colors.accentText : colors.text }]}>{message.content}</Text>
     </View>
   )
 }
 
 export function SessionDetailScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets()
+  const { colors } = useTheme()
   const { workspaceName, sessionId, agentType } = route.params
 
   const { data: session, isLoading, error } = useQuery({
@@ -72,45 +75,45 @@ export function SessionDetailScreen({ route, navigation }: any) {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color="#0a84ff" />
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     )
   }
 
   if (error || !session) {
     return (
-      <View style={[styles.container, styles.errorContainer]}>
+      <View style={[styles.container, styles.errorContainer, { backgroundColor: colors.background }]}>
         <Text style={styles.errorIcon}>⚠</Text>
-        <Text style={styles.errorTitle}>Session Not Found</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>Go Back</Text>
+        <Text style={[styles.errorTitle, { color: colors.text }]}>Session Not Found</Text>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.accent }]} onPress={() => navigation.goBack()}>
+          <Text style={[styles.backButtonText, { color: colors.accentText }]}>Go Back</Text>
         </TouchableOpacity>
       </View>
     )
   }
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top, borderBottomColor: colors.border, backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBack}>
-          <Text style={styles.headerBackText}>←</Text>
+          <Text style={[styles.headerBackText, { color: colors.accent }]}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerTitle}>
           <SessionAgentBadge type={agentType} />
-          <Text style={styles.headerSubtitle}>{workspaceName}</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>{workspaceName}</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.metaBar}>
-        <Text style={styles.metaText}>{session.messages.length} messages</Text>
-        <Text style={styles.metaId}>ID: {sessionId.slice(0, 8)}</Text>
+      <View style={[styles.metaBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.metaText, { color: colors.textMuted }]}>{session.messages.length} messages</Text>
+        <Text style={[styles.metaId, { color: colors.textMuted }]}>ID: {sessionId.slice(0, 8)}</Text>
       </View>
 
       <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
         {session.messages.map((msg, idx) => (
-          <SessionMessageBubble key={idx} message={msg} />
+          <SessionMessageBubble key={idx} message={msg} colors={colors} />
         ))}
       </ScrollView>
     </View>
