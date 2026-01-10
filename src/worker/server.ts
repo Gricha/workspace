@@ -1,4 +1,5 @@
 import { sessionIndex, type IndexedSession, type Message } from './session-index';
+import pkg from '../../package.json' with { type: 'json' };
 
 const DEFAULT_PORT = 7392;
 
@@ -23,6 +24,7 @@ interface DeleteResponse {
 
 interface HealthResponse {
   status: 'ok';
+  version: string;
   sessionCount: number;
 }
 
@@ -42,6 +44,7 @@ export async function startWorkerServer(options: ServerOptions = {}): Promise<vo
       if (url.pathname === '/health' && req.method === 'GET') {
         const response: HealthResponse = {
           status: 'ok',
+          version: pkg.version,
           sessionCount: sessionIndex.list().length,
         };
         return Response.json(response);

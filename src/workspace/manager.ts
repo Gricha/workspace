@@ -266,16 +266,23 @@ export class WorkspaceManager {
   }
 
   private async copyPerryWorker(containerName: string): Promise<void> {
+    const installedPath = path.join(os.homedir(), '.perry', 'bin', 'perry');
     const distDir = path.dirname(new URL(import.meta.url).pathname);
-    const workerBinaryPath = path.join(distDir, '..', 'perry-worker');
+    const distPath = path.join(distDir, '..', 'perry-worker');
 
+    let workerBinaryPath = distPath;
     try {
-      await fs.access(workerBinaryPath);
+      await fs.access(installedPath);
+      workerBinaryPath = installedPath;
     } catch {
-      console.warn(
-        `[sync] perry-worker binary not found at ${workerBinaryPath}, session discovery may not work`
-      );
-      return;
+      try {
+        await fs.access(distPath);
+      } catch {
+        console.warn(
+          `[sync] perry binary not found at ${installedPath} or ${distPath}, session discovery may not work`
+        );
+        return;
+      }
     }
 
     const destPath = '/usr/local/bin/perry';
@@ -286,6 +293,28 @@ export class WorkspaceManager {
     await docker.execInContainer(containerName, ['chmod', '755', destPath], {
       user: 'root',
     });
+  }
+
+  async updateWorkerBinary(name: string): Promise<void> {
+    const workspace = await this.state.getWorkspace(name);
+    if (!workspace) {
+      throw new Error(`Workspace '${name}' not found`);
+    }
+
+    const containerName = getContainerName(name);
+    const running = await docker.containerRunning(containerName);
+    if (!running) {
+      throw new Error(`Workspace '${name}' is not running`);
+    }
+
+    await docker.execInContainer(
+      containerName,
+      ['sh', '-c', 'pkill -f "perry worker serve" || true'],
+      { user: 'workspace' }
+    );
+
+    await this.copyPerryWorker(containerName);
+    await this.startWorkerServer(containerName);
   }
 
   private async startWorkerServer(containerName: string): Promise<void> {
