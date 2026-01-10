@@ -174,28 +174,6 @@ export async function syncAllAgents(
 }
 
 export function getCredentialFilePaths(): string[] {
-  const paths: string[] = [];
-
-  for (const agent of Object.values(agents)) {
-    const dummyContext: SyncContext = {
-      containerName: '',
-      agentConfig: { port: 0, credentials: { env: {}, files: {} }, scripts: {} },
-      hostFileExists: async () => false,
-      hostDirExists: async () => false,
-      readHostFile: async () => null,
-      readContainerFile: async () => null,
-    };
-
-    const filesPromise = agent.sync.getFilesToSync(dummyContext);
-    filesPromise.then((files) => {
-      for (const file of files) {
-        if (file.category === 'credential') {
-          paths.push(file.source);
-        }
-      }
-    });
-  }
-
   return ['~/.claude/.credentials.json', '~/.codex/auth.json'];
 }
 

@@ -65,10 +65,10 @@ export class LiveChatWebSocketServer extends BaseWebSocketServer<LiveChatConnect
       })
     );
 
-    ws.on('message', async (data: Buffer | string) => {
+    ws.on('message', (data: Buffer | string) => {
       const str = typeof data === 'string' ? data : data.toString();
 
-      try {
+      const handleMessage = async () => {
         const message: LiveChatMessage = JSON.parse(str);
 
         if (message.type === 'connect') {
@@ -91,7 +91,9 @@ export class LiveChatWebSocketServer extends BaseWebSocketServer<LiveChatConnect
         if (message.type === 'message' && message.content) {
           await this.handleMessage(connection, ws, workspaceName, message);
         }
-      } catch (err) {
+      };
+
+      handleMessage().catch((err) => {
         safeSend(
           ws,
           JSON.stringify({
@@ -100,7 +102,7 @@ export class LiveChatWebSocketServer extends BaseWebSocketServer<LiveChatConnect
             timestamp: new Date().toISOString(),
           })
         );
-      }
+      });
     });
 
     ws.on('close', () => {

@@ -378,11 +378,13 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
   console.log(`[agent] WebSocket chat (Claude): ws://localhost:${port}/rpc/live/claude/:name`);
   console.log(`[agent] WebSocket chat (OpenCode): ws://localhost:${port}/rpc/live/opencode/:name`);
 
-  startEagerImagePull();
+  startEagerImagePull().catch((err) => {
+    console.error('[agent] Error during image pull:', err);
+  });
 
   let isShuttingDown = false;
 
-  const shutdown = async () => {
+  const shutdown = () => {
     if (isShuttingDown) {
       console.log('[agent] Force exit');
       process.exit(0);
@@ -400,20 +402,27 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
     stopEagerImagePull();
     fileWatcher.stop();
 
-    if (tailscaleServeActive) {
-      console.log('[agent] Stopping Tailscale Serve...');
-      await stopTailscaleServe();
-    }
+    const cleanup = async () => {
+      if (tailscaleServeActive) {
+        console.log('[agent] Stopping Tailscale Serve...');
+        await stopTailscaleServe();
+      }
 
-    liveClaudeHandler.close();
-    liveOpencodeHandler.close();
-    terminalHandler.close();
+      liveClaudeHandler.close();
+      liveOpencodeHandler.close();
+      terminalHandler.close();
 
-    server.stop();
+      await server.stop();
 
-    clearTimeout(forceExitTimeout);
-    console.log('[agent] Server closed');
-    process.exit(0);
+      clearTimeout(forceExitTimeout);
+      console.log('[agent] Server closed');
+      process.exit(0);
+    };
+
+    cleanup().catch((err) => {
+      console.error('[agent] Shutdown error:', err);
+      process.exit(1);
+    });
   };
 
   process.on('SIGTERM', shutdown);

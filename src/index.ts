@@ -928,7 +928,7 @@ function handleError(err: unknown): never {
 
 const isWorkerCommand = process.argv[2] === 'worker';
 if (!isWorkerCommand) {
-  checkForUpdates(pkg.version);
+  checkForUpdates(pkg.version).catch(() => {});
 }
 
 program.parse();

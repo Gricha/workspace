@@ -24,7 +24,9 @@ export class FileWatcher {
     this.config = options.config;
     this.syncCallback = options.syncCallback;
     this.debounceMs = options.debounceMs ?? 500;
-    this.setupWatchers();
+    this.setupWatchers().catch((err) => {
+      console.error('[file-watcher] Failed to setup watchers:', err);
+    });
   }
 
   updateConfig(config: AgentConfig): void {
@@ -123,17 +125,18 @@ export class FileWatcher {
     }
 
     this.pendingSync = true;
-    this.debounceTimer = setTimeout(async () => {
+    this.debounceTimer = setTimeout(() => {
       this.debounceTimer = null;
       if (this.pendingSync) {
         this.pendingSync = false;
-        try {
-          console.log('[file-watcher] Triggering sync...');
-          await this.syncCallback();
-          console.log('[file-watcher] Sync completed');
-        } catch (err) {
-          console.error('[file-watcher] Sync failed:', err);
-        }
+        console.log('[file-watcher] Triggering sync...');
+        this.syncCallback()
+          .then(() => {
+            console.log('[file-watcher] Sync completed');
+          })
+          .catch((err) => {
+            console.error('[file-watcher] Sync failed:', err);
+          });
       }
     }, this.debounceMs);
   }
@@ -155,7 +158,9 @@ export class FileWatcher {
 
     for (const filePath of newPaths) {
       if (!currentPaths.has(filePath)) {
-        this.watchFile(filePath);
+        this.watchFile(filePath).catch((err) => {
+          console.error(`[file-watcher] Failed to watch ${filePath}:`, err);
+        });
       }
     }
   }

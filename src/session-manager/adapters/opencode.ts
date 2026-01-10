@@ -215,7 +215,7 @@ export class OpenCodeAdapter implements AgentAdapter {
       fetch: () => new Response(''),
     });
     const port = server.port!;
-    server.stop();
+    await server.stop();
     return port;
   }
 

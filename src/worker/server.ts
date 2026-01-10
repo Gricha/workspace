@@ -96,15 +96,19 @@ export async function startWorkerServer(options: ServerOptions = {}): Promise<vo
 
   console.error(`Worker server listening on port ${server.port}`);
 
-  process.on('SIGINT', () => {
+  const shutdown = () => {
     sessionIndex.stopWatchers();
-    server.stop();
-    process.exit(0);
-  });
+    server
+      .stop()
+      .then(() => {
+        process.exit(0);
+      })
+      .catch((err) => {
+        console.error('[worker] Shutdown error:', err);
+        process.exit(1);
+      });
+  };
 
-  process.on('SIGTERM', () => {
-    sessionIndex.stopWatchers();
-    server.stop();
-    process.exit(0);
-  });
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }

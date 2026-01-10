@@ -19,6 +19,8 @@
     "no-sparse-arrays": "error",
     "no-template-curly-in-string": "error",
     "valid-typeof": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
     "perry-custom/no-duplicate-method-names": "warn"
   },
   "jsPlugins": ["./oxlint-plugins/no-duplicate-method-names.js"],
