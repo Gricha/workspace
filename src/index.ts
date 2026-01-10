@@ -735,19 +735,32 @@ program
   .description('Update Perry to the latest version')
   .option('-f, --force', 'Force update even if already on latest version')
   .action(async (options) => {
-    const { fetchLatestVersion, compareVersions } = await import('./update-checker.js');
+    const { fetchLatestVersionWithDetails, compareVersions } = await import('./update-checker.js');
     const currentVersion = pkg.version;
 
     console.log(`Current version: ${currentVersion}`);
     console.log('Checking for updates...');
 
-    const latestVersion = await fetchLatestVersion();
+    const result = await fetchLatestVersionWithDetails();
 
-    if (!latestVersion) {
-      console.error('Failed to fetch latest version. Please try again later.');
+    if (!result.version) {
+      // Only show detailed error messages in interactive mode (TTY)
+      if (process.stdout.isTTY) {
+        if (result.status === 504) {
+          console.error('GitHub API returned 504 Gateway Timeout. This is usually a temporary issue.');
+          console.error('Please try again in a few moments.');
+        } else if (result.status === 403) {
+          console.error('GitHub API rate limit exceeded. Please try again later.');
+        } else if (result.error) {
+          console.error(`Failed to fetch latest version: ${result.error}`);
+        } else {
+          console.error('Failed to fetch latest version. Please try again later.');
+        }
+      }
       process.exit(1);
     }
 
+    const latestVersion = result.version;
     console.log(`Latest version: ${latestVersion}`);
 
     if (compareVersions(currentVersion, latestVersion) <= 0 && !options.force) {
