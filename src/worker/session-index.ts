@@ -178,7 +178,10 @@ class SessionIndex {
         try {
           const entry = JSON.parse(line);
           if (entry.type === 'user' || entry.type === 'human') {
-            if (entry.message?.content) {
+            if (typeof entry.message?.content === 'string' && entry.message.content.trim()) {
+              firstPrompt = entry.message.content.slice(0, 200);
+              break;
+            } else if (Array.isArray(entry.message?.content)) {
               const textContent = entry.message.content.find(
                 (c: { type: string }) => c.type === 'text'
               );
