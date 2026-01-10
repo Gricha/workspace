@@ -138,7 +138,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
   const isRunning = isHost ? true : workspace?.status === 'running'
   const isCreating = isHost ? false : workspace?.status === 'creating'
 
-  const { data: sessionsData, isLoading: sessionsLoading, isFetching: sessionsFetching, refetch: refetchSessions } = useQuery({
+  const { data: sessionsData, isLoading: sessionsLoading, refetch: refetchSessions } = useQuery({
     queryKey: ['sessions', name, agentFilter],
     queryFn: () => api.listSessions(name, agentFilter, 50),
     enabled: isRunning,
