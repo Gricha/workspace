@@ -6,6 +6,7 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
@@ -112,6 +113,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
   const [showAgentPicker, setShowAgentPicker] = useState(false)
   const [showNewChatPicker, setShowNewChatPicker] = useState(false)
   const [showWorkspacePicker, setShowWorkspacePicker] = useState(false)
+  const [isManualRefresh, setIsManualRefresh] = useState(false)
 
   const isHost = name === HOST_WORKSPACE_NAME
 
@@ -149,6 +151,12 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
       }
     }, [isRunning, refetchSessions])
   )
+
+  const handleManualRefresh = useCallback(async () => {
+    setIsManualRefresh(true)
+    await refetchSessions()
+    setIsManualRefresh(false)
+  }, [refetchSessions])
 
   const groupedSessions = useMemo(() => {
     if (!sessionsData?.sessions) return null
@@ -373,6 +381,13 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
             )
           }}
           contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isManualRefresh}
+              onRefresh={handleManualRefresh}
+              tintColor="#fff"
+            />
+          }
         />
       )}
     </View>
