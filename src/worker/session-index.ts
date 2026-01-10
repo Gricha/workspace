@@ -153,7 +153,7 @@ class SessionIndex {
           title: session.title,
           directory: session.directory,
           filePath: session.file,
-          messageCount: 0,
+          messageCount: session.messageCount,
           firstPrompt: session.title || null,
           lastActivity: session.mtime,
         });

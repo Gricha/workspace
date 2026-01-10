@@ -8,6 +8,7 @@ export interface OpencodeSessionInfo {
   directory: string;
   mtime: number;
   file: string;
+  messageCount: number;
 }
 
 export interface OpencodeMessage {
@@ -32,6 +33,7 @@ function getStorageBase(homeDir?: string): string {
 export async function listOpencodeSessions(homeDir?: string): Promise<OpencodeSessionInfo[]> {
   const storageBase = getStorageBase(homeDir);
   const sessionDir = path.join(storageBase, 'session');
+  const messageDir = path.join(storageBase, 'message');
   const sessions: OpencodeSessionInfo[] = [];
 
   try {
@@ -54,12 +56,24 @@ export async function listOpencodeSessions(homeDir?: string): Promise<OpencodeSe
 
           if (!data.id) continue;
 
+          let messageCount = 0;
+          try {
+            const msgDir = path.join(messageDir, data.id);
+            const msgFiles = await fs.readdir(msgDir);
+            messageCount = msgFiles.filter(
+              (f) => f.startsWith('msg_') && f.endsWith('.json')
+            ).length;
+          } catch {
+            // No messages directory
+          }
+
           sessions.push({
             id: data.id,
             title: data.title || '',
             directory: data.directory || '',
             mtime: data.time?.updated || Math.floor(stat.mtimeMs),
             file: filePath,
+            messageCount,
           });
         } catch {
           continue;

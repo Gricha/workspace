@@ -20,10 +20,19 @@ describe('Worker Server Integration', () => {
 
     await execInWorkspace(
       containerName,
-      'mkdir -p ~/.claude/projects/test-project && echo \'{"type":"user","message":{"content":[{"type":"text","text":"Hello from test"}]}}\' > ~/.claude/projects/test-project/test-session.jsonl'
+      'mkdir -p ~/.claude/projects/test-project && echo \'{"type":"user","message":{"content":[{"type":"text","text":"Hello from test"}]}}\' > ~/.claude/projects/test-project/test-session.jsonl',
+      { user: 'workspace' }
     );
 
-    await execInWorkspace(containerName, 'perry worker serve &');
+    const verifyResult = await execInWorkspace(
+      containerName,
+      'cat ~/.claude/projects/test-project/test-session.jsonl',
+      { user: 'workspace' }
+    );
+    if (!verifyResult.stdout.includes('Hello from test')) {
+      throw new Error(`Session file not created properly: ${verifyResult.stdout}`);
+    }
+
     await new Promise((r) => setTimeout(r, 1000));
 
     const ip = await getContainerIp(containerName);
@@ -51,6 +60,72 @@ describe('Worker Server Integration', () => {
 
     const data = await response.json();
     expect(Array.isArray(data.sessions)).toBe(true);
+  });
+
+  it('extracts title from Claude session first message', async () => {
+    const refreshResponse = await fetch(`${workerUrl}/refresh`, { method: 'POST' });
+    expect(refreshResponse.ok).toBe(true);
+
+    const listResponse = await fetch(`${workerUrl}/sessions`);
+    const listData = await listResponse.json();
+
+    const claudeSession = listData.sessions.find(
+      (s: { agentType: string }) => s.agentType === 'claude'
+    );
+    expect(claudeSession).toBeDefined();
+    expect(claudeSession.title).toBe('Hello from test');
+    expect(claudeSession.firstPrompt).toBe('Hello from test');
+  });
+
+  it('counts messages in Claude sessions', async () => {
+    await execInWorkspace(
+      containerName,
+      `cat >> ~/.claude/projects/test-project/test-session.jsonl << 'EOF'
+{"type":"assistant","message":{"content":[{"type":"text","text":"Hi there!"}]}}
+{"type":"user","message":{"content":[{"type":"text","text":"Second message"}]}}
+EOF`,
+      { user: 'workspace' }
+    );
+
+    const refreshResponse = await fetch(`${workerUrl}/refresh`, { method: 'POST' });
+    expect(refreshResponse.ok).toBe(true);
+
+    const listResponse = await fetch(`${workerUrl}/sessions`);
+    const listData = await listResponse.json();
+
+    const claudeSession = listData.sessions.find(
+      (s: { agentType: string; id: string }) =>
+        s.agentType === 'claude' && s.id === 'test-session'
+    );
+    expect(claudeSession).toBeDefined();
+    expect(claudeSession.messageCount).toBe(3);
+  });
+
+  it('discovers OpenCode sessions with message counts', async () => {
+    const sessionId = 'ses_test123';
+    await execInWorkspace(
+      containerName,
+      `mkdir -p ~/.local/share/opencode/storage/session/global && \
+       mkdir -p ~/.local/share/opencode/storage/message/${sessionId} && \
+       echo '{"id":"${sessionId}","title":"Test OpenCode Session","directory":"/home/workspace"}' > ~/.local/share/opencode/storage/session/global/${sessionId}.json && \
+       echo '{"id":"msg_1","role":"user"}' > ~/.local/share/opencode/storage/message/${sessionId}/msg_1.json && \
+       echo '{"id":"msg_2","role":"assistant"}' > ~/.local/share/opencode/storage/message/${sessionId}/msg_2.json`,
+      { user: 'workspace' }
+    );
+
+    const refreshResponse = await fetch(`${workerUrl}/refresh`, { method: 'POST' });
+    expect(refreshResponse.ok).toBe(true);
+
+    const listResponse = await fetch(`${workerUrl}/sessions`);
+    const listData = await listResponse.json();
+
+    const opencodeSession = listData.sessions.find(
+      (s: { agentType: string; id: string }) =>
+        s.agentType === 'opencode' && s.id === sessionId
+    );
+    expect(opencodeSession).toBeDefined();
+    expect(opencodeSession.title).toBe('Test OpenCode Session');
+    expect(opencodeSession.messageCount).toBe(2);
   });
 
   it('gets single session', async () => {

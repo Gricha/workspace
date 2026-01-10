@@ -225,9 +225,18 @@ export function createApiClient(baseUrl: string): ApiClient {
   };
 }
 
-export async function execInWorkspace(containerName: string, command: string): Promise<ExecResult> {
+export async function execInWorkspace(
+  containerName: string,
+  command: string,
+  options?: { user?: string }
+): Promise<ExecResult> {
   return new Promise((resolve, reject) => {
-    const proc = spawn('docker', ['exec', containerName, 'bash', '-c', command]);
+    const args = ['exec'];
+    if (options?.user) {
+      args.push('-u', options.user);
+    }
+    args.push(containerName, 'bash', '-c', command);
+    const proc = spawn('docker', args);
     let stdout = '';
     let stderr = '';
 
