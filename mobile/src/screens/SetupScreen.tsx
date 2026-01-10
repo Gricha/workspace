@@ -14,6 +14,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { saveServerConfig, getDefaultPort, refreshClient, api } from '../lib/api'
+import { useTheme } from '../contexts/ThemeContext'
 
 const SETUP_GUIDE_URL = 'https://gricha.github.io/perry/docs/introduction'
 
@@ -23,6 +24,7 @@ interface SetupScreenProps {
 
 export function SetupScreen({ onComplete }: SetupScreenProps) {
   const insets = useSafeAreaInsets()
+  const { colors } = useTheme()
   const [host, setHost] = useState('')
   const [port, setPort] = useState(String(getDefaultPort()))
   const [isConnecting, setIsConnecting] = useState(false)
@@ -67,10 +69,10 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
@@ -80,33 +82,33 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
               source={require('../../assets/icon.png')}
               style={styles.logoImage}
             />
-            <Text style={styles.logo}>Perry</Text>
-            <Text style={styles.tagline} testID="tagline">Isolated, self-hosted workspaces{'\n'}accessible over Tailscale</Text>
+            <Text style={[styles.logo, { color: colors.text }]}>Perry</Text>
+            <Text style={[styles.tagline, { color: colors.textMuted }]} testID="tagline">Isolated, self-hosted workspaces{'\n'}accessible over Tailscale</Text>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.surfaceSecondary }]} />
 
-          <TouchableOpacity style={styles.setupGuideCard} onPress={handleSetupGuide}>
+          <TouchableOpacity style={[styles.setupGuideCard, { backgroundColor: colors.surface }]} onPress={handleSetupGuide}>
             <View style={styles.setupGuideContent}>
-              <Text style={styles.setupGuideTitle}>Setup Guide</Text>
-              <Text style={styles.setupGuideSubtitle}>New to Perry? Learn how to set up your server</Text>
+              <Text style={[styles.setupGuideTitle, { color: colors.accent }]}>Setup Guide</Text>
+              <Text style={[styles.setupGuideSubtitle, { color: colors.textMuted }]}>New to Perry? Learn how to set up your server</Text>
             </View>
-            <Text style={styles.setupGuideArrow}>→</Text>
+            <Text style={[styles.setupGuideArrow, { color: colors.accent }]}>→</Text>
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.surfaceSecondary }]} />
 
           <View style={styles.form}>
-            <Text style={styles.formHeader}>Already have a server?</Text>
-            
+            <Text style={[styles.formHeader, { color: colors.textMuted }]}>Already have a server?</Text>
+
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Server Hostname</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Server Hostname</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
                 value={host}
                 onChangeText={setHost}
                 placeholder="my-server.tailnet.ts.net"
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
@@ -115,34 +117,34 @@ export function SetupScreen({ onComplete }: SetupScreenProps) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Port</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Port</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
                 value={port}
                 onChangeText={setPort}
                 placeholder="7391"
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="number-pad"
                 testID="port-input"
               />
             </View>
 
             {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
+              <View style={[styles.errorContainer, { backgroundColor: `${colors.error}26` }]}>
+                <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
               </View>
             )}
 
             <TouchableOpacity
-              style={[styles.button, isConnecting && styles.buttonDisabled]}
+              style={[styles.button, { backgroundColor: colors.accent }, isConnecting && styles.buttonDisabled]}
               onPress={handleConnect}
               disabled={isConnecting}
               testID="connect-button"
             >
               {isConnecting ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={colors.accentText} />
               ) : (
-                <Text style={styles.buttonText}>Connect</Text>
+                <Text style={[styles.buttonText, { color: colors.accentText }]}>Connect</Text>
               )}
             </TouchableOpacity>
           </View>

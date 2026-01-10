@@ -17,6 +17,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { api, AgentType, getChatUrl, HOST_WORKSPACE_NAME, ModelInfo } from '../lib/api'
+import { useTheme } from '../contexts/ThemeContext'
+import { ThemeColors } from '../lib/themes'
 
 const FALLBACK_CLAUDE_MODELS: ModelInfo[] = [
   { id: 'sonnet', name: 'Sonnet' },
@@ -85,6 +87,7 @@ function ExpandableToolRow({
   isFirst,
   isLast,
   isGrouped,
+  colors,
 }: {
   toolName: string
   input: string
@@ -92,6 +95,7 @@ function ExpandableToolRow({
   isFirst: boolean
   isLast: boolean
   isGrouped: boolean
+  colors: ThemeColors
 }) {
   const [expanded, setExpanded] = useState(false)
   const summary = getToolSummary(toolName, input)
@@ -103,25 +107,25 @@ function ExpandableToolRow({
     <TouchableOpacity
       style={[
         styles.compactToolRow,
-        isGrouped && !isFirst && styles.compactToolRowGrouped,
+        isGrouped && !isFirst && [styles.compactToolRowGrouped, { borderTopColor: colors.surfaceSecondary }],
         isGrouped && isFirst && styles.compactToolRowFirst,
         isGrouped && isLast && styles.compactToolRowLast,
-        !isGrouped && styles.compactToolRowSingle,
+        !isGrouped && [styles.compactToolRowSingle, { backgroundColor: colors.surface, borderColor: colors.surfaceSecondary }],
       ]}
       onPress={() => setExpanded(!expanded)}
       activeOpacity={0.7}
     >
       <View style={styles.compactToolHeader}>
-        <Text style={styles.toolChevron}>{expanded ? '▼' : '▶'}</Text>
-        <View style={[styles.toolStatusDot, { backgroundColor: hasResult ? '#34c759' : '#8e8e93' }]} />
-        <Text style={styles.compactToolText} numberOfLines={1}>{displayText}</Text>
+        <Text style={[styles.toolChevron, { color: colors.textMuted }]}>{expanded ? '▼' : '▶'}</Text>
+        <View style={[styles.toolStatusDot, { backgroundColor: hasResult ? colors.success : colors.textMuted }]} />
+        <Text style={[styles.compactToolText, { color: colors.text }]} numberOfLines={1}>{displayText}</Text>
       </View>
       {expanded && (
         <View style={styles.toolDetails}>
           {input && (
             <View style={styles.toolSection}>
-              <Text style={styles.toolSectionLabel}>INPUT</Text>
-              <Text style={styles.toolContent} numberOfLines={8}>
+              <Text style={[styles.toolSectionLabel, { color: colors.textMuted }]}>INPUT</Text>
+              <Text style={[styles.toolContent, { color: colors.textSecondary, backgroundColor: colors.background }]} numberOfLines={8}>
                 {input.slice(0, 500)}
                 {input.length > 500 ? '... (truncated)' : ''}
               </Text>
@@ -129,8 +133,8 @@ function ExpandableToolRow({
           )}
           {hasResult && (
             <View style={styles.toolSection}>
-              <Text style={styles.toolSectionLabel}>RESULT</Text>
-              <Text style={[styles.toolContent, styles.toolResultContent]} numberOfLines={12}>
+              <Text style={[styles.toolSectionLabel, { color: colors.textMuted }]}>RESULT</Text>
+              <Text style={[styles.toolContent, styles.toolResultContent, { color: colors.textSecondary, backgroundColor: `${colors.success}15`, borderColor: `${colors.success}33` }]} numberOfLines={12}>
                 {result.slice(0, 800)}
                 {result.length > 800 ? '... (truncated)' : ''}
               </Text>
@@ -142,11 +146,11 @@ function ExpandableToolRow({
   )
 }
 
-function ToolGroup({ tools }: { tools: ToolItem[] }) {
+function ToolGroup({ tools, colors }: { tools: ToolItem[]; colors: ThemeColors }) {
   const isGrouped = tools.length > 1
 
   return (
-    <View style={[styles.toolGroup, isGrouped && styles.toolGroupMultiple]}>
+    <View style={[styles.toolGroup, isGrouped && [styles.toolGroupMultiple, { backgroundColor: colors.surface, borderColor: colors.surfaceSecondary }]]}>
       {tools.map((tool, index) => (
         <ExpandableToolRow
           key={tool.key}
@@ -156,13 +160,14 @@ function ToolGroup({ tools }: { tools: ToolItem[] }) {
           isFirst={index === 0}
           isLast={index === tools.length - 1}
           isGrouped={isGrouped}
+          colors={colors}
         />
       ))}
     </View>
   )
 }
 
-function renderPartsWithPairedTools(parts: MessagePart[]) {
+function renderPartsWithPairedTools(parts: MessagePart[], colors: ThemeColors) {
   const elements: React.ReactNode[] = []
   const resultsByToolId = new Map<string, string>()
 
@@ -178,7 +183,7 @@ function renderPartsWithPairedTools(parts: MessagePart[]) {
   const flushTools = () => {
     if (pendingTools.length > 0) {
       elements.push(
-        <ToolGroup key={`toolgroup-${pendingTools[0].key}`} tools={pendingTools} />
+        <ToolGroup key={`toolgroup-${pendingTools[0].key}`} tools={pendingTools} colors={colors} />
       )
       pendingTools = []
     }
@@ -190,8 +195,8 @@ function renderPartsWithPairedTools(parts: MessagePart[]) {
     if (part.type === 'text' && trimmedContent) {
       flushTools()
       elements.push(
-        <View key={`text-${i}`} style={styles.assistantBubble}>
-          <Text style={styles.messageText}>{trimmedContent}</Text>
+        <View key={`text-${i}`} style={[styles.assistantBubble, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.messageText, { color: colors.text }]}>{trimmedContent}</Text>
         </View>
       )
     } else if (part.type === 'tool_use') {
@@ -214,21 +219,21 @@ function renderPartsWithPairedTools(parts: MessagePart[]) {
   return elements
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({ message, colors }: { message: ChatMessage; colors: ThemeColors }) {
   const trimmedContent = message.content?.trim() || ''
 
   if (message.role === 'system') {
     return (
       <View style={styles.systemBubble}>
-        <Text style={styles.systemText}>{trimmedContent}</Text>
+        <Text style={[styles.systemText, { color: colors.textMuted }]}>{trimmedContent}</Text>
       </View>
     )
   }
 
   if (message.role === 'user') {
     return (
-      <View style={styles.userBubble} testID="user-message">
-        <Text style={styles.messageText}>{trimmedContent}</Text>
+      <View style={[styles.userBubble, { backgroundColor: colors.accent }]} testID="user-message">
+        <Text style={[styles.messageText, { color: colors.accentText }]}>{trimmedContent}</Text>
       </View>
     )
   }
@@ -236,19 +241,19 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   if (message.parts && message.parts.length > 0) {
     return (
       <View style={styles.partsContainer}>
-        {renderPartsWithPairedTools(message.parts)}
+        {renderPartsWithPairedTools(message.parts, colors)}
       </View>
     )
   }
 
   return (
-    <View style={styles.assistantBubble} testID="assistant-message">
-      <Text style={styles.messageText}>{trimmedContent}</Text>
+    <View style={[styles.assistantBubble, { backgroundColor: colors.surface }]} testID="assistant-message">
+      <Text style={[styles.messageText, { color: colors.text }]}>{trimmedContent}</Text>
     </View>
   )
 }
 
-function ThinkingDots() {
+function ThinkingDots({ colors }: { colors: ThemeColors }) {
   const dot1 = useRef(new Animated.Value(0.3)).current
   const dot2 = useRef(new Animated.Value(0.3)).current
   const dot3 = useRef(new Animated.Value(0.3)).current
@@ -281,24 +286,25 @@ function ThinkingDots() {
 
   return (
     <View style={styles.thinkingDots} testID="thinking-dots">
-      <Animated.View style={[styles.dot, { opacity: dot1 }]} />
-      <Animated.View style={[styles.dot, { opacity: dot2 }]} />
-      <Animated.View style={[styles.dot, { opacity: dot3 }]} />
+      <Animated.View style={[styles.dot, { opacity: dot1, backgroundColor: colors.textMuted }]} />
+      <Animated.View style={[styles.dot, { opacity: dot2, backgroundColor: colors.textMuted }]} />
+      <Animated.View style={[styles.dot, { opacity: dot3, backgroundColor: colors.textMuted }]} />
     </View>
   )
 }
 
-function StreamingBubble({ parts }: { parts: MessagePart[] }) {
+function StreamingBubble({ parts, colors }: { parts: MessagePart[]; colors: ThemeColors }) {
   return (
     <View style={styles.partsContainer}>
-      {renderPartsWithPairedTools(parts)}
-      <ThinkingDots />
+      {renderPartsWithPairedTools(parts, colors)}
+      <ThinkingDots colors={colors} />
     </View>
   )
 }
 
 export function SessionChatScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets()
+  const { colors } = useTheme()
   const { workspaceName, sessionId: initialSessionId, agentType = 'claude-code', isNew, projectPath } = route.params
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -722,38 +728,38 @@ export function SessionChatScreen({ route, navigation }: any) {
 
   if (sessionLoading && !isNew) {
     return (
-      <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#0a84ff" />
+      <View style={[styles.container, styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     )
   }
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={0}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+          <Text style={[styles.backBtnText, { color: colors.accent }]}>‹</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerTitle, workspaceName === HOST_WORKSPACE_NAME && styles.hostTitle]}>
+            <Text style={[styles.headerTitle, { color: colors.text }, workspaceName === HOST_WORKSPACE_NAME && { color: colors.warning }]}>
               {workspaceName === HOST_WORKSPACE_NAME ? 'Host' : workspaceName}
             </Text>
-            <View style={[styles.connectionDot, { backgroundColor: connected ? '#34c759' : '#ff3b30' }]} />
+            <View style={[styles.connectionDot, { backgroundColor: connected ? colors.success : colors.error }]} />
           </View>
-          <Text style={styles.headerSubtitle}>{agentLabels[agentType as AgentType]}</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>{agentLabels[agentType as AgentType]}</Text>
         </View>
         {availableModels.length > 0 && (
           <TouchableOpacity
-            style={[styles.modelBtn, !canChangeModel && styles.modelBtnDisabled]}
+            style={[styles.modelBtn, { backgroundColor: colors.surface }, !canChangeModel && styles.modelBtnDisabled]}
             onPress={showModelPicker}
             disabled={!canChangeModel}
           >
-            <Text style={[styles.modelBtnText, !canChangeModel && styles.modelBtnTextDisabled]}>
+            <Text style={[styles.modelBtnText, { color: colors.accent }, !canChangeModel && { color: colors.textMuted }]}>
               {selectedModelName}
             </Text>
           </TouchableOpacity>
@@ -765,24 +771,24 @@ export function SessionChatScreen({ route, navigation }: any) {
         ref={flatListRef}
         data={messages}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <MessageBubble message={item} />}
+        renderItem={({ item }) => <MessageBubble message={item} colors={colors} />}
         contentContainerStyle={styles.messageList}
         onScroll={handleScroll}
         scrollEventThrottle={100}
         ListHeaderComponent={
           isLoadingMore ? (
             <View style={styles.loadingMore}>
-              <ActivityIndicator size="small" color="#0a84ff" />
+              <ActivityIndicator size="small" color={colors.accent} />
             </View>
           ) : null
         }
         ListFooterComponent={
-          isStreaming ? <StreamingBubble parts={streamingParts} /> : null
+          isStreaming ? <StreamingBubble parts={streamingParts} colors={colors} /> : null
         }
         ListEmptyComponent={
           !isStreaming ? (
             <View style={styles.emptyChat}>
-              <Text style={styles.emptyChatText}>
+              <Text style={[styles.emptyChatText, { color: colors.textMuted }]}>
                 {isNew ? 'Start a new conversation' : 'No messages yet'}
               </Text>
             </View>
@@ -792,30 +798,30 @@ export function SessionChatScreen({ route, navigation }: any) {
         maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
       />
 
-      <View style={[styles.inputContainer, { paddingBottom: keyboardVisible ? 8 : insets.bottom + 8 }]}>
+      <View style={[styles.inputContainer, { paddingBottom: keyboardVisible ? 8 : insets.bottom + 8, borderTopColor: colors.border }]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
           value={input}
           onChangeText={setInput}
           placeholder={connected ? 'Message...' : 'Connecting...'}
-          placeholderTextColor="#636366"
+          placeholderTextColor={colors.textMuted}
           multiline
           maxLength={4000}
           editable={connected && !isStreaming}
           testID="chat-input"
         />
         {isStreaming ? (
-          <TouchableOpacity style={styles.stopBtn} onPress={interrupt} testID="stop-button">
-            <Text style={styles.stopBtnText}>Stop</Text>
+          <TouchableOpacity style={[styles.stopBtn, { backgroundColor: colors.error }]} onPress={interrupt} testID="stop-button">
+            <Text style={[styles.stopBtnText, { color: colors.accentText }]}>Stop</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[styles.sendBtn, (!connected || !input.trim()) && styles.sendBtnDisabled]}
+            style={[styles.sendBtn, { backgroundColor: colors.accent }, (!connected || !input.trim()) && [styles.sendBtnDisabled, { backgroundColor: colors.surfaceSecondary }]]}
             onPress={sendMessage}
             disabled={!connected || !input.trim()}
             testID="send-button"
           >
-            <Text style={styles.sendBtnText}>Send</Text>
+            <Text style={[styles.sendBtnText, { color: colors.accentText }]}>Send</Text>
           </TouchableOpacity>
         )}
       </View>
