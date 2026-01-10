@@ -19,7 +19,6 @@ import {
 } from '../sessions/metadata';
 import * as sessionRegistry from '../sessions/registry';
 import { discoverSSHKeys } from '../ssh/discovery';
-import { parseClaudeSessionContent } from '../sessions/parser';
 import type { SessionMessage } from '../sessions/types';
 import {
   discoverAllSessions,
@@ -36,11 +35,8 @@ import {
   discoverHostOpencodeModels,
   discoverContainerOpencodeModels,
 } from '../models/discovery';
-import {
-  listOpencodeSessions,
-  getOpencodeSessionMessages,
-  deleteOpencodeSession,
-} from '../sessions/agents/opencode-storage';
+import { deleteOpencodeSession } from '../sessions/agents/opencode-storage';
+import { SessionIndex } from '../worker/session-index';
 import { sessionManager } from '../session-manager';
 import type { AgentType } from '../session-manager/types';
 
@@ -531,130 +527,39 @@ export function createRouter(ctx: RouterContext) {
     offset?: number;
   };
 
-  type RawSession = {
-    id: string;
-    agentType: 'claude-code' | 'opencode' | 'codex';
-    projectPath: string;
-    mtime: number;
-    filePath: string;
-    name?: string;
-  };
+  const hostSessionIndex = new SessionIndex();
+  let hostSessionIndexInitialized = false;
 
   async function listHostSessions(input: ListSessionsInput) {
+    if (!hostSessionIndexInitialized) {
+      await hostSessionIndex.initialize();
+      hostSessionIndex.startWatchers();
+      hostSessionIndexInitialized = true;
+    }
+
     const limit = input.limit ?? 50;
     const offset = input.offset ?? 0;
-    const homeDir = os_module.homedir();
-    const rawSessions: RawSession[] = [];
 
-    if (!input.agentType || input.agentType === 'claude-code') {
-      const claudeProjectsDir = path.join(homeDir, '.claude', 'projects');
-      try {
-        const projectDirs = await fs.readdir(claudeProjectsDir);
-        for (const projectDir of projectDirs) {
-          const projectPath = path.join(claudeProjectsDir, projectDir);
-          const stat = await fs.stat(projectPath);
-          if (!stat.isDirectory()) continue;
+    let sessions = hostSessionIndex.list();
 
-          const files = await fs.readdir(projectPath);
-          for (const file of files) {
-            if (!file.endsWith('.jsonl') || file.startsWith('agent-')) continue;
-            const filePath = path.join(projectPath, file);
-            const fileStat = await fs.stat(filePath);
-            const sessionId = file.replace('.jsonl', '');
-            rawSessions.push({
-              id: sessionId,
-              agentType: 'claude-code',
-              projectPath: projectDir.replace(/-/g, '/'),
-              mtime: fileStat.mtimeMs,
-              filePath,
-            });
-          }
-        }
-      } catch {
-        // Directory doesn't exist or not readable
-      }
+    if (input.agentType) {
+      const filterType = input.agentType === 'claude-code' ? 'claude' : input.agentType;
+      sessions = sessions.filter((s) => s.agentType === filterType);
     }
-
-    if (!input.agentType || input.agentType === 'opencode') {
-      const opencodeSessions = await listOpencodeSessions();
-      for (const session of opencodeSessions) {
-        rawSessions.push({
-          id: session.id,
-          agentType: 'opencode',
-          projectPath: session.directory || homeDir,
-          mtime: session.mtime,
-          filePath: session.file,
-          name: session.title || undefined,
-        });
-      }
-    }
-
-    rawSessions.sort((a, b) => b.mtime - a.mtime);
-    const sessionNames = await getSessionNamesForWorkspace(ctx.configDir, HOST_WORKSPACE_NAME);
-
-    const sessions = await Promise.all(
-      rawSessions.map(async (raw) => {
-        let firstPrompt: string | null = null;
-        let messageCount = 0;
-
-        if (raw.agentType === 'claude-code') {
-          try {
-            const fileContent = await fs.readFile(raw.filePath, 'utf-8');
-            const lines = fileContent.trim().split('\n').filter(Boolean);
-            messageCount = lines.length;
-            for (const line of lines) {
-              try {
-                const entry = JSON.parse(line);
-                if ((entry.type === 'user' || entry.type === 'human') && entry.message?.content) {
-                  const msgContent = entry.message.content;
-                  if (Array.isArray(msgContent)) {
-                    const textBlock = msgContent.find((b: { type: string }) => b.type === 'text');
-                    if (textBlock?.text) {
-                      firstPrompt = textBlock.text.slice(0, 200);
-                      break;
-                    }
-                  } else if (typeof msgContent === 'string') {
-                    firstPrompt = msgContent.slice(0, 200);
-                    break;
-                  }
-                }
-              } catch {
-                continue;
-              }
-            }
-          } catch {
-            // Can't read file
-          }
-        } else if (raw.agentType === 'opencode') {
-          const sessionMessages = await getOpencodeSessionMessages(raw.id);
-          const userAssistantMessages = sessionMessages.messages.filter(
-            (m) => m.type === 'user' || m.type === 'assistant'
-          );
-          messageCount = userAssistantMessages.length;
-          if (raw.name) {
-            firstPrompt = raw.name;
-          } else {
-            const firstUserMsg = userAssistantMessages.find((m) => m.type === 'user' && m.content);
-            if (firstUserMsg?.content) {
-              firstPrompt = firstUserMsg.content.slice(0, 200);
-            }
-          }
-        }
-
-        return {
-          id: raw.id,
-          name: sessionNames[raw.id] || null,
-          agentType: raw.agentType,
-          projectPath: raw.projectPath,
-          messageCount,
-          lastActivity: new Date(raw.mtime).toISOString(),
-          firstPrompt,
-        };
-      })
-    );
 
     const nonEmptySessions = sessions.filter((s) => s.messageCount > 0);
-    const paginatedSessions = nonEmptySessions.slice(offset, offset + limit);
+    const sessionNames = await getSessionNamesForWorkspace(ctx.configDir, HOST_WORKSPACE_NAME);
+
+    const paginatedSessions = nonEmptySessions.slice(offset, offset + limit).map((s) => ({
+      id: s.id,
+      name: sessionNames[s.id] || null,
+      agentType: (s.agentType === 'claude' ? 'claude-code' : s.agentType) as AgentType,
+      projectPath: s.directory,
+      messageCount: s.messageCount,
+      lastActivity: new Date(s.lastActivity).toISOString(),
+      firstPrompt: s.firstPrompt,
+    }));
+
     return {
       sessions: paginatedSessions,
       total: nonEmptySessions.length,
@@ -664,60 +569,32 @@ export function createRouter(ctx: RouterContext) {
 
   async function getHostSession(
     sessionId: string,
-    agentType?: 'claude-code' | 'opencode' | 'codex'
+    _agentType?: 'claude-code' | 'opencode' | 'codex'
   ) {
-    const homeDir = os_module.homedir();
-    const messages: SessionMessage[] = [];
-
-    if (!agentType || agentType === 'claude-code') {
-      const safeSessionId = sessionId.replace(/[^a-zA-Z0-9_-]/g, '');
-      const claudeProjectsDir = path.join(homeDir, '.claude', 'projects');
-
-      try {
-        const projectDirs = await fs.readdir(claudeProjectsDir);
-        for (const projectDir of projectDirs) {
-          const sessionFile = path.join(claudeProjectsDir, projectDir, `${safeSessionId}.jsonl`);
-          try {
-            const content = await fs.readFile(sessionFile, 'utf-8');
-            const parsed = parseClaudeSessionContent(content)
-              .filter((msg) => msg.type !== 'system')
-              .filter(
-                (msg) =>
-                  msg.type === 'tool_use' ||
-                  msg.type === 'tool_result' ||
-                  (msg.content && msg.content.trim().length > 0)
-              );
-            messages.push(...parsed);
-            break;
-          } catch {
-            // File not found in this project dir
-          }
-        }
-      } catch {
-        // Directory doesn't exist
-      }
-
-      if (messages.length > 0) {
-        return { id: sessionId, agentType: 'claude-code', messages };
-      }
+    if (!hostSessionIndexInitialized) {
+      await hostSessionIndex.initialize();
+      hostSessionIndex.startWatchers();
+      hostSessionIndexInitialized = true;
     }
 
-    if (!agentType || agentType === 'opencode') {
-      const sessionData = await getOpencodeSessionMessages(sessionId);
-      if (sessionData.messages.length > 0) {
-        const opencodeMessages: SessionMessage[] = sessionData.messages.map((m) => ({
-          type: m.type as SessionMessage['type'],
-          content: m.content,
-          toolName: m.toolName,
-          toolId: m.toolId,
-          toolInput: m.toolInput,
-          timestamp: m.timestamp,
-        }));
-        return { id: sessionId, agentType: 'opencode', messages: opencodeMessages };
-      }
+    const session = hostSessionIndex.get(sessionId);
+    if (!session) {
+      return { id: sessionId, messages: [] };
     }
 
-    return { id: sessionId, messages };
+    const result = await hostSessionIndex.getMessages(sessionId, { limit: 10000, offset: 0 });
+    const agentType = session.agentType === 'claude' ? 'claude-code' : session.agentType;
+
+    const messages: SessionMessage[] = result.messages.map((m) => ({
+      type: m.type as SessionMessage['type'],
+      content: m.content,
+      toolName: m.toolName,
+      toolId: m.toolId,
+      toolInput: m.toolInput,
+      timestamp: m.timestamp,
+    }));
+
+    return { id: sessionId, agentType, messages };
   }
 
   async function listSessionsCore(input: ListSessionsInput) {

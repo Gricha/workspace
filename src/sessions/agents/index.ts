@@ -3,13 +3,20 @@ import type { RawSession, SessionListItem, ExecInContainer, AgentSessionProvider
 import { claudeProvider } from './claude';
 import { opencodeProvider } from './opencode';
 import { codexProvider } from './codex';
+import {
+  discoverSessionsViaWorker,
+  getSessionDetailsViaWorker,
+  getSessionMessagesViaWorker,
+  deleteSessionViaWorker,
+} from './worker-provider';
 
 export type { RawSession, SessionListItem, ExecInContainer, AgentSessionProvider } from './types';
 export { claudeProvider } from './claude';
 export { opencodeProvider } from './opencode';
 export { codexProvider } from './codex';
+export { clearWorkerClientCache } from './worker-provider';
 
-const providers: Record<AgentType, AgentSessionProvider> = {
+const _providers: Record<AgentType, AgentSessionProvider> = {
   'claude-code': claudeProvider,
   opencode: opencodeProvider,
   codex: codexProvider,
@@ -17,37 +24,27 @@ const providers: Record<AgentType, AgentSessionProvider> = {
 
 export async function discoverAllSessions(
   containerName: string,
-  exec: ExecInContainer
+  _exec: ExecInContainer
 ): Promise<RawSession[]> {
-  const results = await Promise.all([
-    claudeProvider.discoverSessions(containerName, exec),
-    opencodeProvider.discoverSessions(containerName, exec),
-    codexProvider.discoverSessions(containerName, exec),
-  ]);
-
-  return results.flat();
+  return discoverSessionsViaWorker(containerName);
 }
 
 export async function getSessionDetails(
   containerName: string,
   rawSession: RawSession,
-  exec: ExecInContainer
+  _exec: ExecInContainer
 ): Promise<SessionListItem | null> {
-  const provider = providers[rawSession.agentType];
-  if (!provider) return null;
-  return provider.getSessionDetails(containerName, rawSession, exec);
+  return getSessionDetailsViaWorker(containerName, rawSession);
 }
 
 export async function getSessionMessages(
   containerName: string,
   sessionId: string,
   agentType: AgentType,
-  exec: ExecInContainer,
-  projectPath?: string
+  _exec: ExecInContainer,
+  _projectPath?: string
 ): Promise<{ id: string; agentType: AgentType; messages: SessionMessage[] } | null> {
-  const provider = providers[agentType];
-  if (!provider) return null;
-  const result = await provider.getSessionMessages(containerName, sessionId, exec, projectPath);
+  const result = await getSessionMessagesViaWorker(containerName, sessionId);
   if (!result) return null;
   return { ...result, agentType };
 }
@@ -55,29 +52,41 @@ export async function getSessionMessages(
 export async function findSessionMessages(
   containerName: string,
   sessionId: string,
-  exec: ExecInContainer
+  _exec: ExecInContainer
 ): Promise<{ id: string; agentType: AgentType; messages: SessionMessage[] } | null> {
-  const agentTypes: AgentType[] = ['claude-code', 'opencode', 'codex'];
-  for (const agentType of agentTypes) {
-    const result = await getSessionMessages(containerName, sessionId, agentType, exec);
-    if (result && result.messages.length > 0) {
-      return result;
-    }
+  const { createWorkerClient } = await import('../../worker/client');
+  const client = await createWorkerClient(containerName);
+
+  const session = await client.getSession(sessionId);
+  if (!session) {
+    return null;
   }
-  return null;
+
+  const result = await client.getMessages(sessionId, { limit: 1000, offset: 0 });
+  if (!result || result.messages.length === 0) {
+    return null;
+  }
+
+  const agentType: AgentType = session.agentType === 'claude' ? 'claude-code' : session.agentType;
+  const messages: SessionMessage[] = result.messages.map((m) => ({
+    type: m.type,
+    content: m.content,
+    toolName: m.toolName,
+    toolId: m.toolId,
+    toolInput: m.toolInput,
+    timestamp: m.timestamp,
+  }));
+
+  return { id: sessionId, agentType, messages };
 }
 
 export async function deleteSession(
   containerName: string,
   sessionId: string,
-  agentType: AgentType,
-  exec: ExecInContainer
+  _agentType: AgentType,
+  _exec: ExecInContainer
 ): Promise<{ success: boolean; error?: string }> {
-  const provider = providers[agentType];
-  if (!provider) {
-    return { success: false, error: 'Unknown agent type' };
-  }
-  return provider.deleteSession(containerName, sessionId, exec);
+  return deleteSessionViaWorker(containerName, sessionId);
 }
 
 export interface SearchResult {

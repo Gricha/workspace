@@ -842,6 +842,15 @@ workerCmd
     }
   });
 
+workerCmd
+  .command('serve')
+  .option('--port <port>', 'Port to listen on', '7392')
+  .description('Start worker API server')
+  .action(async (opts) => {
+    const { startWorkerServer } = await import('./worker/server');
+    await startWorkerServer({ port: parseInt(opts.port, 10) });
+  });
+
 function handleError(err: unknown): never {
   if (err instanceof ApiClientError) {
     console.error(`Error: ${err.message}`);

@@ -259,6 +259,7 @@ export class WorkspaceManager {
     await this.copyCredentialFiles(containerName);
     await syncAllAgents(containerName, this.config);
     await this.copyPerryWorker(containerName);
+    await this.startWorkerServer(containerName);
     if (workspaceName) {
       await this.setupSSHKeys(containerName, workspaceName);
     }
@@ -285,6 +286,51 @@ export class WorkspaceManager {
     await docker.execInContainer(containerName, ['chmod', '755', destPath], {
       user: 'root',
     });
+  }
+
+  private async startWorkerServer(containerName: string): Promise<void> {
+    const WORKER_PORT = 7392;
+    const ip = await docker.getContainerIp(containerName);
+    if (!ip) {
+      console.warn(
+        `[sync] Could not get container IP for ${containerName}, skipping worker server`
+      );
+      return;
+    }
+
+    try {
+      const healthResponse = await fetch(`http://${ip}:${WORKER_PORT}/health`, {
+        signal: AbortSignal.timeout(1000),
+      });
+      if (healthResponse.ok) {
+        return;
+      }
+    } catch {
+      // Worker not running, start it
+    }
+
+    await docker.execInContainer(
+      containerName,
+      ['sh', '-c', 'nohup perry worker serve > /tmp/perry-worker.log 2>&1 &'],
+      { user: 'workspace' }
+    );
+
+    const deadline = Date.now() + 10000;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 200));
+      try {
+        const response = await fetch(`http://${ip}:${WORKER_PORT}/health`, {
+          signal: AbortSignal.timeout(500),
+        });
+        if (response.ok) {
+          return;
+        }
+      } catch {
+        // Not ready yet
+      }
+    }
+
+    console.warn(`[sync] Worker server failed to start in ${containerName}`);
   }
 
   private async runUserScripts(containerName: string): Promise<void> {
