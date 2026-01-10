@@ -44,6 +44,23 @@ async function findAvailablePort(containerName: string): Promise<number> {
   return parseInt(result.stdout.trim(), 10);
 }
 
+async function findExistingServer(containerName: string): Promise<number | null> {
+  try {
+    const result = await execInContainer(
+      containerName,
+      ['sh', '-c', 'pgrep -a -f "opencode serve" | grep -oP "\\--port \\K[0-9]+" | head -1'],
+      { user: 'workspace' }
+    );
+    const port = parseInt(result.stdout.trim(), 10);
+    if (port && (await isServerRunning(containerName, port))) {
+      return port;
+    }
+  } catch {
+    // No existing server
+  }
+  return null;
+}
+
 async function isServerRunning(containerName: string, port: number): Promise<boolean> {
   try {
     const result = await execInContainer(
@@ -73,8 +90,15 @@ async function getServerLogs(containerName: string): Promise<string> {
 }
 
 async function startServer(containerName: string): Promise<number> {
-  const existing = serverPorts.get(containerName);
-  if (existing && (await isServerRunning(containerName, existing))) {
+  const cached = serverPorts.get(containerName);
+  if (cached && (await isServerRunning(containerName, cached))) {
+    return cached;
+  }
+
+  const existing = await findExistingServer(containerName);
+  if (existing) {
+    console.log(`[opencode] Found existing server on port ${existing} in ${containerName}`);
+    serverPorts.set(containerName, existing);
     return existing;
   }
 
@@ -490,7 +514,11 @@ export class OpenCodeAdapter implements AgentAdapter {
           finish();
         } else if (!resolved) {
           resolved = true;
-          reject(new Error(`SSE stream ended unexpectedly without session.idle (received ${eventCount} events)`));
+          reject(
+            new Error(
+              `SSE stream ended unexpectedly without session.idle (received ${eventCount} events)`
+            )
+          );
         }
       })().catch((err) => {
         clearTimeout(timeout);

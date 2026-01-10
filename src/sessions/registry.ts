@@ -146,6 +146,33 @@ export async function getSessionsForWorkspace(
 }
 
 /**
+ * Get a specific session by perrySessionId.
+ */
+export async function getSession(
+  stateDir: string,
+  perrySessionId: string
+): Promise<SessionRecord | null> {
+  const registry = await loadRegistry(stateDir);
+  return registry.sessions[perrySessionId] ?? null;
+}
+
+/**
+ * Find a session by agentSessionId.
+ */
+export async function findByAgentSessionId(
+  stateDir: string,
+  agentSessionId: string
+): Promise<SessionRecord | null> {
+  const registry = await loadRegistry(stateDir);
+  for (const record of Object.values(registry.sessions)) {
+    if (record.agentSessionId === agentSessionId) {
+      return record;
+    }
+  }
+  return null;
+}
+
+/**
  * Import an external session (discovered from agent storage).
  * Creates a Perry session record for a session that wasn't started through Perry.
  */

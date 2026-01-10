@@ -304,18 +304,46 @@ export class SessionManager {
     return session?.info ?? null;
   }
 
-  findSession(id: string): { sessionId: string; info: SessionInfo } | null {
-    // First try direct lookup by internal sessionId
+  async findSession(id: string): Promise<{ sessionId: string; info: SessionInfo } | null> {
+    // First try direct lookup by internal sessionId (in-memory cache)
     const direct = this.sessions.get(id);
     if (direct) {
       return { sessionId: id, info: direct.info };
     }
-    // Then search by agentSessionId (Claude session ID)
+
+    // Then search by agentSessionId in memory
     for (const [sessionId, session] of this.sessions) {
       if (session.info.agentSessionId === id) {
         return { sessionId, info: session.info };
       }
     }
+
+    // Not in memory - check disk registry
+    if (this.stateDir) {
+      // Try lookup by perrySessionId first
+      let record = await registry.getSession(this.stateDir, id);
+
+      // Then try by agentSessionId
+      if (!record) {
+        record = await registry.findByAgentSessionId(this.stateDir, id);
+      }
+
+      // Found on disk - restore the session
+      if (record) {
+        const restoredId = await this.startSession({
+          sessionId: record.perrySessionId,
+          workspaceName: record.workspaceName,
+          agentType: record.agentType,
+          agentSessionId: record.agentSessionId ?? undefined,
+          projectPath: record.projectPath ?? undefined,
+        });
+        const restored = this.sessions.get(restoredId);
+        if (restored) {
+          return { sessionId: restoredId, info: restored.info };
+        }
+      }
+    }
+
     return null;
   }
 
