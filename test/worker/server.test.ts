@@ -94,8 +94,7 @@ EOF`,
     const listData = await listResponse.json();
 
     const claudeSession = listData.sessions.find(
-      (s: { agentType: string; id: string }) =>
-        s.agentType === 'claude' && s.id === 'test-session'
+      (s: { agentType: string; id: string }) => s.agentType === 'claude' && s.id === 'test-session'
     );
     expect(claudeSession).toBeDefined();
     expect(claudeSession.messageCount).toBe(3);
@@ -120,8 +119,7 @@ EOF`,
     const listData = await listResponse.json();
 
     const opencodeSession = listData.sessions.find(
-      (s: { agentType: string; id: string }) =>
-        s.agentType === 'opencode' && s.id === sessionId
+      (s: { agentType: string; id: string }) => s.agentType === 'opencode' && s.id === sessionId
     );
     expect(opencodeSession).toBeDefined();
     expect(opencodeSession.title).toBe('Test OpenCode Session');
