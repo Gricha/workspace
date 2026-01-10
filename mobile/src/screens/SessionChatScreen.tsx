@@ -13,7 +13,9 @@ import {
   ActionSheetIOS,
   Animated,
   AppState,
+  Linking,
 } from 'react-native'
+import Markdown from 'react-native-markdown-display'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { api, AgentType, getChatUrl, HOST_WORKSPACE_NAME, ModelInfo } from '../lib/api'
@@ -42,6 +44,58 @@ interface ChatMessage {
 }
 
 const MESSAGES_PER_PAGE = 100
+
+function getMarkdownStyles(colors: ThemeColors, isUser: boolean = false) {
+  const textColor = isUser ? colors.accentText : colors.text
+  const codeBackground = isUser ? 'rgba(0,0,0,0.15)' : colors.background
+  return {
+    body: { color: textColor, fontSize: 15, lineHeight: 22 },
+    paragraph: { marginTop: 0, marginBottom: 8 },
+    heading1: { fontSize: 20, fontWeight: '700' as const, color: textColor, marginTop: 12, marginBottom: 6 },
+    heading2: { fontSize: 18, fontWeight: '600' as const, color: textColor, marginTop: 10, marginBottom: 4 },
+    heading3: { fontSize: 16, fontWeight: '600' as const, color: textColor, marginTop: 8, marginBottom: 4 },
+    code_inline: {
+      backgroundColor: codeBackground,
+      color: textColor,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      fontSize: 13,
+      paddingHorizontal: 4,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    fence: {
+      backgroundColor: codeBackground,
+      color: textColor,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      fontSize: 12,
+      padding: 10,
+      borderRadius: 6,
+      marginVertical: 8,
+    },
+    code_block: {
+      backgroundColor: codeBackground,
+      color: textColor,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      fontSize: 12,
+      padding: 10,
+      borderRadius: 6,
+    },
+    link: { color: isUser ? colors.accentText : colors.accent, textDecorationLine: 'underline' as const },
+    blockquote: {
+      backgroundColor: codeBackground,
+      borderLeftColor: colors.accent,
+      borderLeftWidth: 3,
+      paddingLeft: 10,
+      paddingVertical: 4,
+      marginVertical: 8,
+    },
+    bullet_list: { marginVertical: 4 },
+    ordered_list: { marginVertical: 4 },
+    list_item: { marginVertical: 2 },
+    strong: { fontWeight: '700' as const },
+    em: { fontStyle: 'italic' as const },
+  }
+}
 
 function getToolSummary(toolName: string, content: string): string | null {
   try {
@@ -197,7 +251,12 @@ function renderPartsWithPairedTools(parts: MessagePart[], colors: ThemeColors) {
       flushTools()
       elements.push(
         <View key={`text-${i}`} style={[styles.assistantBubble, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.messageText, { color: colors.text }]}>{trimmedContent}</Text>
+          <Markdown
+            style={getMarkdownStyles(colors)}
+            onLinkPress={(url) => { Linking.openURL(url).catch(() => {}); return true }}
+          >
+            {trimmedContent}
+          </Markdown>
         </View>
       )
     } else if (part.type === 'tool_use') {
@@ -234,7 +293,12 @@ function MessageBubble({ message, colors }: { message: ChatMessage; colors: Them
   if (message.role === 'user') {
     return (
       <View style={[styles.userBubble, { backgroundColor: colors.accent }]} testID="user-message">
-        <Text style={[styles.messageText, { color: colors.accentText }]}>{trimmedContent}</Text>
+        <Markdown
+          style={getMarkdownStyles(colors, true)}
+          onLinkPress={(url) => { Linking.openURL(url).catch(() => {}); return true }}
+        >
+          {trimmedContent}
+        </Markdown>
       </View>
     )
   }
@@ -249,7 +313,12 @@ function MessageBubble({ message, colors }: { message: ChatMessage; colors: Them
 
   return (
     <View style={[styles.assistantBubble, { backgroundColor: colors.surface }]} testID="assistant-message">
-      <Text style={[styles.messageText, { color: colors.text }]}>{trimmedContent}</Text>
+      <Markdown
+        style={getMarkdownStyles(colors)}
+        onLinkPress={(url) => { Linking.openURL(url).catch(() => {}); return true }}
+      >
+        {trimmedContent}
+      </Markdown>
     </View>
   )
 }
