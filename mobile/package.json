@@ -13,7 +13,8 @@
     "test:e2e:settings": "maestro test .maestro/settings.yaml",
     "test:e2e:workspaces": "maestro test .maestro/workspaces.yaml",
     "test:e2e:sessions": "maestro test .maestro/session-filter.yaml",
-    "test:e2e:actions": "maestro test .maestro/workspace-actions.yaml"
+    "test:e2e:actions": "maestro test .maestro/workspace-actions.yaml",
+    "test:e2e:chat": "maestro test .maestro/session-chat.yaml"
   },
   "dependencies": {
     "@orpc/client": "^1.13.2",

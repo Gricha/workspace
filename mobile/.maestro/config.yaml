@@ -5,3 +5,4 @@ flows:
   - workspace-actions.yaml
   - workspace-detail.yaml
   - session-filter.yaml
+  - session-chat.yaml

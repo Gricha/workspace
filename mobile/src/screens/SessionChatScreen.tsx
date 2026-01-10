@@ -29,6 +29,7 @@ const FALLBACK_CLAUDE_MODELS: ModelInfo[] = [
 interface MessagePart {
   type: 'text' | 'tool_use' | 'tool_result'
   content: string
+  messageId?: string
   toolName?: string
   toolId?: string
 }
@@ -328,6 +329,8 @@ export function SessionChatScreen({ route, navigation }: any) {
   const hasLoadedInitial = useRef(false)
   const modelInitialized = useRef(false)
   const isAtBottomRef = useRef(true)
+  const seenMessageChunksRef = useRef<Set<string>>(new Set())
+  const currentMessageIdRef = useRef<string | undefined>(undefined)
 
   const fetchAgentType = agentType === 'opencode' ? 'opencode' : 'claude-code'
 
@@ -536,6 +539,13 @@ export function SessionChatScreen({ route, navigation }: any) {
         }
 
         if (msg.type === 'user') {
+          const dedupKey = msg.messageId
+            ? `user:${msg.messageId}`
+            : `user:${msg.timestamp}:${msg.content}`
+          if (seenMessageChunksRef.current.has(dedupKey)) {
+            return
+          }
+          seenMessageChunksRef.current.add(dedupKey)
           setMessages((prev) => {
             const lastUserMsg = [...prev].reverse().find(m => m.role === 'user')
             if (lastUserMsg && lastUserMsg.content === msg.content) {
@@ -547,6 +557,15 @@ export function SessionChatScreen({ route, navigation }: any) {
         }
 
         if (msg.type === 'tool_use') {
+          if (msg.messageId) {
+            currentMessageIdRef.current = msg.messageId
+          }
+          const dedupKey = `tool_use:${msg.toolId}`
+          if (seenMessageChunksRef.current.has(dedupKey)) {
+            return
+          }
+          seenMessageChunksRef.current.add(dedupKey)
+
           const lastPart = streamingPartsRef.current[streamingPartsRef.current.length - 1]
           if (lastPart?.type === 'text' && lastPart.content === '') {
             streamingPartsRef.current.pop()
@@ -554,15 +573,25 @@ export function SessionChatScreen({ route, navigation }: any) {
           streamingPartsRef.current.push({
             type: 'tool_use',
             content: msg.content,
+            messageId: msg.messageId,
             toolName: msg.toolName,
             toolId: msg.toolId,
           })
-          streamingPartsRef.current.push({ type: 'text', content: '' })
+          streamingPartsRef.current.push({ type: 'text', content: '', messageId: msg.messageId })
           setStreamingParts([...streamingPartsRef.current])
           return
         }
 
         if (msg.type === 'tool_result') {
+          if (msg.messageId) {
+            currentMessageIdRef.current = msg.messageId
+          }
+          const dedupKey = `tool_result:${msg.toolId}`
+          if (seenMessageChunksRef.current.has(dedupKey)) {
+            return
+          }
+          seenMessageChunksRef.current.add(dedupKey)
+
           const lastPart = streamingPartsRef.current[streamingPartsRef.current.length - 1]
           if (lastPart?.type === 'text' && lastPart.content === '') {
             streamingPartsRef.current.pop()
@@ -570,22 +599,28 @@ export function SessionChatScreen({ route, navigation }: any) {
           streamingPartsRef.current.push({
             type: 'tool_result',
             content: msg.content,
+            messageId: msg.messageId,
             toolId: msg.toolId,
           })
-          streamingPartsRef.current.push({ type: 'text', content: '' })
+          streamingPartsRef.current.push({ type: 'text', content: '', messageId: msg.messageId })
           setStreamingParts([...streamingPartsRef.current])
           return
         }
 
         if (msg.type === 'assistant') {
+          if (msg.messageId) {
+            currentMessageIdRef.current = msg.messageId
+          }
+
           if (streamingPartsRef.current.length === 0) {
-            streamingPartsRef.current.push({ type: 'text', content: '' })
+            streamingPartsRef.current.push({ type: 'text', content: '', messageId: msg.messageId })
           }
           const lastPart = streamingPartsRef.current[streamingPartsRef.current.length - 1]
           if (lastPart?.type === 'text') {
             lastPart.content += msg.content || ''
+            if (msg.messageId) lastPart.messageId = msg.messageId
           } else {
-            streamingPartsRef.current.push({ type: 'text', content: msg.content || '' })
+            streamingPartsRef.current.push({ type: 'text', content: msg.content || '', messageId: msg.messageId })
           }
           setStreamingParts([...streamingPartsRef.current])
           return
@@ -608,6 +643,7 @@ export function SessionChatScreen({ route, navigation }: any) {
           streamingPartsRef.current = []
           setStreamingParts([])
           setIsStreaming(false)
+          currentMessageIdRef.current = undefined
           return
         }
 
