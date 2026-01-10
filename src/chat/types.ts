@@ -4,6 +4,7 @@ export interface ChatMessage {
   type: 'user' | 'assistant' | 'system' | 'tool_use' | 'tool_result' | 'error' | 'done';
   content: string;
   timestamp: string;
+  messageId?: string;
   toolName?: string;
   toolId?: string;
 }
@@ -11,9 +12,11 @@ export interface ChatMessage {
 export interface ClaudeStreamMessage {
   type: string;
   subtype?: string;
+  id?: string;
   session_id?: string;
   model?: string;
   message?: {
+    id?: string;
     content?: Array<{
       type: string;
       text?: string;

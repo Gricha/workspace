@@ -233,7 +233,7 @@ describe('SessionManager', () => {
     });
 
     it('handles non-existent session gracefully', async () => {
-      await expect(manager.disposeSession('non-existent')).resolves.not.toThrow();
+      await expect(manager.disposeSession('non-existent')).resolves.toBeUndefined();
     });
   });
 

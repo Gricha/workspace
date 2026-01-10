@@ -17,6 +17,7 @@ import {
   getSessionNamesForWorkspace,
   deleteSessionName,
 } from '../sessions/metadata';
+import * as sessionRegistry from '../sessions/registry';
 import { discoverSSHKeys } from '../ssh/discovery';
 import { parseClaudeSessionContent } from '../sessions/parser';
 import type { SessionMessage } from '../sessions/types';
@@ -745,6 +746,28 @@ export function createRouter(ctx: RouterContext) {
     const rawSessions = await discoverAllSessions(containerName, execInContainer);
 
     const customNames = await getSessionNamesForWorkspace(ctx.stateDir, input.workspaceName);
+
+    const registrySessions = await sessionRegistry.getSessionsForWorkspace(
+      ctx.stateDir,
+      input.workspaceName
+    );
+    const trackedAgentIds = new Set(
+      registrySessions.filter((s) => s.agentSessionId).map((s) => s.agentSessionId)
+    );
+
+    for (const raw of rawSessions) {
+      if (!trackedAgentIds.has(raw.id)) {
+        const agentType = raw.agentType === 'claude-code' ? 'claude' : raw.agentType;
+        await sessionRegistry.importExternalSession(ctx.stateDir, {
+          perrySessionId: `imported-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          workspaceName: input.workspaceName,
+          agentType: agentType as sessionRegistry.AgentType,
+          agentSessionId: raw.id,
+          createdAt: new Date(raw.mtime).toISOString(),
+          lastActivity: new Date(raw.mtime).toISOString(),
+        });
+      }
+    }
 
     const filteredSessions = rawSessions
       .filter((s) => !input.agentType || s.agentType === input.agentType)

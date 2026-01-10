@@ -9,6 +9,7 @@ import { containerRunning, getContainerName } from '../docker';
 import { startEagerImagePull, stopEagerImagePull } from '../docker/eager-pull';
 import { TerminalHandler } from '../terminal/bun-handler';
 import { LiveChatHandler } from '../session-manager/bun-handler';
+import { sessionManager } from '../session-manager';
 import { createRouter } from './router';
 import { serveStaticBun } from './static';
 import { SessionsCacheManager } from '../sessions/cache';
@@ -42,6 +43,8 @@ function createAgentServer(
   port: number,
   tailscale?: TailscaleInfo
 ) {
+  sessionManager.init(configDir);
+
   let currentConfig = config;
   const workspaces = new WorkspaceManager(configDir, currentConfig);
   const sessionsCache = new SessionsCacheManager(configDir);

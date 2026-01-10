@@ -26,6 +26,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
 
   private pendingMessage: string | null = null;
   private messageResolver: (() => void) | null = null;
+  private currentMessageId?: string;
 
   onMessage(callback: MessageCallback): void {
     this.messageCallback = callback;
@@ -187,6 +188,12 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     }
 
     if (msg.type === 'assistant' && msg.message?.content) {
+      // Capture message ID from upstream when assistant message starts
+      const messageId = msg.message.id || msg.id;
+      if (messageId) {
+        this.currentMessageId = messageId;
+      }
+
       for (const block of msg.message.content) {
         if (block.type === 'tool_use') {
           this.emitMessage({
@@ -194,6 +201,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
             content: JSON.stringify(block.input, null, 2),
             toolName: block.name,
             toolId: block.id,
+            messageId: this.currentMessageId,
             timestamp,
           });
         }
@@ -207,6 +215,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
         this.emitMessage({
           type: 'assistant',
           content: delta.text,
+          messageId: this.currentMessageId,
           timestamp,
         });
       }
@@ -217,8 +226,10 @@ export class ClaudeCodeAdapter implements AgentAdapter {
       this.emitMessage({
         type: 'done',
         content: 'Response complete',
+        messageId: this.currentMessageId,
         timestamp,
       });
+      this.currentMessageId = undefined;
     }
   }
 

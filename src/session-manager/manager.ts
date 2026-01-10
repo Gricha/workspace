@@ -13,6 +13,7 @@ import { ClaudeCodeAdapter } from './adapters/claude';
 import { OpenCodeAdapter } from './adapters/opencode';
 import { getContainerName } from '../docker';
 import { HOST_WORKSPACE_NAME } from '../shared/client-types';
+import * as registry from '../sessions/registry';
 
 const DEFAULT_BUFFER_SIZE = 1000;
 
@@ -26,6 +27,11 @@ interface ManagedSession {
 export class SessionManager {
   private sessions = new Map<string, ManagedSession>();
   private clientIdCounter = 0;
+  private stateDir: string | null = null;
+
+  init(stateDir: string): void {
+    this.stateDir = stateDir;
+  }
 
   private generateSessionId(): string {
     return `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -102,6 +108,19 @@ export class SessionManager {
     });
 
     this.sessions.set(sessionId, session);
+
+    if (this.stateDir) {
+      registry
+        .createSession(this.stateDir, {
+          perrySessionId: sessionId,
+          workspaceName: options.workspaceName,
+          agentType: options.agentType,
+          agentSessionId: options.agentSessionId ?? null,
+          projectPath: options.projectPath ?? null,
+        })
+        .catch(() => {});
+    }
+
     return sessionId;
   }
 
@@ -139,6 +158,10 @@ export class SessionManager {
 
     if (currentAgentSessionId !== undefined && previousAgentSessionId !== currentAgentSessionId) {
       session.info.agentSessionId = currentAgentSessionId;
+
+      if (this.stateDir) {
+        registry.linkAgentSession(this.stateDir, sessionId, currentAgentSessionId).catch(() => {});
+      }
 
       const updateMessage: ChatMessage = {
         type: 'system',

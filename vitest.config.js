@@ -15,6 +15,7 @@ export default defineConfig({
     // available, then both try to bind it, causing "docker start" failures.
     // CI parallelization is achieved via GitHub Actions matrix sharding instead.
     fileParallelism: false,
+    mockReset: true,
     globalSetup: './test/setup/global.js',
     exclude: ['**/node_modules/**', '**/test/web/**', '**/test/tui/**', '**/web/e2e/**'],
   },
