@@ -141,7 +141,7 @@ export class LiveChatHandler {
 
     if (message.sessionId) {
       // Look up by internal sessionId or agentSessionId (Claude session ID)
-      const found = sessionManager.findSession(message.sessionId);
+      const found = await sessionManager.findSession(message.sessionId);
       if (found) {
         connection.sessionId = found.sessionId;
 
