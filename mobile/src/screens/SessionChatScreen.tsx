@@ -253,7 +253,7 @@ function renderPartsWithPairedTools(parts: MessagePart[], colors: ThemeColors) {
         <View key={`text-${i}`} style={[styles.assistantBubble, { backgroundColor: colors.surface }]}>
           <Markdown
             style={getMarkdownStyles(colors)}
-            onLinkPress={(url) => { Linking.openURL(url); return true }}
+            onLinkPress={(url) => { Linking.openURL(url).catch(() => {}); return true }}
           >
             {trimmedContent}
           </Markdown>
@@ -295,7 +295,7 @@ function MessageBubble({ message, colors }: { message: ChatMessage; colors: Them
       <View style={[styles.userBubble, { backgroundColor: colors.accent }]} testID="user-message">
         <Markdown
           style={getMarkdownStyles(colors, true)}
-          onLinkPress={(url) => { Linking.openURL(url); return true }}
+          onLinkPress={(url) => { Linking.openURL(url).catch(() => {}); return true }}
         >
           {trimmedContent}
         </Markdown>
@@ -315,7 +315,7 @@ function MessageBubble({ message, colors }: { message: ChatMessage; colors: Them
     <View style={[styles.assistantBubble, { backgroundColor: colors.surface }]} testID="assistant-message">
       <Markdown
         style={getMarkdownStyles(colors)}
-        onLinkPress={(url) => { Linking.openURL(url); return true }}
+        onLinkPress={(url) => { Linking.openURL(url).catch(() => {}); return true }}
       >
         {trimmedContent}
       </Markdown>
