@@ -42,11 +42,12 @@ export async function getSessionMessages(
   containerName: string,
   sessionId: string,
   agentType: AgentType,
-  exec: ExecInContainer
+  exec: ExecInContainer,
+  projectPath?: string
 ): Promise<{ id: string; agentType: AgentType; messages: SessionMessage[] } | null> {
   const provider = providers[agentType];
   if (!provider) return null;
-  const result = await provider.getSessionMessages(containerName, sessionId, exec);
+  const result = await provider.getSessionMessages(containerName, sessionId, exec, projectPath);
   if (!result) return null;
   return { ...result, agentType };
 }

@@ -814,6 +814,7 @@ export function createRouter(ctx: RouterContext) {
         workspaceName: z.string(),
         sessionId: z.string(),
         agentType: z.enum(['claude-code', 'opencode', 'codex']).optional(),
+        projectPath: z.string().optional(),
         limit: z.number().optional(),
         offset: z.number().optional(),
       })
@@ -844,7 +845,8 @@ export function createRouter(ctx: RouterContext) {
               containerName,
               input.sessionId,
               input.agentType,
-              execInContainer
+              execInContainer,
+              input.projectPath
             )
           : await findSessionMessages(containerName, input.sessionId, execInContainer);
       }

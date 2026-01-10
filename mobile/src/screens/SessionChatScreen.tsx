@@ -430,7 +430,7 @@ export function SessionChatScreen({ route, navigation }: any) {
 
   const { data: sessionData, isLoading: sessionLoading } = useQuery({
     queryKey: ['session', workspaceName, initialSessionId, 'initial'],
-    queryFn: () => api.getSession(workspaceName, initialSessionId, agentType, MESSAGES_PER_PAGE, 0),
+    queryFn: () => api.getSession(workspaceName, initialSessionId, agentType, MESSAGES_PER_PAGE, 0, projectPath),
     enabled: !!initialSessionId && !isNew,
   })
 
@@ -455,7 +455,7 @@ export function SessionChatScreen({ route, navigation }: any) {
 
     setIsLoadingMore(true)
     try {
-      const moreData = await api.getSession(workspaceName, initialSessionId, agentType, MESSAGES_PER_PAGE, messageOffset)
+      const moreData = await api.getSession(workspaceName, initialSessionId, agentType, MESSAGES_PER_PAGE, messageOffset, projectPath)
       if (moreData?.messages) {
         const olderMessages = parseMessages(moreData.messages)
         setMessages(prev => [...olderMessages, ...prev])
@@ -467,7 +467,7 @@ export function SessionChatScreen({ route, navigation }: any) {
     } finally {
       setIsLoadingMore(false)
     }
-  }, [hasMoreMessages, isLoadingMore, initialSessionId, workspaceName, agentType, messageOffset, parseMessages])
+  }, [hasMoreMessages, isLoadingMore, initialSessionId, workspaceName, agentType, messageOffset, parseMessages, projectPath])
 
   const connect = useCallback(() => {
     const url = getChatUrl(workspaceName, agentType as AgentType)

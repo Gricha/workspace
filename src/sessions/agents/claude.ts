@@ -1,7 +1,12 @@
 import { parseClaudeSessionContent } from '../parser';
 import type { SessionMessage } from '../types';
 import type { RawSession, SessionListItem, ExecInContainer, AgentSessionProvider } from './types';
-import { decodeClaudeProjectPath, extractFirstUserPrompt, extractClaudeSessionName } from './utils';
+import {
+  decodeClaudeProjectPath,
+  encodeClaudeProjectPath,
+  extractFirstUserPrompt,
+  extractClaudeSessionName,
+} from './utils';
 
 export const claudeProvider: AgentSessionProvider = {
   async discoverSessions(containerName: string, exec: ExecInContainer): Promise<RawSession[]> {
@@ -85,24 +90,33 @@ export const claudeProvider: AgentSessionProvider = {
   async getSessionMessages(
     containerName: string,
     sessionId: string,
-    exec: ExecInContainer
+    exec: ExecInContainer,
+    projectPath?: string
   ): Promise<{ id: string; messages: SessionMessage[] } | null> {
     const safeSessionId = sessionId.replace(/[^a-zA-Z0-9_-]/g, '');
-    const findResult = await exec(
-      containerName,
-      [
-        'bash',
-        '-c',
-        `find /home/workspace/.claude/projects -name "${safeSessionId}.jsonl" -type f 2>/dev/null | head -1`,
-      ],
-      { user: 'workspace' }
-    );
 
-    if (findResult.exitCode !== 0 || !findResult.stdout.trim()) {
-      return null;
+    let filePath: string;
+
+    if (projectPath) {
+      const encodedPath = encodeClaudeProjectPath(projectPath);
+      filePath = `/home/workspace/.claude/projects/${encodedPath}/${safeSessionId}.jsonl`;
+    } else {
+      const findResult = await exec(
+        containerName,
+        [
+          'bash',
+          '-c',
+          `find /home/workspace/.claude/projects -name "${safeSessionId}.jsonl" -type f 2>/dev/null | head -1`,
+        ],
+        { user: 'workspace' }
+      );
+
+      if (findResult.exitCode !== 0 || !findResult.stdout.trim()) {
+        return null;
+      }
+      filePath = findResult.stdout.trim();
     }
 
-    const filePath = findResult.stdout.trim();
     const catResult = await exec(containerName, ['cat', filePath], {
       user: 'workspace',
     });

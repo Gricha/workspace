@@ -4,6 +4,10 @@ export function decodeClaudeProjectPath(encoded: string): string {
   return encoded.replace(/-/g, '/');
 }
 
+export function encodeClaudeProjectPath(projectPath: string): string {
+  return projectPath.replace(/\//g, '-');
+}
+
 export function extractFirstUserPrompt(messages: SessionMessage[]): string | null {
   const firstPrompt = messages.find(
     (msg) => msg.type === 'user' && msg.content && msg.content.trim().length > 0

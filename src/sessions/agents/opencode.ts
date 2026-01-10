@@ -85,7 +85,8 @@ export const opencodeProvider: AgentSessionProvider = {
   async getSessionMessages(
     containerName: string,
     sessionId: string,
-    exec: ExecInContainer
+    exec: ExecInContainer,
+    _projectPath?: string
   ): Promise<{ id: string; messages: SessionMessage[] } | null> {
     const result = await exec(
       containerName,

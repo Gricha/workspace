@@ -43,7 +43,8 @@ export interface AgentSessionProvider {
   getSessionMessages(
     containerName: string,
     sessionId: string,
-    exec: ExecInContainer
+    exec: ExecInContainer,
+    projectPath?: string
   ): Promise<{ id: string; messages: SessionMessage[] } | null>;
 
   deleteSession(

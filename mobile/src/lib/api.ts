@@ -180,7 +180,7 @@ function createClient() {
         limit?: number
         offset?: number
       }) => Promise<{ sessions: (SessionInfo & { workspaceName: string })[]; total: number; hasMore: boolean }>
-      get: (input: { workspaceName: string; sessionId: string; agentType?: AgentType; limit?: number; offset?: number }) => Promise<SessionDetail & { total: number; hasMore: boolean }>
+      get: (input: { workspaceName: string; sessionId: string; agentType?: AgentType; projectPath?: string; limit?: number; offset?: number }) => Promise<SessionDetail & { total: number; hasMore: boolean }>
       getRecent: (input: { limit?: number }) => Promise<{ sessions: RecentSession[] }>
       recordAccess: (input: { workspaceName: string; sessionId: string; agentType: AgentType }) => Promise<{ success: boolean }>
     }
@@ -259,8 +259,8 @@ export const api = {
     client.sessions.list({ workspaceName, agentType, limit, offset }),
   listAllSessions: (agentType?: AgentType, limit?: number, offset?: number) =>
     client.sessions.listAll({ agentType, limit, offset }),
-  getSession: (workspaceName: string, sessionId: string, agentType?: AgentType, limit?: number, offset?: number) =>
-    client.sessions.get({ workspaceName, sessionId, agentType, limit, offset }),
+  getSession: (workspaceName: string, sessionId: string, agentType?: AgentType, limit?: number, offset?: number, projectPath?: string) =>
+    client.sessions.get({ workspaceName, sessionId, agentType, projectPath, limit, offset }),
   getRecentSessions: (limit?: number) =>
     client.sessions.getRecent({ limit }),
   recordSessionAccess: (workspaceName: string, sessionId: string, agentType: AgentType) =>
