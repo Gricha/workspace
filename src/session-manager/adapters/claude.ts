@@ -236,6 +236,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
   private handleProcessExit(code: number | null): void {
     this.process = null;
     this.terminal = null;
+    this.currentMessageId = undefined;
 
     if (this.status === 'interrupted') {
       this.emitMessage({

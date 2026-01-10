@@ -259,6 +259,7 @@ export class OpenCodeAdapter implements AgentAdapter {
       this.currentMessageId = undefined;
     } catch (err) {
       this.cleanup();
+      this.currentMessageId = undefined;
       this.setStatus('error');
       this.emitError(err as Error);
       this.emit({ type: 'error', content: (err as Error).message });
@@ -494,6 +495,7 @@ export class OpenCodeAdapter implements AgentAdapter {
 
   async interrupt(): Promise<void> {
     this.cleanup();
+    this.currentMessageId = undefined;
     if (this.status === 'running') {
       this.setStatus('interrupted');
       this.emit({ type: 'system', content: 'Interrupted' });
