@@ -247,6 +247,7 @@ export class OpenCodeAdapter implements AgentAdapter {
       if (!this.agentSessionId) {
         this.agentSessionId = await this.createSession(baseUrl);
         this.emit({ type: 'system', content: `Session: ${this.agentSessionId.slice(0, 8)}...` });
+        this.statusCallback?.(this.status);
       }
 
       this.setStatus('running');
@@ -314,7 +315,10 @@ export class OpenCodeAdapter implements AgentAdapter {
   }
 
   private async sendAndStream(baseUrl: string, message: string): Promise<void> {
-    const sseReady = this.startSSEStream();
+    let sseError: Error | null = null;
+    const sseReady = this.startSSEStream().catch((err) => {
+      sseError = err;
+    });
 
     await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -357,6 +361,9 @@ export class OpenCodeAdapter implements AgentAdapter {
     }
 
     await sseReady;
+    if (sseError) {
+      throw sseError;
+    }
   }
 
   private startSSEStream(): Promise<void> {
@@ -383,6 +390,7 @@ export class OpenCodeAdapter implements AgentAdapter {
       this.sseProcess = proc;
       const decoder = new TextDecoder();
       let buffer = '';
+      let eventCount = 0;
 
       const finish = () => {
         if (!resolved) {
@@ -419,8 +427,10 @@ export class OpenCodeAdapter implements AgentAdapter {
 
               try {
                 const event: OpenCodeServerEvent = JSON.parse(data);
+                eventCount++;
 
                 if (event.type === 'session.idle') {
+                  console.log(`[opencode] SSE received session.idle after ${eventCount} events`);
                   receivedIdle = true;
                   clearTimeout(timeout);
                   proc.kill();
@@ -480,7 +490,7 @@ export class OpenCodeAdapter implements AgentAdapter {
           finish();
         } else if (!resolved) {
           resolved = true;
-          reject(new Error('SSE stream ended unexpectedly without session.idle'));
+          reject(new Error(`SSE stream ended unexpectedly without session.idle (received ${eventCount} events)`));
         }
       })().catch((err) => {
         clearTimeout(timeout);
