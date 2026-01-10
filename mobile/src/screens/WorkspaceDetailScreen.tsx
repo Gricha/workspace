@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api, SessionInfo, AgentType, HOST_WORKSPACE_NAME } from '../lib/api'
 import { useTheme } from '../contexts/ThemeContext'
 import { ThemeColors } from '../lib/themes'
+import { AgentIcon } from '../components/AgentIcon'
 
 type DateGroup = 'Today' | 'Yesterday' | 'This Week' | 'Older'
 
@@ -46,24 +47,6 @@ function groupSessionsByDate(sessions: SessionInfo[]): Record<DateGroup, Session
   return groups
 }
 
-function AgentBadge({ type }: { type: AgentType }) {
-  const labels: Record<AgentType, string> = {
-    'claude-code': 'CC',
-    opencode: 'OC',
-    codex: 'CX',
-  }
-  const badgeColors: Record<AgentType, string> = {
-    'claude-code': '#8b5cf6',
-    opencode: '#22c55e',
-    codex: '#f59e0b',
-  }
-  return (
-    <View style={[styles.agentBadge, { backgroundColor: badgeColors[type] }]}>
-      <Text style={styles.agentBadgeText}>{labels[type]}</Text>
-    </View>
-  )
-}
-
 function SessionRow({
   session,
   onPress,
@@ -87,7 +70,9 @@ function SessionRow({
 
   return (
     <TouchableOpacity style={[styles.sessionRow, { borderBottomColor: colors.border }]} onPress={onPress}>
-      <AgentBadge type={session.agentType} />
+      <View style={styles.agentIconWrapper}>
+        <AgentIcon agentType={session.agentType} size="sm" />
+      </View>
       <View style={styles.sessionContent}>
         <Text style={[styles.sessionName, { color: colors.text }]} numberOfLines={1}>
           {session.name || session.firstPrompt || 'Empty session'}
@@ -284,9 +269,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
                 }}
                 testID={`new-chat-${type}`}
               >
-                <View style={[styles.agentBadgeLarge, { backgroundColor: type === 'claude-code' ? '#8b5cf6' : type === 'opencode' ? '#22c55e' : '#f59e0b' }]}>
-                  <Text style={styles.agentBadgeLargeText}>{type === 'claude-code' ? 'CC' : type === 'opencode' ? 'OC' : 'CX'}</Text>
-                </View>
+                <AgentIcon agentType={type} size="md" />
                 <Text style={[styles.newChatPickerItemText, { color: colors.text }]}>{agentLabels[type]}</Text>
               </TouchableOpacity>
             ))}
@@ -593,16 +576,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#1c1c1e',
   },
-  agentBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
+  agentIconWrapper: {
     marginRight: 10,
-  },
-  agentBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#fff',
   },
   sessionContent: {
     flex: 1,
@@ -670,18 +645,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     fontWeight: '500',
-  },
-  agentBadgeLarge: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  agentBadgeLargeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#fff',
   },
   headerChevron: {
     fontSize: 10,

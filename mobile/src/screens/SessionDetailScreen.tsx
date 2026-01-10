@@ -8,27 +8,10 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
-import { api, SessionMessage, AgentType } from '../lib/api'
+import { api, SessionMessage } from '../lib/api'
 import { useTheme } from '../contexts/ThemeContext'
 import { ThemeColors } from '../lib/themes'
-
-function SessionAgentBadge({ type }: { type: AgentType }) {
-  const labels: Record<AgentType, string> = {
-    'claude-code': 'Claude Code',
-    opencode: 'OpenCode',
-    codex: 'Codex',
-  }
-  const badgeColors: Record<AgentType, string> = {
-    'claude-code': '#ff6b35',
-    opencode: '#34c759',
-    codex: '#007aff',
-  }
-  return (
-    <View style={[styles.agentBadge, { backgroundColor: badgeColors[type] }]}>
-      <Text style={styles.agentBadgeText}>{labels[type]}</Text>
-    </View>
-  )
-}
+import { AgentIcon } from '../components/AgentIcon'
 
 function SessionMessageBubble({ message, colors }: { message: SessionMessage; colors: ThemeColors }) {
   const isUser = message.type === 'user'
@@ -100,7 +83,7 @@ export function SessionDetailScreen({ route, navigation }: any) {
           <Text style={[styles.headerBackText, { color: colors.accent }]}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerTitle}>
-          <SessionAgentBadge type={agentType} />
+          <AgentIcon agentType={agentType} size="md" />
           <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>{workspaceName}</Text>
         </View>
         <View style={{ width: 40 }} />
@@ -261,15 +244,5 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     color: '#8e8e93',
     lineHeight: 18,
-  },
-  agentBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  agentBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
   },
 })
