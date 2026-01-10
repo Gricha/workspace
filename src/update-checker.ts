@@ -35,21 +35,44 @@ async function writeCache(cache: UpdateCache): Promise<void> {
   }
 }
 
+export interface FetchVersionResult {
+  version: string | null;
+  error?: string;
+  status?: number;
+}
+
 export async function fetchLatestVersion(): Promise<string | null> {
+  const result = await fetchLatestVersionWithDetails();
+  return result.version;
+}
+
+export async function fetchLatestVersionWithDetails(): Promise<FetchVersionResult> {
   try {
     const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(5000),
       headers: {
         Accept: 'application/vnd.github.v3+json',
         'User-Agent': 'perry-update-checker',
       },
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      return {
+        version: null,
+        error: `GitHub API returned ${response.status} ${response.statusText}`,
+        status: response.status,
+      };
+    }
     const data = (await response.json()) as { tag_name?: string };
     const tag = data.tag_name || null;
-    return tag ? tag.replace(/^v/, '') : null;
-  } catch {
-    return null;
+    return { version: tag ? tag.replace(/^v/, '') : null };
+  } catch (err) {
+    if (err instanceof Error) {
+      if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+        return { version: null, error: 'Request timed out' };
+      }
+      return { version: null, error: err.message };
+    }
+    return { version: null, error: 'Unknown error' };
   }
 }
 
