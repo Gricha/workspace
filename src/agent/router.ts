@@ -5,7 +5,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { AgentConfig } from '../shared/types';
 import { HOST_WORKSPACE_NAME } from '../shared/client-types';
-import { getDockerVersion, execInContainer, getContainerName } from '../docker';
+import { getDockerVersion, execInContainer, getContainerName, type ExecResult } from '../docker';
 import { createWorkerClient } from '../worker/client';
 import type { WorkspaceManager } from '../workspace/manager';
 interface TerminalServerLike {
@@ -326,6 +326,66 @@ export function createRouter(ctx: RouterContext) {
         return await ctx.workspaces.clone(input.sourceName, input.cloneName);
       } catch (err) {
         mapErrorToORPC(err, 'Failed to clone workspace');
+      }
+    });
+
+  const execInWorkspace = os
+    .input(
+      z.object({
+        name: z.string(),
+        command: z.union([z.string(), z.array(z.string())]),
+        timeout: z.number().optional(),
+      })
+    )
+    .output(
+      z.object({
+        stdout: z.string(),
+        stderr: z.string(),
+        exitCode: z.number(),
+      })
+    )
+    .handler(async ({ input }) => {
+      const workspace = await ctx.workspaces.get(input.name);
+      if (!workspace) {
+        throw new ORPCError('NOT_FOUND', { message: 'Workspace not found' });
+      }
+      if (workspace.status !== 'running') {
+        throw new ORPCError('PRECONDITION_FAILED', { message: 'Workspace is not running' });
+      }
+
+      const containerName = getContainerName(input.name);
+      const commandArray = Array.isArray(input.command)
+        ? input.command
+        : ['/bin/sh', '-c', input.command];
+
+      try {
+        const execPromise = execInContainer(containerName, commandArray);
+
+        let result: ExecResult;
+        if (input.timeout) {
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error(`Command execution timed out after ${input.timeout}ms`));
+            }, input.timeout);
+          });
+
+          result = await Promise.race([execPromise, timeoutPromise]);
+        } else {
+          result = await execPromise;
+        }
+
+        return {
+          stdout: result.stdout,
+          stderr: result.stderr,
+          exitCode: result.exitCode,
+        };
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('timed out')) {
+          throw new ORPCError('TIMEOUT', { message: err.message });
+        }
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: `Failed to execute command: ${(err as Error).message}`,
+        });
       }
     });
 
@@ -1422,6 +1482,7 @@ export function createRouter(ctx: RouterContext) {
       getPortForwards: getPortForwards,
       setPortForwards: setPortForwards,
       updateWorker: updateWorker,
+      exec: execInWorkspace,
     },
     sessions: {
       list: listSessions,
