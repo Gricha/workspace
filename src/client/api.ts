@@ -119,6 +119,18 @@ export class ApiClient {
     }
   }
 
+  async syncAllWorkspaces(): Promise<{
+    synced: number;
+    failed: number;
+    results: { name: string; success: boolean; error?: string }[];
+  }> {
+    try {
+      return await this.client.workspaces.syncAll();
+    } catch (err) {
+      throw this.wrapError(err);
+    }
+  }
+
   async getPortForwards(name: string): Promise<number[]> {
     try {
       const result = await this.client.workspaces.getPortForwards({ name });

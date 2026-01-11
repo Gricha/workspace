@@ -309,15 +309,42 @@ program
   });
 
 program
-  .command('sync <name>')
-  .description('Sync credentials and files to a running workspace')
-  .action(async (name) => {
+  .command('sync [name]')
+  .description('Sync credentials and files to workspaces')
+  .option('-a, --all', 'Sync all running workspaces')
+  .action(async (name, options) => {
     try {
       const client = await getClient();
+
+      if (options.all) {
+        console.log('Syncing all running workspaces...');
+        const result = await client.syncAllWorkspaces();
+
+        if (result.results.length === 0) {
+          console.log('No running workspaces to sync.');
+          return;
+        }
+
+        for (const r of result.results) {
+          if (r.success) {
+            console.log(`  ✓ ${r.name}`);
+          } else {
+            console.log(`  ✗ ${r.name}: ${r.error}`);
+          }
+        }
+
+        console.log('');
+        console.log(`Synced: ${result.synced}, Failed: ${result.failed}`);
+        return;
+      }
+
+      if (!name) {
+        console.error('Error: workspace name required (or use --all)');
+        process.exit(1);
+      }
+
       console.log(`Syncing credentials to workspace '${name}'...`);
-
       await client.syncWorkspace(name);
-
       console.log(`Workspace '${name}' synced.`);
     } catch (err) {
       handleError(err);
