@@ -81,20 +81,14 @@ describe('E2E - Workspace Exec Endpoint', () => {
     });
 
     it('executes commands with environment variables', async () => {
-      const result = await agent.api.execCommand(
-        workspaceName,
-        'TEST_VAR=hello && echo $TEST_VAR'
-      );
+      const result = await agent.api.execCommand(workspaceName, 'TEST_VAR=hello && echo $TEST_VAR');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toBe('hello');
     });
 
     it('executes multi-line commands', async () => {
-      const result = await agent.api.execCommand(
-        workspaceName,
-        'FOO=bar\necho $FOO'
-      );
+      const result = await agent.api.execCommand(workspaceName, 'FOO=bar\necho $FOO');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toBe('bar');
@@ -125,10 +119,7 @@ describe('E2E - Workspace Exec Endpoint', () => {
     });
 
     it('returns error for grep with no matches', async () => {
-      const result = await agent.api.execCommand(
-        workspaceName,
-        'echo "hello" | grep "goodbye"'
-      );
+      const result = await agent.api.execCommand(workspaceName, 'echo "hello" | grep "goodbye"');
 
       expect(result.exitCode).toBe(1);
     });
@@ -155,9 +146,7 @@ describe('E2E - Workspace Exec Endpoint', () => {
       await agent.api.createWorkspace({ name: stoppedWorkspaceName });
       await agent.api.stopWorkspace(stoppedWorkspaceName);
 
-      await expect(
-        agent.api.execCommand(stoppedWorkspaceName, 'echo test')
-      ).rejects.toThrow();
+      await expect(agent.api.execCommand(stoppedWorkspaceName, 'echo test')).rejects.toThrow();
 
       try {
         await agent.api.execCommand(stoppedWorkspaceName, 'echo test');
@@ -173,9 +162,7 @@ describe('E2E - Workspace Exec Endpoint', () => {
 
   describe('timeout handling', () => {
     it('times out long-running command with timeout parameter', async () => {
-      await expect(
-        agent.api.execCommand(workspaceName, 'sleep 10', 1000)
-      ).rejects.toThrow();
+      await expect(agent.api.execCommand(workspaceName, 'sleep 10', 1000)).rejects.toThrow();
 
       try {
         await agent.api.execCommand(workspaceName, 'sleep 10', 1000);
@@ -187,21 +174,14 @@ describe('E2E - Workspace Exec Endpoint', () => {
     }, 15000);
 
     it('completes fast command within timeout', async () => {
-      const result = await agent.api.execCommand(
-        workspaceName,
-        'echo "fast command"',
-        5000
-      );
+      const result = await agent.api.execCommand(workspaceName, 'echo "fast command"', 5000);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toBe('fast command');
     });
 
     it('executes command without timeout when not specified', async () => {
-      const result = await agent.api.execCommand(
-        workspaceName,
-        'sleep 1 && echo "done"'
-      );
+      const result = await agent.api.execCommand(workspaceName, 'sleep 1 && echo "done"');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toBe('done');
@@ -218,10 +198,7 @@ describe('E2E - Workspace Exec Endpoint', () => {
       expect(createResult.exitCode).toBe(0);
 
       // Read the file
-      const readResult = await agent.api.execCommand(
-        workspaceName,
-        'cat /tmp/test-file.txt'
-      );
+      const readResult = await agent.api.execCommand(workspaceName, 'cat /tmp/test-file.txt');
       expect(readResult.exitCode).toBe(0);
       expect(readResult.stdout).toBe('test content');
     });
@@ -235,10 +212,7 @@ describe('E2E - Workspace Exec Endpoint', () => {
 
     it('checks file existence with test command', async () => {
       // Create a file first
-      await agent.api.execCommand(
-        workspaceName,
-        'touch /tmp/exists.txt'
-      );
+      await agent.api.execCommand(workspaceName, 'touch /tmp/exists.txt');
 
       // Check if it exists
       const result = await agent.api.execCommand(
@@ -253,30 +227,21 @@ describe('E2E - Workspace Exec Endpoint', () => {
 
   describe('special characters and edge cases', () => {
     it('handles single quotes in commands', async () => {
-      const result = await agent.api.execCommand(
-        workspaceName,
-        "echo 'Hello World'"
-      );
+      const result = await agent.api.execCommand(workspaceName, "echo 'Hello World'");
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toBe('Hello World');
     });
 
     it('handles double quotes in commands', async () => {
-      const result = await agent.api.execCommand(
-        workspaceName,
-        'echo "Hello World"'
-      );
+      const result = await agent.api.execCommand(workspaceName, 'echo "Hello World"');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toBe('Hello World');
     });
 
     it('handles commands with special characters', async () => {
-      const result = await agent.api.execCommand(
-        workspaceName,
-        'echo "test@#$%^&*()"'
-      );
+      const result = await agent.api.execCommand(workspaceName, 'echo "test@#$%^&*()"');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toBe('test@#$%^&*()');
@@ -291,13 +256,10 @@ describe('E2E - Workspace Exec Endpoint', () => {
     });
 
     it('handles large output', async () => {
-      const result = await agent.api.execCommand(
-        workspaceName,
-        'seq 1 1000'
-      );
+      const result = await agent.api.execCommand(workspaceName, 'seq 1 1000');
 
       expect(result.exitCode).toBe(0);
-      const lines = result.stdout.split('\n').filter(l => l);
+      const lines = result.stdout.split('\n').filter((l) => l);
       expect(lines.length).toBe(1000);
       expect(lines[0]).toBe('1');
       expect(lines[999]).toBe('1000');
@@ -306,25 +268,19 @@ describe('E2E - Workspace Exec Endpoint', () => {
 
   describe('command types comparison', () => {
     it('produces same result for string vs array command', async () => {
-      const stringResult = await agent.api.execCommand(
-        workspaceName,
-        'echo "test output"'
-      );
+      const stringResult = await agent.api.execCommand(workspaceName, 'echo "test output"');
 
-      const arrayResult = await agent.api.execCommand(
-        workspaceName,
-        ['echo', 'test output']
-      );
+      const arrayResult = await agent.api.execCommand(workspaceName, ['echo', 'test output']);
 
       expect(stringResult.exitCode).toBe(arrayResult.exitCode);
       expect(stringResult.stdout).toBe(arrayResult.stdout);
     });
 
     it('handles spaces correctly in array command', async () => {
-      const result = await agent.api.execCommand(
-        workspaceName,
-        ['echo', 'hello world with spaces']
-      );
+      const result = await agent.api.execCommand(workspaceName, [
+        'echo',
+        'hello world with spaces',
+      ]);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toBe('hello world with spaces');
@@ -344,7 +300,7 @@ describe('E2E - Workspace Exec Endpoint', () => {
       expect(results[0].stdout).toBe('command1');
       expect(results[1].stdout).toBe('command2');
       expect(results[2].stdout).toBe('command3');
-      results.forEach(r => expect(r.exitCode).toBe(0));
+      results.forEach((r) => expect(r.exitCode).toBe(0));
     });
   });
 });
