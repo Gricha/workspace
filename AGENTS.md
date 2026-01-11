@@ -88,6 +88,28 @@ See `DESIGN.md` for detailed architecture.
 - Use `withLock()` for state mutations
 - No comments in code (self-documenting)
 
+## Mobile
+
+**Install deps** (preferred; `mobile/package-lock.json` may be out of sync):
+```bash
+cd mobile
+bun install
+```
+
+**Run on a real iOS device** (avoids the "hung" process by separating build and Metro):
+```bash
+# Terminal 1: build + install to device (exits when done)
+cd mobile
+bunx expo run:ios --device "<Your iPhone Name>" --no-bundler
+
+# Terminal 2: start Metro for the dev client
+cd mobile
+bunx expo start --dev-client
+```
+
+**Environment**
+- Local, gitignored env file: `mobile/.env.local` (Expo runtime vars use `EXPO_PUBLIC_` prefix)
+
 ## Testing Guidelines
 
 **Manual Testing Protocol:**
