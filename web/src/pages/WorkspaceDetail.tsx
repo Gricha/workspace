@@ -465,16 +465,22 @@ export function WorkspaceDetail() {
     },
   })
 
-  const handleResume = (sessionId: string, agentType: AgentType, projectPath?: string) => {
-    if (agentType === 'claude-code' || agentType === 'opencode') {
-      setChatMode({ type: 'chat', sessionId, agentType, projectPath })
+  const handleResume = (session: SessionInfo) => {
+    if (session.agentType === 'claude-code' || session.agentType === 'opencode') {
+      setChatMode({
+        type: 'chat',
+        sessionId: session.id,
+        agentType: session.agentType,
+        projectPath: session.projectPath,
+      })
     } else {
+      const resumeId = session.agentSessionId || session.id
       const commands: Record<AgentType, string> = {
-        'claude-code': `claude -r ${sessionId}`,
-        opencode: `opencode --resume ${sessionId}`,
-        codex: `codex resume ${sessionId}`,
+        'claude-code': `claude -r ${resumeId}`,
+        opencode: `opencode --resume ${resumeId}`,
+        codex: `codex resume ${resumeId}`,
       }
-      setChatMode({ type: 'terminal', command: commands[agentType] })
+      setChatMode({ type: 'terminal', command: commands[session.agentType] })
     }
   }
 
@@ -831,7 +837,7 @@ export function WorkspaceDetail() {
                               <SessionListItem
                                 key={session.id}
                                 session={session}
-                                onClick={() => handleResume(session.id, session.agentType, session.projectPath)}
+                                onClick={() => handleResume(session)}
                                 onDelete={() => setDeleteSessionDialog(session)}
                               />
                             ))}

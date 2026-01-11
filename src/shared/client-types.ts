@@ -67,6 +67,7 @@ export interface SessionInfo {
   id: string;
   name: string | null;
   agentType: AgentType;
+  agentSessionId?: string | null;
   projectPath: string;
   messageCount: number;
   lastActivity: string;
@@ -89,6 +90,7 @@ export interface SessionMessage {
 export interface SessionDetail {
   id: string;
   agentType?: AgentType;
+  agentSessionId?: string | null;
   messages: SessionMessage[];
 }
 

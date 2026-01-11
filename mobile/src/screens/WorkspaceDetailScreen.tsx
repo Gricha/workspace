@@ -363,6 +363,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
                 onPress={() => navigation.navigate('SessionChat', {
                   workspaceName: name,
                   sessionId: item.session.id,
+                  agentSessionId: item.session.agentSessionId || null,
                   agentType: item.session.agentType,
                   projectPath: item.session.projectPath,
                 })}

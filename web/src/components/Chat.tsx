@@ -518,13 +518,12 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
         }
 
         if (msg.type === 'session_started' || msg.type === 'session_joined') {
-          // Use sessionId (internal session manager ID) for reconnection
-          // Fall back to agentSessionId for backwards compatibility
-          const newSessionId = msg.sessionId || msg.agentSessionId
-          if (newSessionId) {
-            setSessionId(newSessionId)
-            hasLoadedHistoryRef.current = true
-            onSessionIdRef.current?.(msg.agentSessionId || newSessionId)
+          if (msg.sessionId) {
+            setSessionId(msg.sessionId)
+            if (!initialSessionId) {
+              hasLoadedHistoryRef.current = true
+            }
+            onSessionIdRef.current?.(msg.sessionId)
           }
           // If rejoining a running session, show streaming indicator
           if (msg.type === 'session_joined' && msg.status === 'running') {
@@ -661,15 +660,10 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
         if (msg.type === 'system') {
           try {
             const parsed = JSON.parse(msg.content)
-            if (parsed.agentSessionId) {
-              setSessionId(parsed.agentSessionId)
-              onSessionIdRef.current?.(parsed.agentSessionId)
+            if (parsed?.agentSessionId) {
               return
             }
-          } catch {
-            // Not JSON, treat as regular system message
-          }
-
+          } catch {}
           setMessages(prev => [...prev, {
             type: 'system',
             content: msg.content,

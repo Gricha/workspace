@@ -29,6 +29,7 @@ import {
   deleteSession as deleteSessionFromProvider,
   searchSessions as searchSessionsInContainer,
 } from '../sessions/agents';
+import { decodeClaudeProjectPath } from '../sessions/agents/utils';
 import type { SessionsCacheManager } from '../sessions/cache';
 import type { ModelCacheManager } from '../models/cache';
 import {
@@ -553,6 +554,44 @@ export function createRouter(ctx: RouterContext) {
   const hostSessionIndex = new SessionIndex();
   let hostSessionIndexInitialized = false;
 
+  function toRegistryAgentType(agentType: 'claude-code' | 'opencode' | 'codex' | 'claude') {
+    return agentType === 'claude-code' ? 'claude' : agentType;
+  }
+
+  function toClientAgentType(agentType: 'claude' | 'opencode' | 'codex') {
+    return agentType === 'claude' ? 'claude-code' : agentType;
+  }
+
+  async function ensureRegistrySession(
+    workspaceName: string,
+    agentType: 'claude-code' | 'opencode' | 'codex' | 'claude',
+    agentSessionId: string,
+    options?: { projectPath?: string | null; createdAt?: string; lastActivity?: string }
+  ) {
+    const existing = await sessionRegistry.findByAgentSessionId(ctx.stateDir, agentSessionId);
+    if (existing) {
+      return existing;
+    }
+
+    return sessionRegistry.importExternalSession(ctx.stateDir, {
+      perrySessionId: `imported-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      workspaceName,
+      agentType: toRegistryAgentType(agentType) as sessionRegistry.AgentType,
+      agentSessionId,
+      projectPath: options?.projectPath ?? null,
+      createdAt: options?.createdAt,
+      lastActivity: options?.lastActivity,
+    });
+  }
+
+  async function resolveSessionRecord(sessionId: string) {
+    const byPerry = await sessionRegistry.getSession(ctx.stateDir, sessionId);
+    if (byPerry) {
+      return byPerry;
+    }
+    return sessionRegistry.findByAgentSessionId(ctx.stateDir, sessionId);
+  }
+
   async function listHostSessions(input: ListSessionsInput) {
     if (!hostSessionIndexInitialized) {
       await hostSessionIndex.initialize();
@@ -573,15 +612,36 @@ export function createRouter(ctx: RouterContext) {
     const nonEmptySessions = sessions.filter((s) => s.messageCount > 0);
     const sessionNames = await getSessionNamesForWorkspace(ctx.configDir, HOST_WORKSPACE_NAME);
 
-    const paginatedSessions = nonEmptySessions.slice(offset, offset + limit).map((s) => ({
-      id: s.id,
-      name: sessionNames[s.id] || null,
-      agentType: (s.agentType === 'claude' ? 'claude-code' : s.agentType) as AgentType,
-      projectPath: s.directory,
-      messageCount: s.messageCount,
-      lastActivity: new Date(s.lastActivity).toISOString(),
-      firstPrompt: s.firstPrompt,
-    }));
+    const paginatedRaw = nonEmptySessions.slice(offset, offset + limit);
+    const paginatedSessions = await Promise.all(
+      paginatedRaw.map(async (session) => {
+        const projectPath =
+          session.agentType === 'claude'
+            ? decodeClaudeProjectPath(session.directory)
+            : session.directory;
+        const record = await ensureRegistrySession(
+          HOST_WORKSPACE_NAME,
+          session.agentType,
+          session.id,
+          {
+            projectPath,
+            createdAt: new Date(session.lastActivity).toISOString(),
+            lastActivity: new Date(session.lastActivity).toISOString(),
+          }
+        );
+        const name = sessionNames[record.perrySessionId] || sessionNames[session.id] || null;
+        return {
+          id: record.perrySessionId,
+          agentSessionId: session.id,
+          name,
+          agentType: toClientAgentType(session.agentType) as AgentType,
+          projectPath,
+          messageCount: session.messageCount,
+          lastActivity: new Date(session.lastActivity).toISOString(),
+          firstPrompt: session.firstPrompt,
+        };
+      })
+    );
 
     return {
       sessions: paginatedSessions,
@@ -600,13 +660,15 @@ export function createRouter(ctx: RouterContext) {
       hostSessionIndexInitialized = true;
     }
 
-    const session = hostSessionIndex.get(sessionId);
+    const record = await resolveSessionRecord(sessionId);
+    const agentSessionId = record?.agentSessionId || sessionId;
+    const session = hostSessionIndex.get(agentSessionId);
     if (!session) {
       return { id: sessionId, messages: [] };
     }
 
-    const result = await hostSessionIndex.getMessages(sessionId, { limit: 10000, offset: 0 });
-    const agentType = session.agentType === 'claude' ? 'claude-code' : session.agentType;
+    const result = await hostSessionIndex.getMessages(agentSessionId, { limit: 10000, offset: 0 });
+    const agentType = toClientAgentType(session.agentType);
 
     const messages: SessionMessage[] = result.messages.map((m) => ({
       type: m.type as SessionMessage['type'],
@@ -617,7 +679,15 @@ export function createRouter(ctx: RouterContext) {
       timestamp: m.timestamp,
     }));
 
-    return { id: sessionId, agentType, messages };
+    const ensured =
+      record ||
+      (await ensureRegistrySession(HOST_WORKSPACE_NAME, session.agentType, agentSessionId, {
+        projectPath:
+          session.agentType === 'claude'
+            ? decodeClaudeProjectPath(session.directory)
+            : session.directory,
+      }));
+    return { id: ensured.perrySessionId, agentType, messages, agentSessionId };
   }
 
   async function listSessionsCore(input: ListSessionsInput) {
@@ -647,26 +717,13 @@ export function createRouter(ctx: RouterContext) {
 
     const customNames = await getSessionNamesForWorkspace(ctx.stateDir, input.workspaceName);
 
-    const registrySessions = await sessionRegistry.getSessionsForWorkspace(
-      ctx.stateDir,
-      input.workspaceName
-    );
-    const trackedAgentIds = new Set(
-      registrySessions.filter((s) => s.agentSessionId).map((s) => s.agentSessionId)
-    );
-
+    const registryByAgentId = new Map<string, sessionRegistry.SessionRecord>();
     for (const raw of rawSessions) {
-      if (!trackedAgentIds.has(raw.id)) {
-        const agentType = raw.agentType === 'claude-code' ? 'claude' : raw.agentType;
-        await sessionRegistry.importExternalSession(ctx.stateDir, {
-          perrySessionId: `imported-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          workspaceName: input.workspaceName,
-          agentType: agentType as sessionRegistry.AgentType,
-          agentSessionId: raw.id,
-          createdAt: new Date(raw.mtime).toISOString(),
-          lastActivity: new Date(raw.mtime).toISOString(),
-        });
-      }
+      const record = await ensureRegistrySession(input.workspaceName, raw.agentType, raw.id, {
+        createdAt: new Date(raw.mtime).toISOString(),
+        lastActivity: new Date(raw.mtime).toISOString(),
+      });
+      registryByAgentId.set(raw.id, record);
     }
 
     const filteredSessions = rawSessions
@@ -683,10 +740,22 @@ export function createRouter(ctx: RouterContext) {
 
     const sessions = detailsResults
       .filter((details): details is NonNullable<typeof details> => details !== null)
-      .map((details) => ({
-        ...details,
-        name: customNames[details.id] || details.name,
-      }));
+      .map((details) => {
+        const record = registryByAgentId.get(details.id);
+        const perryId = record?.perrySessionId || details.id;
+        const name = customNames[perryId] || customNames[details.id] || details.name;
+        const projectPath =
+          details.agentType === 'claude-code'
+            ? decodeClaudeProjectPath(details.projectPath)
+            : details.projectPath;
+        return {
+          ...details,
+          id: perryId,
+          agentSessionId: details.id,
+          name,
+          projectPath,
+        };
+      });
 
     return {
       sessions,
@@ -740,15 +809,42 @@ export function createRouter(ctx: RouterContext) {
 
         const containerName = `workspace-${input.workspaceName}`;
 
-        result = input.agentType
+        const record = await resolveSessionRecord(input.sessionId);
+        if (record && !record.agentSessionId) {
+          throw new ORPCError('NOT_FOUND', { message: 'Session not found' });
+        }
+        const agentSessionId = record?.agentSessionId || input.sessionId;
+        const resolvedAgentType = record?.agentType
+          ? toClientAgentType(record.agentType)
+          : input.agentType;
+
+        result = resolvedAgentType
           ? await getSessionMessages(
               containerName,
-              input.sessionId,
-              input.agentType,
+              agentSessionId,
+              resolvedAgentType,
               execInContainer,
               input.projectPath
             )
-          : await findSessionMessages(containerName, input.sessionId, execInContainer);
+          : await findSessionMessages(containerName, agentSessionId, execInContainer);
+
+        if (result && !record) {
+          const agentType = toRegistryAgentType(result.agentType || resolvedAgentType);
+          const created = await ensureRegistrySession(input.workspaceName, agentType, result.id, {
+            projectPath: input.projectPath,
+          });
+          result = {
+            ...result,
+            id: created.perrySessionId,
+            agentSessionId: result.id,
+          };
+        } else if (result && record) {
+          result = {
+            ...result,
+            id: record.perrySessionId,
+            agentSessionId: record.agentSessionId || agentSessionId,
+          };
+        }
       }
 
       if (!result) {
@@ -840,15 +936,19 @@ export function createRouter(ctx: RouterContext) {
           throw new ORPCError('PRECONDITION_FAILED', { message: 'Host access is disabled' });
         }
 
-        const result = await deleteHostSession(input.sessionId, input.agentType);
+        const record = await resolveSessionRecord(input.sessionId);
+        const agentSessionId = record?.agentSessionId || input.sessionId;
+        const agentType = record?.agentType ? toClientAgentType(record.agentType) : input.agentType;
+        const result = await deleteHostSession(agentSessionId, agentType);
         if (!result.success) {
           throw new ORPCError('INTERNAL_SERVER_ERROR', {
             message: result.error || 'Failed to delete session',
           });
         }
 
-        await deleteSessionName(ctx.stateDir, input.workspaceName, input.sessionId);
-        await ctx.sessionsCache.removeSession(input.workspaceName, input.sessionId);
+        const perryId = record?.perrySessionId || input.sessionId;
+        await deleteSessionName(ctx.stateDir, input.workspaceName, perryId);
+        await ctx.sessionsCache.removeSession(input.workspaceName, perryId);
 
         return { success: true };
       }
@@ -863,10 +963,13 @@ export function createRouter(ctx: RouterContext) {
 
       const containerName = `workspace-${input.workspaceName}`;
 
+      const record = await resolveSessionRecord(input.sessionId);
+      const agentSessionId = record?.agentSessionId || input.sessionId;
+      const agentType = record?.agentType ? toClientAgentType(record.agentType) : input.agentType;
       const result = await deleteSessionFromProvider(
         containerName,
-        input.sessionId,
-        input.agentType,
+        agentSessionId,
+        agentType,
         execInContainer
       );
 
@@ -876,8 +979,9 @@ export function createRouter(ctx: RouterContext) {
         });
       }
 
-      await deleteSessionName(ctx.stateDir, input.workspaceName, input.sessionId);
-      await ctx.sessionsCache.removeSession(input.workspaceName, input.sessionId);
+      const perryId = record?.perrySessionId || input.sessionId;
+      await deleteSessionName(ctx.stateDir, input.workspaceName, perryId);
+      await ctx.sessionsCache.removeSession(input.workspaceName, perryId);
 
       return { success: true };
     });
@@ -911,7 +1015,25 @@ export function createRouter(ctx: RouterContext) {
       }
 
       const containerName = `workspace-${input.workspaceName}`;
-      const results = await searchSessionsInContainer(containerName, input.query, execInContainer);
+      const rawResults = await searchSessionsInContainer(
+        containerName,
+        input.query,
+        execInContainer
+      );
+      const results = await Promise.all(
+        rawResults.map(async (result) => {
+          const record = await ensureRegistrySession(
+            input.workspaceName,
+            result.agentType,
+            result.sessionId
+          );
+          return {
+            ...result,
+            sessionId: record.perrySessionId,
+            agentSessionId: result.sessionId,
+          };
+        })
+      );
 
       return { results };
     });
@@ -921,6 +1043,7 @@ export function createRouter(ctx: RouterContext) {
       sessionId: string;
       agentType: 'claude-code' | 'opencode' | 'codex';
       matchCount: number;
+      agentSessionId?: string;
     }>
   > {
     const homeDir = os_module.homedir();
@@ -957,6 +1080,7 @@ export function createRouter(ctx: RouterContext) {
         sessionId: string;
         agentType: 'claude-code' | 'opencode' | 'codex';
         matchCount: number;
+        agentSessionId?: string;
       }> = [];
 
       for (const file of files) {
@@ -986,7 +1110,13 @@ export function createRouter(ctx: RouterContext) {
         }
 
         if (sessionId && agentType) {
-          results.push({ sessionId, agentType, matchCount: 1 });
+          const record = await ensureRegistrySession(HOST_WORKSPACE_NAME, agentType, sessionId);
+          results.push({
+            sessionId: record.perrySessionId,
+            agentSessionId: sessionId,
+            agentType,
+            matchCount: 1,
+          });
         }
       }
 

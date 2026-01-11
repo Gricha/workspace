@@ -375,14 +375,21 @@ function StreamingBubble({ parts, colors }: { parts: MessagePart[]; colors: Them
 export function SessionChatScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets()
   const { colors } = useTheme()
-  const { workspaceName, sessionId: initialSessionId, agentType = 'claude-code', isNew, projectPath } = route.params
+  const {
+    workspaceName,
+    sessionId: initialSessionId,
+    agentSessionId: initialAgentSessionId,
+    agentType = 'claude-code',
+    isNew,
+    projectPath,
+  } = route.params
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [connected, setConnected] = useState(false)
   const [liveSessionId, setLiveSessionId] = useState<string | null>(null)
-  const [agentSessionId, setAgentSessionId] = useState<string | null>(initialSessionId || null)
+  const [agentSessionId, setAgentSessionId] = useState<string | null>(initialAgentSessionId || null)
   const [streamingParts, setStreamingParts] = useState<MessagePart[]>([])
   const [keyboardVisible, setKeyboardVisible] = useState(false)
   const [hasMoreMessages, setHasMoreMessages] = useState(false)
@@ -552,9 +559,7 @@ export function SessionChatScreen({ route, navigation }: any) {
         type: 'connect',
         agentType: agentType === 'opencode' ? 'opencode' : 'claude',
       }
-      // Send sessionId for session lookup - prefer liveSessionId (internal ID), fall back to agentSessionId
-      // Backend's findSession() can look up by either ID type
-      const sessionIdForLookup = liveSessionId || agentSessionId
+      const sessionIdForLookup = liveSessionId || initialSessionId
       if (sessionIdForLookup) {
         connectMsg.sessionId = sessionIdForLookup
       }
@@ -578,11 +583,10 @@ export function SessionChatScreen({ route, navigation }: any) {
         if (msg.type === 'session_started' || msg.type === 'session_joined') {
           if (msg.sessionId) {
             setLiveSessionId(msg.sessionId)
+            api.recordSessionAccess(workspaceName, msg.sessionId, agentType).catch(() => {})
           }
           if (msg.agentSessionId) {
             setAgentSessionId(msg.agentSessionId)
-            // Record session access so it shows in the sessions list
-            api.recordSessionAccess(workspaceName, msg.agentSessionId, agentType).catch(() => {})
           }
           if (msg.type === 'session_joined' && msg.status === 'running') {
             setIsStreaming(true)

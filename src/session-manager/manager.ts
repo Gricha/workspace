@@ -98,6 +98,16 @@ export class SessionManager {
     const isHost = options.workspaceName === HOST_WORKSPACE_NAME;
     const containerName = isHost ? undefined : getContainerName(options.workspaceName);
 
+    if (this.stateDir) {
+      await registry.createSession(this.stateDir, {
+        perrySessionId: sessionId,
+        workspaceName: options.workspaceName,
+        agentType: options.agentType,
+        agentSessionId: options.agentSessionId ?? null,
+        projectPath: options.projectPath ?? null,
+      });
+    }
+
     await adapter.start({
       workspaceName: options.workspaceName,
       containerName,
@@ -108,16 +118,6 @@ export class SessionManager {
     });
 
     this.sessions.set(sessionId, session);
-
-    if (this.stateDir) {
-      await registry.createSession(this.stateDir, {
-        perrySessionId: sessionId,
-        workspaceName: options.workspaceName,
-        agentType: options.agentType,
-        agentSessionId: options.agentSessionId ?? null,
-        projectPath: options.projectPath ?? null,
-      });
-    }
 
     return sessionId;
   }

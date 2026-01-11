@@ -88,7 +88,7 @@ const client = createORPCClient<{
     getRecent: (input: { limit?: number }) => Promise<{ sessions: RecentSession[] }>
     recordAccess: (input: { workspaceName: string; sessionId: string; agentType: AgentType }) => Promise<{ success: boolean }>
     delete: (input: { workspaceName: string; sessionId: string; agentType: AgentType }) => Promise<{ success: boolean }>
-    search: (input: { workspaceName: string; query: string }) => Promise<{ results: Array<{ sessionId: string; agentType: AgentType; matchCount: number }> }>
+    search: (input: { workspaceName: string; query: string }) => Promise<{ results: Array<{ sessionId: string; agentType: AgentType; matchCount: number; agentSessionId?: string }> }>
   }
   models: {
     list: (input: { agentType: 'claude-code' | 'opencode'; workspaceName?: string }) => Promise<{ models: ModelInfo[] }>
