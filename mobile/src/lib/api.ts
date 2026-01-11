@@ -1,6 +1,7 @@
 import { createORPCClient } from '@orpc/client'
 import { RPCLink } from '@orpc/client/fetch'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { setUserContext } from './sentry'
 
 export interface WorkspaceInfo {
   name: string
@@ -138,6 +139,7 @@ export async function loadServerConfig(): Promise<ServerConfig | null> {
   const config = JSON.parse(stored) as ServerConfig
   baseUrl = `http://${config.host}:${config.port}`
   client = createClient()
+  setUserContext(baseUrl)
   return config
 }
 
@@ -146,6 +148,7 @@ export async function saveServerConfig(host: string, port: number = DEFAULT_PORT
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(config))
   baseUrl = `http://${host}:${port}`
   client = createClient()
+  setUserContext(baseUrl)
 }
 
 export function getDefaultPort(): number {

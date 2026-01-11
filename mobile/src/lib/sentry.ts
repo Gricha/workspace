@@ -1,0 +1,29 @@
+import * as Sentry from '@sentry/react-native';
+
+export function initSentry() {
+  const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+
+  if (!dsn) {
+    console.log('Sentry DSN not configured, skipping initialization');
+    return;
+  }
+
+  Sentry.init({
+    dsn,
+    enableInExpoDevelopment: false,
+    debug: __DEV__,
+  });
+}
+
+export function setUserContext(serverUrl: string) {
+  Sentry.setContext('server', {
+    url: serverUrl,
+  });
+}
+
+export function captureError(error: Error, context?: Record<string, unknown>) {
+  if (context) {
+    Sentry.setContext('errorContext', context);
+  }
+  Sentry.captureException(error);
+}

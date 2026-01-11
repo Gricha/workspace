@@ -34,7 +34,8 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-build-properties"
+      "expo-build-properties",
+      ["@sentry/react-native/expo", {"organization": "gricha", "project": "perry-mobile"}]
     ]
   }
 }
