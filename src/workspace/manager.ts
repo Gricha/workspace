@@ -180,6 +180,43 @@ export class WorkspaceManager {
     });
   }
 
+  private async syncEnvironmentFile(containerName: string): Promise<void> {
+    const env: Record<string, string> = {
+      ...this.config.credentials.env,
+    };
+
+    if (this.config.agents?.github?.token) {
+      env.GITHUB_TOKEN = this.config.agents.github.token;
+    }
+    if (this.config.agents?.claude_code?.oauth_token) {
+      env.CLAUDE_CODE_OAUTH_TOKEN = this.config.agents.claude_code.oauth_token;
+    }
+
+    if (Object.keys(env).length === 0) {
+      return;
+    }
+
+    const lines = Object.entries(env)
+      .map(([key, value]) => {
+        const escaped =
+          value.includes(' ') || value.includes('"') || value.includes("'")
+            ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+            : value;
+        return `${key}=${escaped}`;
+      })
+      .sort();
+
+    const content = lines.join('\n') + '\n';
+    const tempFile = path.join(os.tmpdir(), `ws-env-${Date.now()}`);
+
+    try {
+      await fs.writeFile(tempFile, content);
+      await docker.copyToContainer(containerName, tempFile, '/etc/environment');
+    } finally {
+      await fs.unlink(tempFile).catch(() => {});
+    }
+  }
+
   private async setupSSHKeys(containerName: string, workspaceName: string): Promise<void> {
     if (!this.config.ssh) {
       return;
@@ -257,6 +294,7 @@ export class WorkspaceManager {
   ): Promise<void> {
     await this.copyGitConfig(containerName);
     await this.copyCredentialFiles(containerName);
+    await this.syncEnvironmentFile(containerName);
     await syncAllAgents(containerName, this.config);
     await this.copyPerryWorker(containerName);
     await this.startWorkerServer(containerName);
