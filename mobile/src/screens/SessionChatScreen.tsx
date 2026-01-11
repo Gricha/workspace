@@ -411,7 +411,7 @@ export function SessionChatScreen({ route, navigation }: any) {
   const fetchAgentType = agentType === 'opencode' ? 'opencode' : 'claude-code'
 
   const { data: modelsData } = useQuery({
-    queryKey: ['models', fetchAgentType],
+    queryKey: ['models', fetchAgentType, workspaceName],
     queryFn: () => api.listModels(fetchAgentType, workspaceName),
   })
 
@@ -427,14 +427,46 @@ export function SessionChatScreen({ route, navigation }: any) {
   }, [modelsData, fetchAgentType])
 
   useEffect(() => {
-    if (availableModels.length > 0 && !modelInitialized.current) {
-      modelInitialized.current = true
-      const configModel = fetchAgentType === 'opencode'
-        ? agentsConfig?.opencode?.model
-        : agentsConfig?.claude_code?.model
-      setSelectedModel(configModel || availableModels[0].id)
+    modelInitialized.current = false
+  }, [fetchAgentType, workspaceName])
+
+  useEffect(() => {
+    if (availableModels.length === 0) return
+
+    const current = selectedModelRef.current
+    const isCurrentValid = current ? availableModels.some((m) => m.id === current) : false
+    if (modelInitialized.current && isCurrentValid) return
+
+    modelInitialized.current = true
+
+    const pickDefault = (configModel?: string) => {
+      if (configModel && availableModels.some((m) => m.id === configModel)) {
+        return configModel
+      }
+
+      if (fetchAgentType === 'opencode') {
+        const preferred = [
+          'opencode/claude-opus-4-5',
+          'opencode/claude-sonnet-4-5',
+          'opencode/claude-opus-4-1',
+          'opencode/claude-sonnet-4',
+        ]
+        const match = preferred.find((id) => availableModels.some((m) => m.id === id))
+        return match || availableModels[0].id
+      }
+
+      if (availableModels.some((m) => m.id === 'sonnet')) {
+        return 'sonnet'
+      }
+
+      return availableModels[0].id
     }
-  }, [availableModels, agentsConfig, fetchAgentType])
+
+    const configModel = fetchAgentType === 'opencode'
+      ? agentsConfig?.opencode?.model
+      : agentsConfig?.claude_code?.model
+    setSelectedModel(pickDefault(configModel))
+  }, [availableModels, agentsConfig, fetchAgentType, workspaceName])
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', () => {
