@@ -10,8 +10,10 @@ type ErrorCallback = (error: Error) => void;
 interface OpenCodeServerEvent {
   type: string;
   properties: {
+    sessionID?: string;
     part?: {
       id: string;
+      sessionID?: string;
       messageID?: string;
       type: string;
       tool?: string;
@@ -27,7 +29,7 @@ interface OpenCodeServerEvent {
 }
 
 const MESSAGE_TIMEOUT_MS = 30000;
-const SSE_TIMEOUT_MS = 120000;
+const SSE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes for long-running operations
 
 const serverPorts = new Map<string, number>();
 const serverStarting = new Map<string, Promise<number>>();
@@ -48,12 +50,20 @@ async function findExistingServer(containerName: string): Promise<number | null>
   try {
     const result = await execInContainer(
       containerName,
-      ['sh', '-c', 'pgrep -a -f "opencode serve" | grep -oP "\\--port \\K[0-9]+" | head -1'],
+      ['sh', '-c', 'pgrep -a -f "opencode serve" | grep -oP "\\\\--port \\\\K[0-9]+"'],
       { user: 'workspace' }
     );
-    const port = parseInt(result.stdout.trim(), 10);
-    if (port && (await isServerRunning(containerName, port))) {
-      return port;
+    const ports = result.stdout
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((p) => parseInt(p, 10))
+      .filter((p) => !isNaN(p));
+
+    for (const port of ports) {
+      if (await isServerRunning(containerName, port)) {
+        return port;
+      }
     }
   } catch {
     // No existing server
@@ -65,7 +75,17 @@ async function isServerRunning(containerName: string, port: number): Promise<boo
   try {
     const result = await execInContainer(
       containerName,
-      ['curl', '-s', '-o', '/dev/null', '-w', '%{http_code}', `http://localhost:${port}/session`],
+      [
+        'curl',
+        '-s',
+        '-o',
+        '/dev/null',
+        '-w',
+        '%{http_code}',
+        '--max-time',
+        '3',
+        `http://localhost:${port}/session`,
+      ],
       { user: 'workspace' }
     );
     return result.stdout.trim() === '200';
@@ -268,6 +288,16 @@ export class OpenCodeAdapter implements AgentAdapter {
     const baseUrl = `http://localhost:${this.port}`;
 
     try {
+      if (this.agentSessionId) {
+        const exists = await this.sessionExists(baseUrl, this.agentSessionId);
+        if (!exists) {
+          console.log(
+            `[opencode] Session ${this.agentSessionId} not found on server, creating new`
+          );
+          this.agentSessionId = undefined;
+        }
+      }
+
       if (!this.agentSessionId) {
         this.agentSessionId = await this.createSession(baseUrl);
         this.emit({ type: 'system', content: `Session: ${this.agentSessionId.slice(0, 8)}...` });
@@ -287,8 +317,38 @@ export class OpenCodeAdapter implements AgentAdapter {
       this.currentMessageId = undefined;
       this.setStatus('error');
       this.emitError(err as Error);
-      this.emit({ type: 'error', content: (err as Error).message });
       throw err;
+    }
+  }
+
+  private async sessionExists(baseUrl: string, sessionId: string): Promise<boolean> {
+    try {
+      if (this.isHost) {
+        const response = await fetch(`${baseUrl}/session/${sessionId}`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(5000),
+        });
+        return response.ok;
+      }
+
+      const result = await execInContainer(
+        this.containerName!,
+        [
+          'curl',
+          '-s',
+          '-o',
+          '/dev/null',
+          '-w',
+          '%{http_code}',
+          '--max-time',
+          '5',
+          `${baseUrl}/session/${sessionId}`,
+        ],
+        { user: 'workspace' }
+      );
+      return result.stdout.trim() === '200';
+    } catch {
+      return false;
     }
   }
 
@@ -349,14 +409,14 @@ export class OpenCodeAdapter implements AgentAdapter {
     const payload = { parts: [{ type: 'text', text: message }] };
 
     if (this.isHost) {
-      const response = await fetch(`${baseUrl}/session/${this.agentSessionId}/message`, {
+      const response = await fetch(`${baseUrl}/session/${this.agentSessionId}/prompt_async`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(MESSAGE_TIMEOUT_MS),
       });
 
-      if (!response.ok) {
+      if (!response.ok && response.status !== 204) {
         throw new Error(`Failed to send message: ${response.statusText}`);
       }
     } else {
@@ -365,12 +425,15 @@ export class OpenCodeAdapter implements AgentAdapter {
         [
           'curl',
           '-s',
-          '-f',
+          '-w',
+          '%{http_code}',
+          '-o',
+          '/dev/null',
           '--max-time',
           String(MESSAGE_TIMEOUT_MS / 1000),
           '-X',
           'POST',
-          `${baseUrl}/session/${this.agentSessionId}/message`,
+          `${baseUrl}/session/${this.agentSessionId}/prompt_async`,
           '-H',
           'Content-Type: application/json',
           '-d',
@@ -379,8 +442,9 @@ export class OpenCodeAdapter implements AgentAdapter {
         { user: 'workspace' }
       );
 
-      if (result.exitCode !== 0) {
-        throw new Error(`Failed to send message: ${result.stderr || 'Connection failed'}`);
+      const httpCode = result.stdout.trim();
+      if (result.exitCode !== 0 || (httpCode !== '204' && httpCode !== '200')) {
+        throw new Error(`Failed to send message: ${result.stderr || `HTTP ${httpCode}`}`);
       }
     }
 
@@ -454,6 +518,10 @@ export class OpenCodeAdapter implements AgentAdapter {
                 eventCount++;
 
                 if (event.type === 'session.idle') {
+                  const idleSessionId = event.properties?.sessionID;
+                  if (!idleSessionId || idleSessionId !== this.agentSessionId) {
+                    continue;
+                  }
                   console.log(`[opencode] SSE received session.idle after ${eventCount} events`);
                   receivedIdle = true;
                   clearTimeout(timeout);
@@ -464,6 +532,9 @@ export class OpenCodeAdapter implements AgentAdapter {
 
                 if (event.type === 'message.part.updated' && event.properties.part) {
                   const part = event.properties.part;
+                  if (!part.sessionID || part.sessionID !== this.agentSessionId) {
+                    continue;
+                  }
 
                   if (part.messageID) {
                     this.currentMessageId = part.messageID;
