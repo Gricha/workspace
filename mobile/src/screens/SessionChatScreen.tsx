@@ -18,7 +18,7 @@ import {
 import Markdown from 'react-native-markdown-display'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
-import { api, AgentType, getChatUrl, HOST_WORKSPACE_NAME, ModelInfo } from '../lib/api'
+import { api, AgentType, createChatWebSocket, HOST_WORKSPACE_NAME, ModelInfo } from '../lib/api'
 import { useTheme } from '../contexts/ThemeContext'
 import { ThemeColors } from '../lib/themes'
 
@@ -388,8 +388,10 @@ export function SessionChatScreen({ route, navigation }: any) {
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [connected, setConnected] = useState(false)
-  const [liveSessionId, setLiveSessionId] = useState<string | null>(null)
+  const [_liveSessionId, setLiveSessionId] = useState<string | null>(null)
   const [agentSessionId, setAgentSessionId] = useState<string | null>(initialAgentSessionId || null)
+  const liveSessionIdRef = useRef<string | null>(null)
+  const agentSessionIdRef = useRef<string | null>(initialAgentSessionId || null)
   const [streamingParts, setStreamingParts] = useState<MessagePart[]>([])
   const [keyboardVisible, setKeyboardVisible] = useState(false)
   const [hasMoreMessages, setHasMoreMessages] = useState(false)
@@ -581,8 +583,7 @@ export function SessionChatScreen({ route, navigation }: any) {
   }, [hasMoreMessages, isLoadingMore, initialSessionId, workspaceName, agentType, messageOffset, parseMessages, projectPath])
 
   const connect = useCallback(() => {
-    const url = getChatUrl(workspaceName, agentType as AgentType)
-    const ws = new WebSocket(url)
+    const ws = createChatWebSocket(workspaceName, agentType as AgentType)
     wsRef.current = ws
 
     ws.onopen = () => {
@@ -591,7 +592,10 @@ export function SessionChatScreen({ route, navigation }: any) {
         type: 'connect',
         agentType: agentType === 'opencode' ? 'opencode' : 'claude',
       }
-      const sessionIdForLookup = liveSessionId || initialSessionId
+      // Send sessionId for session lookup - prefer liveSessionId (internal ID), fall back to agentSessionId
+      // Backend's findSession() can look up by either ID type
+      // Use refs to avoid re-triggering connection when session IDs are set
+      const sessionIdForLookup = liveSessionIdRef.current || agentSessionIdRef.current
       if (sessionIdForLookup) {
         connectMsg.sessionId = sessionIdForLookup
       }
@@ -614,10 +618,12 @@ export function SessionChatScreen({ route, navigation }: any) {
 
         if (msg.type === 'session_started' || msg.type === 'session_joined') {
           if (msg.sessionId) {
+            liveSessionIdRef.current = msg.sessionId
             setLiveSessionId(msg.sessionId)
             api.recordSessionAccess(workspaceName, msg.sessionId, agentType).catch(() => {})
           }
           if (msg.agentSessionId) {
+            agentSessionIdRef.current = msg.agentSessionId
             setAgentSessionId(msg.agentSessionId)
           }
           if (msg.type === 'session_joined' && msg.status === 'running') {
@@ -776,7 +782,7 @@ export function SessionChatScreen({ route, navigation }: any) {
     }
 
     return () => ws.close()
-  }, [workspaceName, agentType, liveSessionId, agentSessionId, projectPath])
+  }, [workspaceName, agentType, projectPath, selectedModel])
 
   useEffect(() => {
     const cleanup = connect()
@@ -843,9 +849,13 @@ export function SessionChatScreen({ route, navigation }: any) {
           const newModel = availableModels[buttonIndex].id
           if (newModel !== selectedModel) {
             setSelectedModel(newModel)
-            if (agentType !== 'opencode' && agentSessionId) {
+            if (agentType !== 'opencode' && agentSessionIdRef.current) {
+              agentSessionIdRef.current = null
+              liveSessionIdRef.current = null
               setAgentSessionId(null)
               setLiveSessionId(null)
+              // Close existing WebSocket so it reconnects with new model
+              wsRef.current?.close()
               setMessages(prev => [...prev, {
                 role: 'system',
                 content: `Switching to model: ${availableModels[buttonIndex].name}`,
