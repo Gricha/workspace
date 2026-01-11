@@ -12,9 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import { useQuery } from '@tanstack/react-query'
-import { api, getTerminalUrl, HOST_WORKSPACE_NAME } from '../lib/api'
+import { api, getTerminalHtml, getTerminalUrl, HOST_WORKSPACE_NAME } from '../lib/api'
 import { ExtraKeysBar } from '../components/ExtraKeysBar'
-import { TERMINAL_HTML } from '../lib/terminal-html'
 import { useTheme } from '../contexts/ThemeContext'
 
 export function TerminalScreen({ route, navigation }: any) {
@@ -162,7 +161,7 @@ export function TerminalScreen({ route, navigation }: any) {
         )}
         <WebView
           ref={webViewRef}
-          source={{ html: TERMINAL_HTML }}
+          source={{ html: getTerminalHtml() }}
           style={styles.webview}
           onMessage={handleMessage}
           injectedJavaScript={injectedJS}
