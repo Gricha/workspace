@@ -190,6 +190,15 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Check if PR is from fork
+        id: fork-check
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            echo "is_fork=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_fork=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build workspace image (with cache)
         uses: docker/build-push-action@v6
         with:
@@ -197,7 +206,7 @@ jobs:
           load: true
           tags: perry:latest
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-test
-          cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.IMAGE_NAME) || '' }}
+          cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && steps.fork-check.outputs.is_fork == 'false' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.IMAGE_NAME) || '' }}
 
       - name: Run tests (shard ${{ matrix.shard }}/3)
         run: |
@@ -268,6 +277,15 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Check if PR is from fork
+        id: fork-check
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            echo "is_fork=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_fork=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build workspace image (with cache)
         uses: docker/build-push-action@v6
         with:
@@ -275,7 +293,7 @@ jobs:
           load: true
           tags: perry:latest
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-test
-          cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.IMAGE_NAME) || '' }}
+          cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && steps.fork-check.outputs.is_fork == 'false' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.IMAGE_NAME) || '' }}
 
       - name: Start agent
         run: |
