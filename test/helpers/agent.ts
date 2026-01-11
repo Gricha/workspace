@@ -43,6 +43,11 @@ interface ApiClient {
   stopWorkspace(name: string): Promise<ApiResponse<WorkspaceInfo | ApiError>>;
   updateCredentials(credentials: WorkspaceCredentials): Promise<WorkspaceCredentials>;
   syncWorkspace(name: string): Promise<void>;
+  execCommand(
+    name: string,
+    command: string | string[],
+    timeout?: number
+  ): Promise<{ stdout: string; stderr: string; exitCode: number }>;
 }
 
 export interface TestAgent {
@@ -221,6 +226,14 @@ export function createApiClient(baseUrl: string): ApiClient {
 
     async syncWorkspace(name: string): Promise<void> {
       await client.workspaces.sync({ name });
+    },
+
+    async execCommand(
+      name: string,
+      command: string | string[],
+      timeout?: number
+    ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+      return client.workspaces.exec({ name, command, timeout });
     },
   };
 }

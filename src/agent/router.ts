@@ -359,7 +359,7 @@ export function createRouter(ctx: RouterContext) {
         : ['/bin/sh', '-c', input.command];
 
       try {
-        const execPromise = execInContainer(containerName, commandArray);
+        const execPromise = execInContainer(containerName, commandArray, { user: 'workspace' });
 
         let result: ExecResult;
         if (input.timeout) {
