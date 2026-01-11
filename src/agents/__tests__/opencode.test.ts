@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { opencodeSync } from '../sync/opencode';
+import { DEFAULT_OPENCODE_MODEL } from '../../shared/constants';
 import type { SyncContext } from '../types';
 
 function createMockContext(overrides: Partial<SyncContext> = {}): SyncContext {
@@ -75,7 +76,52 @@ describe('opencodeSync', () => {
 
       const parsed = JSON.parse(configs[0].content);
       expect(parsed.provider.opencode.options.apiKey).toBe('test-token-123');
-      expect(parsed.model).toBe('opencode/claude-sonnet-4');
+      expect(parsed.model).toBe(DEFAULT_OPENCODE_MODEL);
+    });
+
+    it('uses host model when configured model missing', async () => {
+      const hostConfig = { model: 'opencode/claude-opus-4-5' };
+
+      const context = createMockContext({
+        agentConfig: {
+          port: 7777,
+          credentials: { env: {}, files: {} },
+          scripts: {},
+          agents: { opencode: { zen_token: 'test-token' } },
+        },
+        readHostFile: async (path) =>
+          path === '~/.config/opencode/opencode.json' ? JSON.stringify(hostConfig) : null,
+      });
+
+      const configs = await opencodeSync.getGeneratedConfigs(context);
+      const parsed = JSON.parse(configs[0].content);
+
+      expect(parsed.model).toBe('opencode/claude-opus-4-5');
+    });
+
+    it('prefers configured model over host model', async () => {
+      const hostConfig = { model: 'opencode/claude-sonnet-4' };
+
+      const context = createMockContext({
+        agentConfig: {
+          port: 7777,
+          credentials: { env: {}, files: {} },
+          scripts: {},
+          agents: {
+            opencode: {
+              zen_token: 'test-token',
+              model: 'opencode/claude-opus-4-5',
+            },
+          },
+        },
+        readHostFile: async (path) =>
+          path === '~/.config/opencode/opencode.json' ? JSON.stringify(hostConfig) : null,
+      });
+
+      const configs = await opencodeSync.getGeneratedConfigs(context);
+      const parsed = JSON.parse(configs[0].content);
+
+      expect(parsed.model).toBe('opencode/claude-opus-4-5');
     });
 
     it('does not include mcp when host has none', async () => {

@@ -5,6 +5,7 @@ import type {
   SyncDirectory,
   GeneratedConfig,
 } from '../types';
+import { DEFAULT_OPENCODE_MODEL } from '../../shared/constants';
 
 export const opencodeSync: AgentSyncProvider = {
   getRequiredDirs(): string[] {
@@ -28,6 +29,7 @@ export const opencodeSync: AgentSyncProvider = {
     const hostConfigContent = await context.readHostFile('~/.config/opencode/opencode.json');
 
     let mcpConfig: Record<string, unknown> = {};
+    let hostModel: string | undefined;
 
     if (hostConfigContent) {
       try {
@@ -35,10 +37,16 @@ export const opencodeSync: AgentSyncProvider = {
         if (parsed.mcp && typeof parsed.mcp === 'object') {
           mcpConfig = parsed.mcp;
         }
+        if (typeof parsed.model === 'string' && parsed.model.trim().length > 0) {
+          hostModel = parsed.model.trim();
+        }
       } catch {
         // Invalid JSON, ignore
       }
     }
+
+    const configuredModel = context.agentConfig.agents?.opencode?.model?.trim();
+    const model = configuredModel || hostModel || DEFAULT_OPENCODE_MODEL;
 
     const config: Record<string, unknown> = {
       provider: {
@@ -48,7 +56,7 @@ export const opencodeSync: AgentSyncProvider = {
           },
         },
       },
-      model: 'opencode/claude-sonnet-4',
+      model,
     };
 
     if (Object.keys(mcpConfig).length > 0) {

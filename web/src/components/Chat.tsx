@@ -348,26 +348,66 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
   }, [initialSessionId, workspaceName, agentType, parseMessages])
 
   useEffect(() => {
+    let active = true
     const fetchAgentType = agentType === 'opencode' ? 'opencode' : 'claude-code'
+
     api.listModels(fetchAgentType, workspaceName)
-      .then(({ models }) => {
+      .then(async ({ models }) => {
+        if (!active) return
+
         setAvailableModels(models)
-        if (models.length > 0 && !selectedModel) {
-          api.getAgents().then((agents) => {
-            const configModel = fetchAgentType === 'opencode'
-              ? agents.opencode?.model
-              : agents.claude_code?.model
-            const defaultModel = configModel || models[0].id
-            setSelectedModel(defaultModel)
-          }).catch(() => {
-            setSelectedModel(models[0].id)
-          })
+
+        if (models.length === 0) return
+
+        const current = selectedModelRef.current
+        const isCurrentValid = current ? models.some((m) => m.id === current) : false
+        if (isCurrentValid) return
+
+        const pickDefault = (configModel?: string) => {
+          if (configModel && models.some((m) => m.id === configModel)) {
+            return configModel
+          }
+
+          if (fetchAgentType === 'opencode') {
+            const preferred = [
+              'opencode/claude-opus-4-5',
+              'opencode/claude-sonnet-4-5',
+              'opencode/claude-opus-4-1',
+              'opencode/claude-sonnet-4',
+            ]
+            const match = preferred.find((id) => models.some((m) => m.id === id))
+            return match || models[0].id
+          }
+
+          if (models.some((m) => m.id === 'sonnet')) {
+            return 'sonnet'
+          }
+
+          return models[0].id
+        }
+
+        try {
+          const agents = await api.getAgents()
+          if (!active) return
+
+          const configModel = fetchAgentType === 'opencode'
+            ? agents.opencode?.model
+            : agents.claude_code?.model
+          setSelectedModel(pickDefault(configModel))
+        } catch {
+          if (!active) return
+          setSelectedModel(pickDefault())
         }
       })
       .catch((err) => {
+        if (!active) return
         console.error('Failed to load models:', err)
       })
-  }, [agentType, workspaceName, selectedModel])
+
+    return () => {
+      active = false
+    }
+  }, [agentType, workspaceName])
 
   const streamingPartsRef = useRef<ChatMessagePart[]>([])
   const [streamingParts, setStreamingParts] = useState<ChatMessagePart[]>([])
