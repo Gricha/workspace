@@ -59,6 +59,28 @@ jobs:
           fi
           xcodebuild -version
 
+      - name: Install ccache
+        run: brew install ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/ccache
+          key: ${{ runner.os }}-ccache-xcode${{ steps.xcode.outputs.version }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-xcode${{ steps.xcode.outputs.version }}-
+
+      - name: Configure ccache
+        run: |
+          ccache --set-config=max_size=2G
+          ccache --set-config=compression=true
+          ccache --set-config=compiler_check=content
+          ccache --set-config=sloppiness=clang_index_store,file_stat_matches,include_file_ctime,include_file_mtime,ivfsoverlay,pch_defines,modules,system_headers,time_macros
+          ccache --set-config=depend_mode=true
+          ccache --set-config=file_clone=true
+          ccache --set-config=inode_cache=true
+          ccache --zero-stats
+
       - name: Generate prebuild fingerprint
         id: fingerprint
         working-directory: mobile
@@ -96,6 +118,8 @@ jobs:
 
       - name: Install CocoaPods dependencies
         working-directory: mobile/ios
+        env:
+          USE_CCACHE: '1'
         run: |
           if [ ! -d "Pods" ] || [ "Podfile.lock" -nt "Pods/Manifest.lock" ]; then
             pod install
@@ -119,19 +143,11 @@ jobs:
           xcrun simctl boot "$DEVICE_ID" || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
 
-      - name: Cache Xcode derived data
-        uses: actions/cache@v4
-        with:
-          path: mobile/ios/build
-          key: ${{ runner.os }}-xcode-build-xcode${{ steps.xcode.outputs.version }}-${{ steps.fingerprint.outputs.hash }}-${{ hashFiles('mobile/src/**/*.ts', 'mobile/src/**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-xcode-build-xcode${{ steps.xcode.outputs.version }}-${{ steps.fingerprint.outputs.hash }}-
-            ${{ runner.os }}-xcode-build-xcode${{ steps.xcode.outputs.version }}-
-
       - name: Build iOS app for simulator
         working-directory: mobile/ios
         env:
           SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+          USE_CCACHE: '1'
         run: |
           xcodebuild -workspace Perry.xcworkspace \
             -scheme Perry \
@@ -140,6 +156,10 @@ jobs:
             -destination "id=${{ env.DEVICE_ID }}" \
             -derivedDataPath build \
             build
+
+      - name: Show ccache stats
+        if: always()
+        run: ccache --show-stats
 
       - name: Install app on simulator
         run: |
