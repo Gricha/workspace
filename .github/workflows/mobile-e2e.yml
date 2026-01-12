@@ -59,82 +59,46 @@ jobs:
           fi
           xcodebuild -version
 
-      - name: Install ccache
-        run: |
-          brew install ccache
-          # Add ccache to PATH for all subsequent steps
-          echo "/opt/homebrew/bin" >> $GITHUB_PATH
-          # Verify ccache is accessible
-          which ccache
-          ccache --version
-
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/ccache
-          key: ${{ runner.os }}-ccache-xcode${{ steps.xcode.outputs.version }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-xcode${{ steps.xcode.outputs.version }}-
-
-      - name: Configure ccache
-        run: |
-          ccache --set-config=max_size=2G
-          ccache --set-config=compression=true
-          ccache --set-config=compiler_check=content
-          ccache --set-config=sloppiness=clang_index_store,file_stat_matches,include_file_ctime,include_file_mtime,ivfsoverlay,pch_defines,modules,system_headers,time_macros
-          ccache --set-config=depend_mode=true
-          ccache --set-config=file_clone=true
-          ccache --set-config=inode_cache=true
-          ccache --zero-stats
-
-      - name: Generate prebuild fingerprint
+      - name: Generate native fingerprint
         id: fingerprint
         working-directory: mobile
         run: |
-          # Create a fingerprint based on files that affect native build
+          # Fingerprint based on files that affect native build
           FINGERPRINT=$(cat \
             app.json \
             package.json \
             bun.lock \
             2>/dev/null | shasum -a 256 | cut -d' ' -f1)
           echo "hash=$FINGERPRINT" >> $GITHUB_OUTPUT
-          echo "Prebuild fingerprint: $FINGERPRINT"
+          echo "Native fingerprint: $FINGERPRINT"
 
-      - name: Cache iOS prebuild
-        id: prebuild-cache
+      - name: Cache iOS prebuild + Pods
+        id: ios-cache
         uses: actions/cache@v4
         with:
           path: |
             mobile/ios
             !mobile/ios/build
-          key: ${{ runner.os }}-ios-prebuild-ccache-xcode${{ steps.xcode.outputs.version }}-${{ steps.fingerprint.outputs.hash }}
+          key: ${{ runner.os }}-ios-native-xcode${{ steps.xcode.outputs.version }}-${{ steps.fingerprint.outputs.hash }}
 
       - name: Generate iOS native code
-        if: steps.prebuild-cache.outputs.cache-hit != 'true'
+        if: steps.ios-cache.outputs.cache-hit != 'true'
         working-directory: mobile
-        env:
-          USE_CCACHE: '1'
         run: bunx expo prebuild --platform ios --clean
 
-      - name: Cache CocoaPods
+      - name: Install CocoaPods
+        if: steps.ios-cache.outputs.cache-hit != 'true'
+        working-directory: mobile/ios
+        run: pod install
+
+      - name: Cache Pods Derived Data
+        id: pods-derived-cache
         uses: actions/cache@v4
         with:
-          path: mobile/ios/Pods
-          key: ${{ runner.os }}-pods-ccache-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('mobile/ios/Podfile.lock') }}
+          path: mobile/ios/.pods-derived-data
+          key: ${{ runner.os }}-pods-derived-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('mobile/ios/Podfile.lock') }}
           restore-keys: |
-            ${{ runner.os }}-pods-ccache-xcode${{ steps.xcode.outputs.version }}-
-
-      - name: Install CocoaPods dependencies
-        working-directory: mobile/ios
-        env:
-          USE_CCACHE: '1'
-        run: |
-          # Verify ccache is in PATH for pod install
-          echo "ccache location: $(which ccache)"
-          # Always run pod install to ensure ccache is configured in xcconfig
-          pod install
-          # Verify ccache was configured
-          grep -r "ccache" Pods/Target\ Support\ Files/Pods-Perry/*.xcconfig || echo "Warning: ccache not found in xcconfig"
+            ${{ runner.os }}-pods-derived-xcode${{ steps.xcode.outputs.version }}-
 
       - name: List available simulators
         run: xcrun simctl list devices available
@@ -152,65 +116,38 @@ jobs:
           xcrun simctl boot "$DEVICE_ID" || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
 
-      - name: Cache Derived Data
-        uses: actions/cache@v4
-        with:
-          path: mobile/ios/build
-          key: ${{ runner.os }}-derived-data-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('mobile/ios/Podfile.lock', 'mobile/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-derived-data-xcode${{ steps.xcode.outputs.version }}-
-
-      - name: Create ccache xcconfig
-        working-directory: mobile/ios
-        run: |
-          # Create xcconfig that forces ccache usage for all targets
-          CCACHE_PATH=$(which ccache)
-          RN_PATH="$(pwd)/../node_modules/react-native"
-
-          # Verify wrapper scripts exist
-          ls -la "$RN_PATH/scripts/xcode/"
-
-          cat > ccache.xcconfig << EOF
-          CC = $RN_PATH/scripts/xcode/ccache-clang.sh
-          CXX = $RN_PATH/scripts/xcode/ccache-clang++.sh
-          LD = $RN_PATH/scripts/xcode/ccache-clang.sh
-          LDPLUSPLUS = $RN_PATH/scripts/xcode/ccache-clang++.sh
-          CCACHE_BINARY = $CCACHE_PATH
-          EOF
-          echo "Created ccache.xcconfig:"
-          cat ccache.xcconfig
-
       - name: Build iOS app for simulator
         working-directory: mobile/ios
         env:
           SENTRY_DISABLE_AUTO_UPLOAD: 'true'
-          USE_CCACHE: '1'
-          CCACHE_BINARY: /opt/homebrew/bin/ccache
         run: |
+          # Use separate derived data for Pods (cached) and app (not cached)
+          # This allows incremental Pod builds while app always rebuilds
+          echo "Pods derived data cache hit: ${{ steps.pods-derived-cache.outputs.cache-hit }}"
+
           xcodebuild -workspace Perry.xcworkspace \
             -scheme Perry \
             -configuration Release \
             -sdk iphonesimulator \
             -destination "id=${{ env.DEVICE_ID }}" \
-            -derivedDataPath build \
-            -xcconfig ccache.xcconfig \
-            build
+            -derivedDataPath .pods-derived-data \
+            build \
+            | tee build.log | xcpretty || (cat build.log && exit 1)
 
-      - name: Show ccache stats
+      - name: Show build summary
         if: always()
+        working-directory: mobile/ios
         run: |
-          echo "=== ccache statistics ==="
-          ccache --show-stats --verbose
+          echo "=== Derived data size ==="
+          du -sh .pods-derived-data 2>/dev/null || echo "No derived data"
           echo ""
-          echo "=== ccache config ==="
-          ccache --show-config
-          echo ""
-          echo "=== Cache directory contents ==="
-          ls -la ~/Library/Caches/ccache/ 2>/dev/null || echo "No ccache directory"
+          echo "=== Build products ==="
+          find .pods-derived-data -name "*.app" -type d 2>/dev/null || echo "No .app found"
 
       - name: Install app on simulator
         run: |
-          APP_PATH=$(find mobile/ios/build -name "*.app" -type d | head -1)
+          APP_PATH=$(find mobile/ios/.pods-derived-data -name "*.app" -type d | head -1)
+          echo "Installing app from: $APP_PATH"
           xcrun simctl install "${{ env.DEVICE_ID }}" "$APP_PATH"
 
       - name: Install Maestro
@@ -229,7 +166,6 @@ jobs:
         working-directory: mobile
         run: |
           export PATH="$HOME/.maestro/bin:$PATH"
-          # Exclude chat tests (require backend) - run those locally
           maestro test .maestro/flows/ --exclude-tags=chat --format junit --output maestro-report.xml
         env:
           MAESTRO_DRIVER_STARTUP_TIMEOUT: 120000
