@@ -10,7 +10,6 @@ on:
     paths:
       - 'mobile/**'
   workflow_dispatch:
-  # Weekly run to catch regressions
   schedule:
     - cron: '0 9 * * 1'  # Monday 9am UTC
 
@@ -42,14 +41,17 @@ jobs:
         run: bun install
 
       - name: Select Xcode version
+        id: xcode
         run: |
-          # Try Xcode 16.2 first, fall back to 16.1 if not available
           if [ -d "/Applications/Xcode_16.2.app" ]; then
             sudo xcode-select -s /Applications/Xcode_16.2.app
+            echo "version=16.2" >> $GITHUB_OUTPUT
           elif [ -d "/Applications/Xcode_16.1.app" ]; then
             sudo xcode-select -s /Applications/Xcode_16.1.app
+            echo "version=16.1" >> $GITHUB_OUTPUT
           elif [ -d "/Applications/Xcode_16.app" ]; then
             sudo xcode-select -s /Applications/Xcode_16.app
+            echo "version=16.0" >> $GITHUB_OUTPUT
           else
             echo "Available Xcode versions:"
             ls -d /Applications/Xcode*.app 2>/dev/null || echo "No Xcode found"
@@ -57,7 +59,30 @@ jobs:
           fi
           xcodebuild -version
 
+      - name: Generate prebuild fingerprint
+        id: fingerprint
+        working-directory: mobile
+        run: |
+          # Create a fingerprint based on files that affect native build
+          FINGERPRINT=$(cat \
+            app.json \
+            package.json \
+            bun.lock \
+            2>/dev/null | shasum -a 256 | cut -d' ' -f1)
+          echo "hash=$FINGERPRINT" >> $GITHUB_OUTPUT
+          echo "Prebuild fingerprint: $FINGERPRINT"
+
+      - name: Cache iOS prebuild
+        id: prebuild-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            mobile/ios
+            !mobile/ios/build
+          key: ${{ runner.os }}-ios-prebuild-xcode${{ steps.xcode.outputs.version }}-${{ steps.fingerprint.outputs.hash }}
+
       - name: Generate iOS native code
+        if: steps.prebuild-cache.outputs.cache-hit != 'true'
         working-directory: mobile
         run: bunx expo prebuild --platform ios --clean
 
@@ -65,13 +90,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: mobile/ios/Pods
-          key: ${{ runner.os }}-pods-${{ hashFiles('mobile/ios/Podfile.lock') }}
+          key: ${{ runner.os }}-pods-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('mobile/ios/Podfile.lock') }}
           restore-keys: |
-            ${{ runner.os }}-pods-
+            ${{ runner.os }}-pods-xcode${{ steps.xcode.outputs.version }}-
 
       - name: Install CocoaPods dependencies
         working-directory: mobile/ios
-        run: pod install
+        run: |
+          if [ ! -d "Pods" ] || [ "Podfile.lock" -nt "Pods/Manifest.lock" ]; then
+            pod install
+          else
+            echo "Pods already up to date"
+          fi
 
       - name: List available simulators
         run: xcrun simctl list devices available
@@ -89,13 +119,14 @@ jobs:
           xcrun simctl boot "$DEVICE_ID" || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
 
-      - name: Cache Xcode build
+      - name: Cache Xcode derived data
         uses: actions/cache@v4
         with:
           path: mobile/ios/build
-          key: ${{ runner.os }}-xcode-${{ hashFiles('mobile/ios/Podfile.lock', 'mobile/src/**/*.ts', 'mobile/src/**/*.tsx') }}
+          key: ${{ runner.os }}-xcode-build-xcode${{ steps.xcode.outputs.version }}-${{ steps.fingerprint.outputs.hash }}-${{ hashFiles('mobile/src/**/*.ts', 'mobile/src/**/*.tsx') }}
           restore-keys: |
-            ${{ runner.os }}-xcode-
+            ${{ runner.os }}-xcode-build-xcode${{ steps.xcode.outputs.version }}-${{ steps.fingerprint.outputs.hash }}-
+            ${{ runner.os }}-xcode-build-xcode${{ steps.xcode.outputs.version }}-
 
       - name: Build iOS app for simulator
         working-directory: mobile/ios
