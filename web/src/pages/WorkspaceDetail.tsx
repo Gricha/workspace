@@ -376,6 +376,9 @@ export function WorkspaceDetail() {
         return next
       })
     } else if (mode.type === 'chat') {
+      if (mode.projectPath) {
+        setProjectPathOverride(mode.projectPath)
+      }
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev)
         if (mode.sessionId) next.set('session', mode.sessionId)
@@ -471,6 +474,15 @@ export function WorkspaceDetail() {
     return sessionList.filter((session) => matchingIds.has(session.id))
   }, [sessions, debouncedQuery, searchData])
 
+  useEffect(() => {
+    if (sessionParam && !projectPathOverride && sessions) {
+      const session = sessions.find(s => s.id === sessionParam)
+      if (session?.projectPath) {
+        setProjectPathOverride(session.projectPath)
+      }
+    }
+  }, [sessionParam, projectPathOverride, sessions])
+
   const startMutation = useMutation({
     mutationFn: () => api.startWorkspace(name!),
     onSuccess: () => {
@@ -542,12 +554,12 @@ export function WorkspaceDetail() {
   })
 
   const handleResume = (session: SessionInfo) => {
-    setProjectPathOverride(session.projectPath)
     if (session.agentType === 'claude-code' || session.agentType === 'opencode') {
       setChatMode({
         type: 'chat',
         sessionId: session.id,
         agentType: session.agentType,
+        projectPath: session.projectPath,
       })
     } else {
       const resumeId = session.agentSessionId || session.id

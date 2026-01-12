@@ -47,6 +47,9 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     if (options.model) {
       this.model = options.model;
     }
+    if (options.projectPath) {
+      this.workDir = options.projectPath;
+    }
 
     this.setStatus('idle');
   }

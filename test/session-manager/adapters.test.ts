@@ -1,5 +1,46 @@
 import { describe, it, expect } from 'vitest';
 import type { ChatMessage } from '../../src/chat/types';
+import { ClaudeCodeAdapter } from '../../src/session-manager/adapters/claude';
+
+describe('ClaudeCodeAdapter projectPath', () => {
+  it('uses default workDir when no projectPath provided', async () => {
+    const adapter = new ClaudeCodeAdapter();
+    await adapter.start({
+      workspaceName: 'test',
+      containerName: 'workspace-test',
+      isHost: false,
+    });
+
+    // Access private workDir via any - this is a unit test
+    expect((adapter as unknown as { workDir: string }).workDir).toBe('/home/workspace');
+  });
+
+  it('uses projectPath as workDir when provided', async () => {
+    const adapter = new ClaudeCodeAdapter();
+    await adapter.start({
+      workspaceName: 'test',
+      containerName: 'workspace-test',
+      isHost: false,
+      projectPath: '/home/workspace/myproject',
+    });
+
+    expect((adapter as unknown as { workDir: string }).workDir).toBe('/home/workspace/myproject');
+  });
+
+  it('uses projectPath for nested directory paths', async () => {
+    const adapter = new ClaudeCodeAdapter();
+    await adapter.start({
+      workspaceName: 'test',
+      containerName: 'workspace-test',
+      isHost: false,
+      projectPath: '/home/workspace/deep/nested/project',
+    });
+
+    expect((adapter as unknown as { workDir: string }).workDir).toBe(
+      '/home/workspace/deep/nested/project'
+    );
+  });
+});
 
 describe('Message ID type validation', () => {
   describe('ChatMessage interface', () => {
