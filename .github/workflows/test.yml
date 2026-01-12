@@ -249,8 +249,24 @@ jobs:
           bun install
           cd web && bun install
 
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(cd web && bun pm ls | grep '@playwright/test' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd web && bun x playwright install chromium --with-deps
+
+      - name: Install Playwright deps (cached)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd web && bun x playwright install-deps chromium
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
