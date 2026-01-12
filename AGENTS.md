@@ -6,11 +6,21 @@ Read `DESIGN.md` for comprehensive architecture, data models, and API specificat
 
 ## Validation
 
-**Recommended validation (full suite):**
+**Default local validation (fast):**
 
 ```bash
-bun run validate  # Complete validation suite: lint + build + test + web tests
+bun run validate  # Core: lint + format + build TS/worker + unit tests
 ```
+
+**Full validation (slow):**
+
+```bash
+bun run validate:full  # Core + web build/lint + Playwright
+```
+
+Guideline: run `bun run validate` for most iterations; run `bun run validate:full` when you touch the web UI, or when you’re changing core workspace/agent behavior and want end-to-end confidence.
+
+When adding/changing behavior, add tests and run the most relevant ones (unit/integration/e2e) instead of always running the full suite locally.
 
 ## Release
 
@@ -18,7 +28,7 @@ To cut a new release:
 
 ```bash
 # 1) Validate (optional; CI will run on tag)
-# bun run validate
+# bun run validate:full
 
 # 2) Bump version in package.json (patch/minor/major)
 # Example: 0.3.13 -> 0.3.14
@@ -36,9 +46,11 @@ git push origin v<x.y.z>
 **Incremental validation during development:**
 
 ```bash
-bun run check     # Quick: lint + format + typecheck
-bun run build     # Build CLI, worker binary, and web UI
-bun run test      # Unit/integration tests (requires Docker)
+bun run check          # Quick: lint + format + typecheck
+bun run validate       # Fast: lint + format + build TS/worker + unit tests
+bun run validate:full  # Slow: validate + web build/lint + Playwright
+bun run build          # Build CLI, worker binary, and web UI
+bun run test           # Unit/integration tests (requires Docker)
 ```
 
 **Manual verification required:**
@@ -107,7 +119,7 @@ curl -X POST "http://localhost:7391/rpc/sessions/list" \
 
 ## Requirements
 
-- Prefer `bun run validate` before marking tasks complete (CI runs on PRs/tags)
+- Prefer `bun run validate` for iteration; run the tests you add/affect, and use `bun run validate:full` when appropriate (web UI / end-to-end changes)
 - Test with real Docker containers
 - Use SSH for user interaction (not `docker exec`)
 - Follow naming: `workspace-<name>` containers, `workspace-internal-` resources  

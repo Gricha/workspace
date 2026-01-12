@@ -16,12 +16,18 @@
     "build:worker": "bun build src/index.ts --compile --outfile dist/perry-worker --target=bun",
     "build:web": "cd web && bun run build",
     "test": "vitest run",
+    "test:unit": "vitest run --config vitest.unit.config.js",
     "test:web": "playwright test",
     "lint": "oxlint --type-aware --tsconfig=tsconfig.json src/ && oxlint mobile/src/",
     "format:check": "oxfmt --check src/ test/",
     "check": "bun run lint && bun run format:check && bun x tsc --noEmit",
     "lint:web": "cd web && bun run lint",
-    "validate": "bun run check && bun run build && bun run test && bun run lint:web && bun run test:web",
+
+    "validate:core": "bun run lint && bun run format:check && bun run build:ts && bun run build:worker && bun run test:unit",
+    "validate:web": "bun run build:web && bun run lint:web && bun run test:web",
+    "validate:full": "bun run validate:core && bun run validate:web",
+    "validate": "bun run validate:core",
+
     "build:binaries": "bun run scripts/build-binaries.ts"
   },
   "engines": {
