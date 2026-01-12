@@ -389,7 +389,7 @@ export function SessionChatScreen({ route, navigation }: any) {
   const [isStreaming, setIsStreaming] = useState(false)
   const [connected, setConnected] = useState(false)
   const [_liveSessionId, setLiveSessionId] = useState<string | null>(null)
-  const [agentSessionId, setAgentSessionId] = useState<string | null>(initialAgentSessionId || null)
+  const [_agentSessionId, setAgentSessionId] = useState<string | null>(initialAgentSessionId || null)
   const liveSessionIdRef = useRef<string | null>(null)
   const agentSessionIdRef = useRef<string | null>(initialAgentSessionId || null)
   const [streamingParts, setStreamingParts] = useState<MessagePart[]>([])
@@ -405,7 +405,6 @@ export function SessionChatScreen({ route, navigation }: any) {
   const streamingPartsRef = useRef<MessagePart[]>([])
   const messageIdCounter = useRef(0)
   const hasLoadedInitial = useRef(false)
-  const modelInitialized = useRef(false)
   const isAtBottomRef = useRef(true)
   const seenMessageChunksRef = useRef<Set<string>>(new Set())
   const currentMessageIdRef = useRef<string | undefined>(undefined)
@@ -429,17 +428,11 @@ export function SessionChatScreen({ route, navigation }: any) {
   }, [modelsData, fetchAgentType])
 
   useEffect(() => {
-    modelInitialized.current = false
-  }, [fetchAgentType, workspaceName])
-
-  useEffect(() => {
     if (availableModels.length === 0) return
 
     const current = selectedModelRef.current
     const isCurrentValid = current ? availableModels.some((m) => m.id === current) : false
-    if (modelInitialized.current && isCurrentValid) return
-
-    modelInitialized.current = true
+    if (isCurrentValid) return
 
     const pickDefault = (configModel?: string) => {
       if (configModel && availableModels.some((m) => m.id === configModel)) {
@@ -835,7 +828,6 @@ export function SessionChatScreen({ route, navigation }: any) {
   const showModelPicker = () => {
     if (availableModels.length === 0) return
     if (isStreaming) return
-    if (agentType === 'opencode' && agentSessionId) return
 
     const options = [...availableModels.map(m => m.name), 'Cancel']
     ActionSheetIOS.showActionSheetWithOptions(
@@ -849,12 +841,11 @@ export function SessionChatScreen({ route, navigation }: any) {
           const newModel = availableModels[buttonIndex].id
           if (newModel !== selectedModel) {
             setSelectedModel(newModel)
-            if (agentType !== 'opencode' && agentSessionIdRef.current) {
+            if (agentSessionIdRef.current || liveSessionIdRef.current) {
               agentSessionIdRef.current = null
               liveSessionIdRef.current = null
               setAgentSessionId(null)
               setLiveSessionId(null)
-              // Close existing WebSocket so it reconnects with new model
               wsRef.current?.close()
               setMessages(prev => [...prev, {
                 role: 'system',
@@ -869,7 +860,7 @@ export function SessionChatScreen({ route, navigation }: any) {
   }
 
   const selectedModelName = availableModels.find(m => m.id === selectedModel)?.name || 'Model'
-  const canChangeModel = !isStreaming && !(agentType === 'opencode' && agentSessionId)
+  const canChangeModel = !isStreaming
 
   const agentLabels: Record<AgentType, string> = {
     'claude-code': 'Claude Code',

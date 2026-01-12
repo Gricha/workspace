@@ -100,11 +100,13 @@ function parseOpencodeModels(output: string): ModelInfo[] {
 
     const parts = trimmed.split('/');
     const id = trimmed;
-    const name = parts.length > 1 ? parts[1] : parts[0];
-    const displayName = name
+    const provider = parts.length > 1 ? parts[0] : '';
+    const modelName = parts.length > 1 ? parts[1] : parts[0];
+    const formattedModel = modelName
       .split('-')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+    const displayName = provider ? `${provider} / ${formattedModel}` : formattedModel;
 
     models.push({
       id,
@@ -142,4 +144,4 @@ export async function discoverContainerOpencodeModels(
   }
 }
 
-export { FALLBACK_CLAUDE_MODELS };
+export { FALLBACK_CLAUDE_MODELS, parseOpencodeModels };

@@ -386,16 +386,21 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
           return models[0].id
         }
 
+        const hasUserSelected = () => {
+          const curr = selectedModelRef.current
+          return curr && models.some((m) => m.id === curr)
+        }
+
         try {
           const agents = await api.getAgents()
-          if (!active) return
+          if (!active || hasUserSelected()) return
 
           const configModel = fetchAgentType === 'opencode'
             ? agents.opencode?.model
             : agents.claude_code?.model
           setSelectedModel(pickDefault(configModel))
         } catch {
-          if (!active) return
+          if (!active || hasUserSelected()) return
           setSelectedModel(pickDefault())
         }
       })
@@ -733,7 +738,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
     }
 
     return ws
-  }, [workspaceName, agentType, finalizeStreaming, projectPath])
+  }, [workspaceName, agentType, finalizeStreaming, projectPath, selectedModel])
 
   useEffect(() => {
     const ws = connect()
@@ -786,15 +791,17 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
     const prevModel = selectedModel
     setSelectedModel(newModel)
 
-    if (prevModel && prevModel !== newModel && sessionId && agentType !== 'opencode') {
+    if (prevModel && prevModel !== newModel && sessionId) {
       setSessionId(undefined)
+      sessionIdRef.current = undefined
       setMessages(prev => [...prev, {
         type: 'system',
         content: `Switching to model: ${availableModels.find(m => m.id === newModel)?.name || newModel}`,
         timestamp: new Date().toISOString(),
       }])
+      wsRef.current?.close()
     }
-  }, [selectedModel, sessionId, agentType, availableModels])
+  }, [selectedModel, sessionId, availableModels])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -832,7 +839,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
               <Select
                 value={selectedModel}
                 onValueChange={handleModelChange}
-                disabled={isStreaming || (agentType === 'opencode' && !!sessionId)}
+                disabled={isStreaming}
               >
                 <SelectTrigger className="h-7 w-[140px] text-xs">
                   <SelectValue placeholder="Select model" />
