@@ -239,6 +239,23 @@ export class DemoApiDriver {
     return { success: true }
   }
 
+  deleteSession = async (workspaceName: string, sessionId: string, _agentType: AgentType): Promise<{ success: boolean }> => {
+    const sessions = this.sessions.get(workspaceName) ?? []
+    this.sessions.set(workspaceName, sessions.filter(s => s.id !== sessionId))
+
+    const details = this.sessionDetails[workspaceName]
+    if (details) {
+      delete details[sessionId]
+      if (Object.keys(details).length === 0) {
+        delete this.sessionDetails[workspaceName]
+      }
+    }
+
+    this.recentSessions = this.recentSessions.filter(s => !(s.workspaceName === workspaceName && s.sessionId === sessionId))
+
+    return { success: true }
+  }
+
   getCredentials = async (): Promise<Credentials> => {
     return this.credentials
   }

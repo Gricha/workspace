@@ -7,16 +7,44 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native'
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable'
+import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, SessionInfo, AgentType, HOST_WORKSPACE_NAME } from '../lib/api'
+import { parseNetworkError } from '../lib/network'
 import { useTheme } from '../contexts/ThemeContext'
 import { ThemeColors } from '../lib/themes'
 import { AgentIcon } from '../components/AgentIcon'
 
 type DateGroup = 'Today' | 'Yesterday' | 'This Week' | 'Older'
+
+const DELETE_ACTION_WIDTH = 80
+
+function DeleteAction({
+  drag,
+  onPress,
+  color,
+}: {
+  drag: SharedValue<number>
+  onPress: () => void
+  color: string
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: drag.value + DELETE_ACTION_WIDTH }],
+  }))
+
+  return (
+    <Reanimated.View style={[styles.deleteAction, { backgroundColor: color }, animatedStyle]}>
+      <TouchableOpacity style={styles.deleteActionTouchable} onPress={onPress}>
+        <Text style={styles.deleteActionText}>Delete</Text>
+      </TouchableOpacity>
+    </Reanimated.View>
+  )
+}
 
 function getDateGroup(dateString: string): DateGroup {
   const date = new Date(dateString)
@@ -69,7 +97,7 @@ function SessionRow({
   }, [session.lastActivity])
 
   return (
-    <TouchableOpacity style={[styles.sessionRow, { borderBottomColor: colors.border }]} onPress={onPress}>
+    <TouchableOpacity style={[styles.sessionRow, { borderBottomColor: colors.border, backgroundColor: colors.background }]} onPress={onPress}>
       <View style={styles.agentIconWrapper}>
         <AgentIcon agentType={session.agentType} size="sm" />
       </View>
@@ -98,6 +126,7 @@ function DateGroupHeader({ title, colors }: { title: string; colors: ThemeColors
 export function WorkspaceDetailScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets()
   const { colors } = useTheme()
+  const queryClient = useQueryClient()
   const { name } = route.params
   const [agentFilter, setAgentFilter] = useState<AgentType | undefined>(undefined)
   const [showAgentPicker, setShowAgentPicker] = useState(false)
@@ -133,6 +162,32 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
     queryFn: () => api.listSessions(name, agentFilter, 50),
     enabled: isRunning,
   })
+
+  const deleteSessionMutation = useMutation({
+    mutationFn: (input: { sessionId: string; agentType: AgentType }) =>
+      api.deleteSession(name, input.sessionId, input.agentType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions', name] })
+    },
+    onError: (err) => {
+      Alert.alert('Error', parseNetworkError(err))
+    },
+  })
+
+  const confirmDeleteSession = useCallback((session: SessionInfo, onCancel?: () => void) => {
+    Alert.alert(
+      'Delete session?',
+      'This will permanently delete the session and its messages.',
+      [
+        { text: 'Cancel', style: 'cancel', onPress: onCancel },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteSessionMutation.mutate({ sessionId: session.id, agentType: session.agentType }),
+        },
+      ]
+    )
+  }, [deleteSessionMutation])
 
   useFocusEffect(
     useCallback(() => {
@@ -356,19 +411,31 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
             if (item.type === 'header') {
               return <DateGroupHeader title={item.title} colors={colors} />
             }
-            return (
-              <SessionRow
-                session={item.session}
-                colors={colors}
-                onPress={() => navigation.navigate('SessionChat', {
-                  workspaceName: name,
-                  sessionId: item.session.id,
-                  agentSessionId: item.session.agentSessionId || null,
-                  agentType: item.session.agentType,
-                  projectPath: item.session.projectPath,
-                })}
-              />
-            )
+             return (
+               <ReanimatedSwipeable
+                 friction={2}
+                 rightThreshold={40}
+                 renderRightActions={(_prog, drag, swipeable) => (
+                   <DeleteAction
+                     drag={drag}
+                     onPress={() => confirmDeleteSession(item.session, swipeable.close)}
+                     color={colors.error}
+                   />
+                 )}
+               >
+                 <SessionRow
+                   session={item.session}
+                   colors={colors}
+                   onPress={() => navigation.navigate('SessionChat', {
+                     workspaceName: name,
+                     sessionId: item.session.id,
+                     agentSessionId: item.session.agentSessionId || null,
+                     agentType: item.session.agentType,
+                     projectPath: item.session.projectPath,
+                   })}
+                 />
+               </ReanimatedSwipeable>
+             )
           }}
           contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
           refreshControl={
@@ -712,5 +779,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0a84ff',
     fontWeight: '600',
+  },
+  deleteAction: {
+    width: DELETE_ACTION_WIDTH,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteActionTouchable: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  deleteActionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
   },
 })

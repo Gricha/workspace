@@ -13,6 +13,8 @@ import {
   Platform,
   Alert,
 } from 'react-native'
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable'
+import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -20,6 +22,30 @@ import { api, WorkspaceInfo, HOST_WORKSPACE_NAME, CreateWorkspaceRequest } from 
 import { useNetwork, parseNetworkError } from '../lib/network'
 import { useTheme } from '../contexts/ThemeContext'
 import { RepoSelector } from '../components/RepoSelector'
+
+const DELETE_ACTION_WIDTH = 80
+
+function DeleteAction({
+  drag,
+  onPress,
+  color,
+}: {
+  drag: SharedValue<number>
+  onPress: () => void
+  color: string
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: drag.value + DELETE_ACTION_WIDTH }],
+  }))
+
+  return (
+    <Reanimated.View style={[styles.deleteAction, { backgroundColor: color }, animatedStyle]}>
+      <TouchableOpacity style={styles.deleteActionTouchable} onPress={onPress}>
+        <Text style={styles.deleteActionText}>Delete</Text>
+      </TouchableOpacity>
+    </Reanimated.View>
+  )
+}
 
 function StatusDot({ status }: { status: WorkspaceInfo['status'] | 'host' }) {
   const colors = {
@@ -41,7 +67,7 @@ function WorkspaceRow({
 }) {
   const { colors } = useTheme()
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress} testID={`workspace-item-${workspace.name}`}>
+    <TouchableOpacity style={[styles.row, { backgroundColor: colors.background }]} onPress={onPress} testID={`workspace-item-${workspace.name}`}>
       <StatusDot status={workspace.status} />
       <View style={styles.rowContent}>
         <Text style={[styles.rowName, { color: colors.text }]} testID="workspace-name">{workspace.name}</Text>
@@ -139,6 +165,31 @@ export function HomeScreen() {
     },
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: (name: string) => api.deleteWorkspace(name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+    },
+    onError: (err) => {
+      Alert.alert('Error', parseNetworkError(err))
+    },
+  })
+
+  const confirmDeleteWorkspace = useCallback((workspace: WorkspaceInfo, onCancel?: () => void) => {
+    Alert.alert(
+      `Delete ${workspace.name}?`,
+      'This will permanently delete the workspace and its data.',
+      [
+        { text: 'Cancel', style: 'cancel', onPress: onCancel },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteMutation.mutate(workspace.name),
+        },
+      ]
+    )
+  }, [deleteMutation])
+
   const handleCreate = () => {
     const name = newName.trim()
     if (!name) {
@@ -213,10 +264,22 @@ export function HomeScreen() {
         keyExtractor={(item) => item.name}
         ListHeaderComponent={<HostSection onHostPress={handleHostPress} />}
         renderItem={({ item }) => (
-          <WorkspaceRow
-            workspace={item}
-            onPress={() => handleWorkspacePress(item)}
-          />
+          <ReanimatedSwipeable
+            friction={2}
+            rightThreshold={40}
+            renderRightActions={(_prog, drag, swipeable) => (
+              <DeleteAction
+                drag={drag}
+                onPress={() => confirmDeleteWorkspace(item, swipeable.close)}
+                color={colors.error}
+              />
+            )}
+          >
+            <WorkspaceRow
+              workspace={item}
+              onPress={() => handleWorkspacePress(item)}
+            />
+          </ReanimatedSwipeable>
         )}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 20 }]}
@@ -524,6 +587,22 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     fontSize: 17,
+    color: '#fff',
+  },
+  deleteAction: {
+    width: DELETE_ACTION_WIDTH,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteActionTouchable: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  deleteActionText: {
+    fontSize: 15,
+    fontWeight: '600',
     color: '#fff',
   },
 })

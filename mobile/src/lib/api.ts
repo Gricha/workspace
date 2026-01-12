@@ -226,6 +226,7 @@ function createClient() {
       }) => Promise<SessionDetail & { total: number; hasMore: boolean }>
       getRecent: (input: { limit?: number }) => Promise<{ sessions: RecentSession[] }>
       recordAccess: (input: { workspaceName: string; sessionId: string; agentType: AgentType }) => Promise<{ success: boolean }>
+      delete: (input: { workspaceName: string; sessionId: string; agentType: AgentType }) => Promise<{ success: boolean }>
     }
     info: () => Promise<InfoResponse>
     host: {
@@ -314,6 +315,7 @@ type ApiDriver = {
   getSession: (workspaceName: string, sessionId: string, agentType?: AgentType, limit?: number, offset?: number, projectPath?: string) => Promise<SessionDetail & { total: number; hasMore: boolean }>
   getRecentSessions: (limit?: number) => Promise<{ sessions: RecentSession[] }>
   recordSessionAccess: (workspaceName: string, sessionId: string, agentType: AgentType) => Promise<{ success: boolean }>
+  deleteSession: (workspaceName: string, sessionId: string, agentType: AgentType) => Promise<{ success: boolean }>
 
   getInfo: () => Promise<InfoResponse>
   getHostInfo: () => Promise<HostInfo>
@@ -351,6 +353,8 @@ const realDriver: ApiDriver = {
   getRecentSessions: (limit?: number) => client.sessions.getRecent({ limit }),
   recordSessionAccess: (workspaceName: string, sessionId: string, agentType: AgentType) =>
     client.sessions.recordAccess({ workspaceName, sessionId, agentType }),
+  deleteSession: (workspaceName: string, sessionId: string, agentType: AgentType) =>
+    client.sessions.delete({ workspaceName, sessionId, agentType }),
 
   getInfo: () => client.info(),
   getHostInfo: () => client.host.info(),
@@ -386,6 +390,8 @@ const demoModeDriver: ApiDriver = {
   getRecentSessions: (limit?: number) => demoDriver.getRecentSessions(limit),
   recordSessionAccess: (workspaceName: string, sessionId: string, agentType: AgentType) =>
     demoDriver.recordSessionAccess(workspaceName, sessionId, agentType),
+  deleteSession: (workspaceName: string, sessionId: string, agentType: AgentType) =>
+    demoDriver.deleteSession(workspaceName, sessionId, agentType),
 
   getInfo: () => demoDriver.getInfo(),
   getHostInfo: () => demoDriver.getHostInfo(),
@@ -425,6 +431,7 @@ export const api = {
   getSession: (...args: Parameters<ApiDriver['getSession']>) => driver.getSession(...args),
   getRecentSessions: (...args: Parameters<ApiDriver['getRecentSessions']>) => driver.getRecentSessions(...args),
   recordSessionAccess: (...args: Parameters<ApiDriver['recordSessionAccess']>) => driver.recordSessionAccess(...args),
+  deleteSession: (...args: Parameters<ApiDriver['deleteSession']>) => driver.deleteSession(...args),
 
   getInfo: (...args: Parameters<ApiDriver['getInfo']>) => driver.getInfo(...args),
   getHostInfo: (...args: Parameters<ApiDriver['getHostInfo']>) => driver.getHostInfo(...args),
