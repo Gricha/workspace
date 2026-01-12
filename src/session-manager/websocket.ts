@@ -126,15 +126,15 @@ export class LiveChatWebSocketServer extends BaseWebSocketServer<LiveChatConnect
     const agentType = message.agentType || this.agentType;
 
     if (message.sessionId) {
-      const existingSession = sessionManager.getSession(message.sessionId);
-      if (existingSession) {
-        connection.sessionId = message.sessionId;
+      const found = await sessionManager.findSession(message.sessionId);
+      if (found) {
+        connection.sessionId = found.sessionId;
 
         const sendFn = (msg: ChatMessage) => {
           safeSend(ws, JSON.stringify(msg));
         };
 
-        const clientId = sessionManager.connectClient(message.sessionId, sendFn, {
+        const clientId = sessionManager.connectClient(found.sessionId, sendFn, {
           resumeFromId: message.resumeFromId,
         });
 
@@ -144,9 +144,9 @@ export class LiveChatWebSocketServer extends BaseWebSocketServer<LiveChatConnect
             ws,
             JSON.stringify({
               type: 'session_joined',
-              sessionId: message.sessionId,
-              status: existingSession.status,
-              agentSessionId: existingSession.agentSessionId,
+              sessionId: found.sessionId,
+              status: found.info.status,
+              agentSessionId: found.info.agentSessionId,
               timestamp: new Date().toISOString(),
             })
           );
