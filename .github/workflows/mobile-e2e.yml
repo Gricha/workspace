@@ -99,6 +99,8 @@ jobs:
 
       - name: Build iOS app for simulator
         working-directory: mobile/ios
+        env:
+          SENTRY_DISABLE_AUTO_UPLOAD: 'true'
         run: |
           xcodebuild -workspace Perry.xcworkspace \
             -scheme Perry \
