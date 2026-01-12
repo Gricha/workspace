@@ -6,7 +6,7 @@ Read `DESIGN.md` for comprehensive architecture, data models, and API specificat
 
 ## Validation
 
-**Required validation before marking any task complete:**
+**Recommended validation (full suite):**
 
 ```bash
 bun run validate  # Complete validation suite: lint + build + test + web tests
@@ -17,8 +17,8 @@ bun run validate  # Complete validation suite: lint + build + test + web tests
 To cut a new release:
 
 ```bash
-# 1) Validate
-bun run validate
+# 1) Validate (optional; CI will run on tag)
+# bun run validate
 
 # 2) Bump version in package.json (patch/minor/major)
 # Example: 0.3.13 -> 0.3.14
@@ -107,7 +107,7 @@ curl -X POST "http://localhost:7391/rpc/sessions/list" \
 
 ## Requirements
 
-- Always run `bun run validate` before marking tasks complete
+- Prefer `bun run validate` before marking tasks complete (CI runs on PRs/tags)
 - Test with real Docker containers
 - Use SSH for user interaction (not `docker exec`)
 - Follow naming: `workspace-<name>` containers, `workspace-internal-` resources  
