@@ -57,7 +57,11 @@ async function isWorkerRunning(ip: string): Promise<boolean> {
 async function startWorkerInContainer(containerName: string): Promise<void> {
   await execInContainer(
     containerName,
-    ['sh', '-c', 'nohup /usr/local/bin/perry worker serve > /tmp/perry-worker.log 2>&1 &'],
+    [
+      'sh',
+      '-c',
+      "nohup sh -c 'if [ -x /usr/local/bin/perry ]; then exec /usr/local/bin/perry worker serve; else exec perry worker serve; fi' > /tmp/perry-worker.log 2>&1 &",
+    ],
     { user: 'workspace' }
   );
 }
