@@ -150,21 +150,6 @@ export function ConnectionBanner() {
   )
 }
 
-export function withNetworkCheck<T extends object>(
-  WrappedComponent: React.ComponentType<T>
-): React.FC<T> {
-  return function NetworkCheckedComponent(props: T) {
-    useNetwork()
-
-    return (
-      <View style={{ flex: 1 }}>
-        <ConnectionBanner />
-        <WrappedComponent {...props} />
-      </View>
-    )
-  }
-}
-
 export function parseNetworkError(error: unknown): string {
   const err = error as Error
   const message = err?.message || 'Unknown error'

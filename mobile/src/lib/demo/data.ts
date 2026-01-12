@@ -1,5 +1,4 @@
 import type {
-  AgentType,
   CodingAgents,
   Credentials,
   GitHubRepo,
@@ -7,7 +6,6 @@ import type {
   InfoResponse,
   ModelInfo,
   RecentSession,
-  Scripts,
   SessionDetail,
   SessionInfo,
   SessionMessage,
@@ -86,10 +84,6 @@ export const demoCredentials: Credentials = {
     NODE_ENV: 'development',
   },
   files: {},
-}
-
-export const demoScripts: Scripts = {
-  post_start: 'bun install',
 }
 
 export const demoGitHubRepos: { configured: boolean; repos: GitHubRepo[]; hasMore: boolean } = {
@@ -191,5 +185,3 @@ export const demoRecentSessions: { sessions: RecentSession[] } = {
     },
   ],
 }
-
-export const demoDefaultAgentType: AgentType = 'claude-code'
