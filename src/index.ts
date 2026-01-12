@@ -529,7 +529,13 @@ program
     }
   });
 
-const configCmd = program.command('config').description('Manage configuration');
+const configCmd = program
+  .command('config')
+  .description('Manage configuration')
+  .action(async () => {
+    const { runSetupWizard } = await import('./cli/setup-wizard');
+    await runSetupWizard();
+  });
 
 configCmd
   .command('show')

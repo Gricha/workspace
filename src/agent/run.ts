@@ -288,6 +288,14 @@ async function getProcessUsingPort(port: number): Promise<string | null> {
   }
 }
 
+const BANNER = `
+  ____  _____ ____  ______   __
+ |  _ \\| ____|  _ \\|  _ \\ \\ / /
+ | |_) |  _| | |_) | |_) \\ V /
+ |  __/| |___|  _ <|  _ < | |
+ |_|   |_____|_| \\_\\_| \\_\\|_|
+`;
+
 export async function startAgent(options: StartAgentOptions = {}): Promise<void> {
   const configDir = options.configDir || getConfigDir();
 
@@ -302,6 +310,10 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
   const port =
     options.port || parseInt(process.env.PERRY_PORT || '', 10) || config.port || DEFAULT_AGENT_PORT;
 
+  console.log(BANNER);
+  console.log(`  Documentation: https://gricha.github.io/perry/getting-started`);
+  console.log(`  Web UI: http://localhost:${port}`);
+  console.log('');
   console.log(`[agent] Config directory: ${configDir}`);
   console.log(`[agent] Starting on port ${port}...`);
 

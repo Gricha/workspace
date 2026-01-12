@@ -22,12 +22,10 @@
     "format:check": "oxfmt --check src/ test/",
     "check": "bun run lint && bun run format:check && bun x tsc --noEmit",
     "lint:web": "cd web && bun run lint",
-
     "validate:core": "bun run lint && bun run format:check && bun run build:ts && bun run build:worker && bun run test:unit",
     "validate:web": "bun run build:web && bun run lint:web && bun run test:web",
     "validate:full": "bun run validate:core && bun run validate:web",
     "validate": "bun run validate:core",
-
     "build:binaries": "bun run scripts/build-binaries.ts"
   },
   "engines": {
@@ -37,6 +35,8 @@
     "@orpc/server": "^1.13.2",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
+    "ink": "^6.6.0",
+    "ink-text-input": "^6.0.0",
     "proper-lockfile": "^4.1.2",
     "ws": "^8.18.3",
     "yaml": "^2.3.4",
@@ -48,10 +48,12 @@
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.8.1",
     "@types/proper-lockfile": "^4.1.4",
+    "@types/react": "^19.2.8",
     "@types/ws": "^8.18.1",
     "oxfmt": "^0.21.0",
     "oxlint": "^1.36.0",
     "oxlint-tsgolint": "^0.11.0",
+    "react-devtools-core": "^7.0.1",
     "typescript": "^5.6.3",
     "vitest": "^4.0.6"
   },
