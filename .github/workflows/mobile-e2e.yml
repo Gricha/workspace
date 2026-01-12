@@ -16,7 +16,7 @@ on:
 jobs:
   maestro-ios:
     runs-on: macos-14
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -101,31 +101,30 @@ jobs:
           path: |
             mobile/ios
             !mobile/ios/build
-          key: ${{ runner.os }}-ios-prebuild-xcode${{ steps.xcode.outputs.version }}-${{ steps.fingerprint.outputs.hash }}
+          key: ${{ runner.os }}-ios-prebuild-ccache-xcode${{ steps.xcode.outputs.version }}-${{ steps.fingerprint.outputs.hash }}
 
       - name: Generate iOS native code
         if: steps.prebuild-cache.outputs.cache-hit != 'true'
         working-directory: mobile
+        env:
+          USE_CCACHE: '1'
         run: bunx expo prebuild --platform ios --clean
 
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
           path: mobile/ios/Pods
-          key: ${{ runner.os }}-pods-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('mobile/ios/Podfile.lock') }}
+          key: ${{ runner.os }}-pods-ccache-xcode${{ steps.xcode.outputs.version }}-${{ hashFiles('mobile/ios/Podfile.lock') }}
           restore-keys: |
-            ${{ runner.os }}-pods-xcode${{ steps.xcode.outputs.version }}-
+            ${{ runner.os }}-pods-ccache-xcode${{ steps.xcode.outputs.version }}-
 
       - name: Install CocoaPods dependencies
         working-directory: mobile/ios
         env:
           USE_CCACHE: '1'
         run: |
-          if [ ! -d "Pods" ] || [ "Podfile.lock" -nt "Pods/Manifest.lock" ]; then
-            pod install
-          else
-            echo "Pods already up to date"
-          fi
+          # Always run pod install to ensure ccache is configured in xcconfig
+          pod install
 
       - name: List available simulators
         run: xcrun simctl list devices available
