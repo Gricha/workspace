@@ -24,7 +24,7 @@ import {
   Search,
   X,
 } from 'lucide-react'
-import { api, type SessionInfo, type AgentType } from '@/lib/api'
+import { api, type SessionInfo, type AgentType, type PortMapping } from '@/lib/api'
 import { HOST_WORKSPACE_NAME } from '@shared/client-types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -134,8 +134,26 @@ function CopyableSessionId({ sessionId }: { sessionId: string }) {
   )
 }
 
-function PortForwardsCard({ workspaceName, currentPorts }: { workspaceName: string; currentPorts: number[] }) {
-  const [ports, setPorts] = useState<number[]>(currentPorts)
+function parsePortMapping(spec: string): PortMapping | null {
+  const trimmed = spec.trim()
+  if (trimmed.includes(':')) {
+    const [hostStr, containerStr] = trimmed.split(':')
+    const host = parseInt(hostStr, 10)
+    const container = parseInt(containerStr, 10)
+    if (isNaN(host) || isNaN(container) || host < 1 || host > 65535 || container < 1 || container > 65535) {
+      return null
+    }
+    return { host, container }
+  }
+  const port = parseInt(trimmed, 10)
+  if (isNaN(port) || port < 1 || port > 65535) {
+    return null
+  }
+  return { host: port, container: port }
+}
+
+function PortForwardsCard({ workspaceName, currentPorts }: { workspaceName: string; currentPorts: PortMapping[] }) {
+  const [ports, setPorts] = useState<PortMapping[]>(currentPorts)
   const [newPort, setNewPort] = useState('')
   const [error, setError] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -145,7 +163,7 @@ function PortForwardsCard({ workspaceName, currentPorts }: { workspaceName: stri
   }, [currentPorts])
 
   const mutation = useMutation({
-    mutationFn: (newPorts: number[]) => api.setPortForwards(workspaceName, newPorts),
+    mutationFn: (newPorts: PortMapping[]) => api.setPortForwards(workspaceName, newPorts),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspace', workspaceName] })
       setError(null)
@@ -156,24 +174,24 @@ function PortForwardsCard({ workspaceName, currentPorts }: { workspaceName: stri
   })
 
   const handleAddPort = () => {
-    const portNum = parseInt(newPort, 10)
-    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      setError('Invalid port number (1-65535)')
+    const mapping = parsePortMapping(newPort)
+    if (!mapping) {
+      setError('Invalid format. Use port (e.g. 3000) or host:container (e.g. 8080:3000)')
       return
     }
-    if (ports.includes(portNum)) {
-      setError('Port already configured')
+    if (ports.some(p => p.host === mapping.host)) {
+      setError(`Host port ${mapping.host} already configured`)
       return
     }
-    const updated = [...ports, portNum].sort((a, b) => a - b)
+    const updated = [...ports, mapping].sort((a, b) => a.host - b.host)
     setPorts(updated)
     setNewPort('')
     setError(null)
     mutation.mutate(updated)
   }
 
-  const handleRemovePort = (port: number) => {
-    const updated = ports.filter(p => p !== port)
+  const handleRemovePort = (mapping: PortMapping) => {
+    const updated = ports.filter(p => p.host !== mapping.host || p.container !== mapping.container)
     setPorts(updated)
     mutation.mutate(updated)
   }
@@ -190,23 +208,21 @@ function PortForwardsCard({ workspaceName, currentPorts }: { workspaceName: stri
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Hash className="h-4 w-4 text-muted-foreground" />
-          Port Forwarding
+          Port Mapping
         </CardTitle>
         <CardDescription>
-          Configure ports to forward when running <code className="text-xs bg-muted px-1 py-0.5 rounded">perry proxy {workspaceName}</code>
+          Map container ports to host ports for <code className="text-xs bg-muted px-1 py-0.5 rounded">perry proxy {workspaceName}</code>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Input
-            type="number"
-            placeholder="Port number (e.g. 3000)"
+            type="text"
+            placeholder="3000 or 8080:3000 (host:container)"
             value={newPort}
             onChange={(e) => setNewPort(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1"
-            min={1}
-            max={65535}
           />
           <Button onClick={handleAddPort} disabled={mutation.isPending || !newPort}>
             Add
@@ -215,13 +231,17 @@ function PortForwardsCard({ workspaceName, currentPorts }: { workspaceName: stri
         {error && <p className="text-sm text-destructive">{error}</p>}
         {ports.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {ports.map((port) => (
-              <Badge key={port} variant="secondary" className="text-sm py-1 px-3 gap-2">
-                {port}
+            {ports.map((mapping) => (
+              <Badge key={`${mapping.host}:${mapping.container}`} variant="secondary" className="text-sm py-1 px-3 gap-2">
+                {mapping.host === mapping.container ? (
+                  <span>{mapping.container}</span>
+                ) : (
+                  <span>{mapping.host} <span className="text-muted-foreground">→</span> {mapping.container}</span>
+                )}
                 <button
-                  onClick={() => handleRemovePort(port)}
+                  onClick={() => handleRemovePort(mapping)}
                   className="hover:text-destructive transition-colors"
-                  title="Remove port"
+                  title="Remove port mapping"
                 >
                   <X className="h-3 w-3" />
                 </button>

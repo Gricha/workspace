@@ -1,3 +1,8 @@
+export interface PortMapping {
+  host: number;
+  container: number;
+}
+
 export interface WorkspaceInfo {
   name: string;
   status: 'running' | 'stopped' | 'creating' | 'error';
@@ -7,7 +12,7 @@ export interface WorkspaceInfo {
   ports: {
     ssh: number;
     http?: number;
-    forwards?: number[];
+    forwards?: PortMapping[];
   };
   lastUsed?: string;
 }

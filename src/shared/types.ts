@@ -60,10 +60,15 @@ export interface ClientConfig {
 
 export type WorkspaceStatus = 'running' | 'stopped' | 'creating' | 'error';
 
+export interface PortMapping {
+  host: number;
+  container: number;
+}
+
 export interface WorkspacePorts {
   ssh: number;
   http?: number;
-  forwards?: number[];
+  forwards?: PortMapping[];
 }
 
 export interface WorkspaceInfo {

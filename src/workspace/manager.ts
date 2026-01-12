@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import pkg from '../../package.json';
-import type { AgentConfig } from '../shared/types';
+import type { AgentConfig, PortMapping } from '../shared/types';
 import type { Workspace, CreateWorkspaceOptions } from './types';
 import { StateManager } from './state';
 import { expandPath } from '../config/loader';
@@ -875,7 +875,7 @@ export class WorkspaceManager {
     await this.setupWorkspaceCredentials(containerName, name, { strictWorker: true });
   }
 
-  async setPortForwards(name: string, forwards: number[]): Promise<Workspace> {
+  async setPortForwards(name: string, forwards: PortMapping[]): Promise<Workspace> {
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
       throw new Error(`Workspace '${name}' not found`);
@@ -886,7 +886,7 @@ export class WorkspaceManager {
     return workspace;
   }
 
-  async getPortForwards(name: string): Promise<number[]> {
+  async getPortForwards(name: string): Promise<PortMapping[]> {
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
       throw new Error(`Workspace '${name}' not found`);
