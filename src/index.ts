@@ -408,14 +408,17 @@ program
           console.log(`No ports configured for workspace '${name}'.`);
           console.log('');
           console.log('Configure ports with: perry ports <name> <port> [<port>...]');
-          console.log('  Example: perry ports ' + name + ' 3000 5173');
+          console.log('  Example: perry ports ' + name + ' 3000 8080:5173');
           console.log('');
           console.log('Or specify ports directly: perry proxy <name> <port> [<port>...]');
-          console.log('  Example: perry proxy ' + name + ' 3000 5173');
+          console.log('  Example: perry proxy ' + name + ' 3000 8080:5173');
           return;
         }
-        effectivePorts = configuredForwards.map((p) => String(p));
-        console.log(`Using configured ports: ${configuredForwards.join(', ')}`);
+        effectivePorts = configuredForwards.map((p) =>
+          p.host === p.container ? String(p.container) : `${p.host}:${p.container}`
+        );
+        const formatted = effectivePorts.join(', ');
+        console.log(`Using configured ports: ${formatted}`);
       }
 
       if (isLocalWorker(worker)) {
@@ -481,7 +484,7 @@ program
 
 program
   .command('ports <name> [ports...]')
-  .description('Configure ports to forward for a workspace')
+  .description('Configure port mappings for a workspace (e.g. 3000, 8080:3000)')
   .action(async (name, ports: string[]) => {
     try {
       const client = await getClient();
@@ -498,24 +501,27 @@ program
           console.log(`No ports configured for workspace '${name}'.`);
           console.log('');
           console.log('Usage: perry ports <name> <port> [<port>...]');
-          console.log('  Example: perry ports ' + name + ' 3000 5173 8080');
+          console.log('  Format: <port> or <host>:<container>');
+          console.log('  Example: perry ports ' + name + ' 3000 8080:5173');
         } else {
-          console.log(`Ports configured for '${name}': ${currentPorts.join(', ')}`);
+          const formatted = currentPorts.map((p) =>
+            p.host === p.container ? String(p.container) : `${p.host}:${p.container}`
+          );
+          console.log(`Ports configured for '${name}': ${formatted.join(', ')}`);
         }
         return;
       }
 
-      const portNumbers = ports.map((p) => {
-        const num = parseInt(p, 10);
-        if (isNaN(num) || num < 1 || num > 65535) {
-          console.error(`Invalid port number: ${p}`);
-          process.exit(1);
-        }
-        return num;
+      const portMappings = ports.map((spec) => {
+        const mapping = parsePortForward(spec);
+        return { host: mapping.localPort, container: mapping.remotePort };
       });
 
-      await client.setPortForwards(name, portNumbers);
-      console.log(`Ports configured for '${name}': ${portNumbers.join(', ')}`);
+      await client.setPortForwards(name, portMappings);
+      const formatted = portMappings.map((p) =>
+        p.host === p.container ? String(p.container) : `${p.host}:${p.container}`
+      );
+      console.log(`Ports configured for '${name}': ${formatted.join(', ')}`);
       console.log('');
       console.log(`Run 'perry proxy ${name}' to start forwarding.`);
     } catch (err) {

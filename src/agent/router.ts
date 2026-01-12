@@ -44,10 +44,15 @@ import type { AgentType } from '../session-manager/types';
 
 const WorkspaceStatusSchema = z.enum(['running', 'stopped', 'creating', 'error']);
 
+const PortMappingSchema = z.object({
+  host: z.number().int().min(1).max(65535),
+  container: z.number().int().min(1).max(65535),
+});
+
 const WorkspacePortsSchema = z.object({
   ssh: z.number(),
   http: z.number().optional(),
-  forwards: z.array(z.number()).optional(),
+  forwards: z.array(PortMappingSchema).optional(),
 });
 
 const WorkspaceInfoSchema = z.object({
@@ -292,7 +297,7 @@ export function createRouter(ctx: RouterContext) {
 
   const getPortForwards = os
     .input(z.object({ name: z.string() }))
-    .output(z.object({ forwards: z.array(z.number()) }))
+    .output(z.object({ forwards: z.array(PortMappingSchema) }))
     .handler(async ({ input }) => {
       try {
         const forwards = await ctx.workspaces.getPortForwards(input.name);
@@ -303,7 +308,7 @@ export function createRouter(ctx: RouterContext) {
     });
 
   const setPortForwards = os
-    .input(z.object({ name: z.string(), forwards: z.array(z.number().int().min(1).max(65535)) }))
+    .input(z.object({ name: z.string(), forwards: z.array(PortMappingSchema) }))
     .output(WorkspaceInfoSchema)
     .handler(async ({ input }) => {
       try {

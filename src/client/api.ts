@@ -2,7 +2,12 @@ import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import type { RouterClient } from '@orpc/server';
 import type { AppRouter } from '../agent/router';
-import type { WorkspaceInfo, CreateWorkspaceRequest, InfoResponse } from '../shared/types';
+import type {
+  WorkspaceInfo,
+  CreateWorkspaceRequest,
+  InfoResponse,
+  PortMapping,
+} from '../shared/types';
 import { DEFAULT_AGENT_PORT } from '../shared/constants';
 
 export interface ApiClientOptions {
@@ -131,7 +136,7 @@ export class ApiClient {
     }
   }
 
-  async getPortForwards(name: string): Promise<number[]> {
+  async getPortForwards(name: string): Promise<PortMapping[]> {
     try {
       const result = await this.client.workspaces.getPortForwards({ name });
       return result.forwards;
@@ -140,7 +145,7 @@ export class ApiClient {
     }
   }
 
-  async setPortForwards(name: string, forwards: number[]): Promise<WorkspaceInfo> {
+  async setPortForwards(name: string, forwards: PortMapping[]): Promise<WorkspaceInfo> {
     try {
       return await this.client.workspaces.setPortForwards({ name, forwards });
     } catch (err) {

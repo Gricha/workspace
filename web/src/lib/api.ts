@@ -17,6 +17,7 @@ import type {
   RecentSession,
   ModelInfo,
   TerminalSettings,
+  PortMapping,
 } from '@shared/client-types'
 
 export interface GitHubRepo {
@@ -46,6 +47,7 @@ export type {
   RecentSession,
   ModelInfo,
   TerminalSettings,
+  PortMapping,
 }
 
 function getRpcUrl(): string {
@@ -71,8 +73,8 @@ const client = createORPCClient<{
     sync: (input: { name: string }) => Promise<{ success: boolean }>
     syncAll: () => Promise<{ synced: number; failed: number; results: { name: string; success: boolean; error?: string }[] }>
     touch: (input: { name: string }) => Promise<WorkspaceInfo>
-    getPortForwards: (input: { name: string }) => Promise<{ forwards: number[] }>
-    setPortForwards: (input: { name: string; forwards: number[] }) => Promise<WorkspaceInfo>
+    getPortForwards: (input: { name: string }) => Promise<{ forwards: PortMapping[] }>
+    setPortForwards: (input: { name: string; forwards: PortMapping[] }) => Promise<WorkspaceInfo>
     clone: (input: { sourceName: string; cloneName: string }) => Promise<WorkspaceInfo>
   }
   sessions: {
@@ -142,7 +144,7 @@ export const api = {
   syncAllWorkspaces: () => client.workspaces.syncAll(),
   touchWorkspace: (name: string) => client.workspaces.touch({ name }),
   getPortForwards: (name: string) => client.workspaces.getPortForwards({ name }),
-  setPortForwards: (name: string, forwards: number[]) => client.workspaces.setPortForwards({ name, forwards }),
+  setPortForwards: (name: string, forwards: PortMapping[]) => client.workspaces.setPortForwards({ name, forwards }),
   cloneWorkspace: (sourceName: string, cloneName: string) =>
     client.workspaces.clone({ sourceName, cloneName }),
   listSessions: (workspaceName: string, agentType?: AgentType, limit?: number, offset?: number) =>
