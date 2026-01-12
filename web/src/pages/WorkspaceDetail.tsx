@@ -393,7 +393,11 @@ export function WorkspaceDetail() {
   }, [searchQuery])
 
   const setTab = (tab: TabType) => {
-    setSearchParams({ tab })
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('tab', tab)
+      return next
+    })
   }
 
   const handleSessionId = useCallback((sessionId: string) => {
