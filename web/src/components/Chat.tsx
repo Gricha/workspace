@@ -790,6 +790,7 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
     const messagePayload: Record<string, unknown> = {
       type: 'message',
       content: input.trim(),
+      model: selectedModelRef.current,
     }
 
     wsRef.current.send(JSON.stringify(messagePayload))
@@ -807,20 +808,18 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
   }, [])
 
   const handleModelChange = useCallback((newModel: string) => {
-    const prevModel = selectedModel
     setSelectedModel(newModel)
 
-    if (prevModel && prevModel !== newModel && sessionId) {
-      setSessionId(undefined)
-      sessionIdRef.current = undefined
-      setMessages(prev => [...prev, {
-        type: 'system',
-        content: `Switching to model: ${availableModels.find(m => m.id === newModel)?.name || newModel}`,
-        timestamp: new Date().toISOString(),
-      }])
-      wsRef.current?.close()
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'set_model', model: newModel }))
     }
-  }, [selectedModel, sessionId, availableModels])
+
+    setMessages(prev => [...prev, {
+      type: 'system',
+      content: `Switching to model: ${availableModels.find(m => m.id === newModel)?.name || newModel}`,
+      timestamp: new Date().toISOString(),
+    }])
+  }, [availableModels])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

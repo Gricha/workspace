@@ -54,6 +54,10 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     this.setStatus('idle');
   }
 
+  setModel(model: string): void {
+    this.model = model;
+  }
+
   async sendMessage(message: string): Promise<void> {
     if (this.status === 'running') {
       const err = new Error('Session is already processing a message');

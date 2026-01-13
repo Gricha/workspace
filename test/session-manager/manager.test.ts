@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const claudeSetModelCalls: string[] = [];
+
 vi.mock('../../src/session-manager/adapters/claude', () => ({
   ClaudeCodeAdapter: class MockClaudeAdapter {
     agentType = 'claude' as const;
@@ -11,6 +13,9 @@ vi.mock('../../src/session-manager/adapters/claude', () => ({
 
     async start() {
       this.status = 'idle';
+    }
+    setModel(model: string) {
+      claudeSetModelCalls.push(model);
     }
     async sendMessage() {
       this.agentSessionId = 'mock-session-123';
@@ -51,6 +56,7 @@ vi.mock('../../src/session-manager/adapters/opencode', () => ({
     async start() {
       this.status = 'idle';
     }
+    setModel(_model: string) {}
     async sendMessage() {
       this.agentSessionId = 'mock-oc-session-123';
       this.status = 'running';
@@ -186,6 +192,19 @@ describe('SessionManager', () => {
       });
 
       expect(manager.getSessionStatus(sessionId)).toBe('idle');
+    });
+  });
+
+  describe('setModel', () => {
+    it('propagates model to adapter', async () => {
+      const sessionId = await manager.startSession({
+        workspaceName: 'test-workspace',
+        agentType: 'claude',
+      });
+
+      manager.setModel(sessionId, 'claude-opus');
+      expect(claudeSetModelCalls).toContain('claude-opus');
+      expect(manager.getSession(sessionId)?.model).toBe('claude-opus');
     });
   });
 

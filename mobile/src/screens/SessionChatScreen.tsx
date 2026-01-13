@@ -813,6 +813,7 @@ export function SessionChatScreen({ route, navigation }: any) {
     const payload: Record<string, unknown> = {
       type: 'message',
       content: msg,
+      model: selectedModelRef.current,
     }
 
     wsRef.current.send(JSON.stringify(payload))
@@ -841,18 +842,14 @@ export function SessionChatScreen({ route, navigation }: any) {
           const newModel = availableModels[buttonIndex].id
           if (newModel !== selectedModel) {
             setSelectedModel(newModel)
-            if (agentSessionIdRef.current || liveSessionIdRef.current) {
-              agentSessionIdRef.current = null
-              liveSessionIdRef.current = null
-              setAgentSessionId(null)
-              setLiveSessionId(null)
-              wsRef.current?.close()
-              setMessages(prev => [...prev, {
-                role: 'system',
-                content: `Switching to model: ${availableModels[buttonIndex].name}`,
-                id: `msg-model-${Date.now()}`,
-              }])
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+              wsRef.current.send(JSON.stringify({ type: 'set_model', model: newModel }))
             }
+            setMessages(prev => [...prev, {
+              role: 'system',
+              content: `Switching to model: ${availableModels[buttonIndex].name}`,
+              id: `msg-model-${Date.now()}`,
+            }])
           }
         }
       }
