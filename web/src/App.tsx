@@ -33,20 +33,21 @@ function SetupGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const [checked, setChecked] = useState(false)
 
-  const { data: workspaces, isLoading: workspacesLoading } = useQuery({
+  const { data: workspaces, isLoading: workspacesLoading, isError: workspacesError } = useQuery({
     queryKey: ['workspaces'],
     queryFn: api.listWorkspaces,
   })
 
-  const { data: agents, isLoading: agentsLoading } = useQuery({
+  const { data: agents, isLoading: agentsLoading, isError: agentsError } = useQuery({
     queryKey: ['agents'],
     queryFn: api.getAgents,
   })
 
   const isLoading = workspacesLoading || agentsLoading
+  const hasError = workspacesError || agentsError
 
   useEffect(() => {
-    if (isLoading || checked) return
+    if (isLoading || checked || hasError) return
 
     const hasWorkspaces = workspaces && workspaces.length > 0
     const hasClaudeCode = !!agents?.claude_code?.oauth_token
@@ -61,7 +62,7 @@ function SetupGuard({ children }: { children: React.ReactNode }) {
     }
 
     setChecked(true)
-  }, [workspaces, agents, isLoading, checked, navigate, location.pathname])
+  }, [workspaces, agents, isLoading, checked, hasError, navigate, location.pathname])
 
   if (!checked && isLoading) {
     return null

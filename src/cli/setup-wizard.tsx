@@ -15,6 +15,7 @@ interface WizardState {
   claudeToken: string;
   claudeModel: string;
   opencodeToken: string;
+  opencodeModel: string;
   githubToken: string;
   selectedSSHKeys: string[];
 }
@@ -294,6 +295,7 @@ function SetupWizard() {
     claudeToken: '',
     claudeModel: 'sonnet',
     opencodeToken: '',
+    opencodeModel: '',
     githubToken: '',
     selectedSSHKeys: [],
   });
@@ -315,6 +317,7 @@ function SetupWizard() {
         claudeToken: config.agents?.claude_code?.oauth_token || '',
         claudeModel: config.agents?.claude_code?.model || 'sonnet',
         opencodeToken: config.agents?.opencode?.zen_token || '',
+        opencodeModel: config.agents?.opencode?.model || '',
         githubToken: config.agents?.github?.token || '',
         selectedSSHKeys: config.ssh?.global.copy || [],
       }));
@@ -382,7 +385,7 @@ function SetupWizard() {
             ? { oauth_token: state.claudeToken, model: state.claudeModel }
             : config.agents?.claude_code,
           opencode: state.opencodeToken
-            ? { zen_token: state.opencodeToken }
+            ? { zen_token: state.opencodeToken, model: state.opencodeModel || undefined }
             : config.agents?.opencode,
           github: state.githubToken ? { token: state.githubToken } : config.agents?.github,
         };
