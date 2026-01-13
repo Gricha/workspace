@@ -8,18 +8,21 @@ describe('parseOpencodeModels', () => {
 
     expect(models).toHaveLength(1);
     expect(models[0].id).toBe('opencode/claude-opus-4-5');
-    expect(models[0].name).toBe('opencode / Claude Opus 4 5');
+    expect(models[0].name).toBe('Claude Opus 4 5');
+    expect(models[0].provider).toBe('opencode');
   });
 
-  test('includes provider in display name for disambiguation', () => {
+  test('includes provider field for disambiguation', () => {
     const output = `opencode/claude-opus-4-5
 github-copilot/claude-opus-4.5`;
     const models = parseOpencodeModels(output);
 
     expect(models).toHaveLength(2);
-    expect(models[0].name).toBe('opencode / Claude Opus 4 5');
-    expect(models[1].name).toBe('github-copilot / Claude Opus 4.5');
-    expect(models[0].name).not.toBe(models[1].name);
+    expect(models[0].name).toBe('Claude Opus 4 5');
+    expect(models[0].provider).toBe('opencode');
+    expect(models[1].name).toBe('Claude Opus 4.5');
+    expect(models[1].provider).toBe('github-copilot');
+    expect(models[0].provider).not.toBe(models[1].provider);
   });
 
   test('handles model without provider prefix', () => {
@@ -69,6 +72,7 @@ opencode/claude-opus-4-5`;
     const output = 'opencode/gpt-5.1-codex-max';
     const models = parseOpencodeModels(output);
 
-    expect(models[0].name).toBe('opencode / Gpt 5.1 Codex Max');
+    expect(models[0].name).toBe('Gpt 5.1 Codex Max');
+    expect(models[0].provider).toBe('opencode');
   });
 });
