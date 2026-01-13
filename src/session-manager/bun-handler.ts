@@ -5,7 +5,7 @@ import type { AgentType } from './types';
 import { HOST_WORKSPACE_NAME } from '../shared/client-types';
 
 interface LiveChatMessage {
-  type: 'message' | 'interrupt' | 'connect' | 'disconnect';
+  type: 'message' | 'interrupt' | 'connect' | 'disconnect' | 'set_model';
   content?: string;
   sessionId?: string;
   agentSessionId?: string;
@@ -93,6 +93,25 @@ export class LiveChatHandler {
         return;
       }
 
+      if (message.type === 'set_model') {
+        if (!connection.sessionId) {
+          throw new Error('No active session to set model for');
+        }
+        if (!message.model) {
+          throw new Error('Missing model');
+        }
+        sessionManager.setModel(connection.sessionId, message.model);
+        safeSend(
+          ws,
+          JSON.stringify({
+            type: 'system',
+            content: `Model set to: ${message.model}`,
+            timestamp: new Date().toISOString(),
+          })
+        );
+        return;
+      }
+
       if (message.type === 'interrupt') {
         if (connection.sessionId) {
           await sessionManager.interrupt(connection.sessionId);
@@ -157,6 +176,11 @@ export class LiveChatHandler {
 
         if (clientId) {
           connection.clientId = clientId;
+
+          if (message.model && message.model !== found.info.model) {
+            sessionManager.setModel(found.sessionId, message.model);
+          }
+
           safeSend(
             ws,
             JSON.stringify({
@@ -164,6 +188,7 @@ export class LiveChatHandler {
               sessionId: found.sessionId,
               status: found.info.status,
               agentSessionId: found.info.agentSessionId,
+              model: message.model || found.info.model,
               timestamp: new Date().toISOString(),
             })
           );
@@ -218,6 +243,9 @@ export class LiveChatHandler {
       throw new Error('Failed to create session');
     }
 
+    if (message.model) {
+      sessionManager.setModel(connection.sessionId, message.model);
+    }
     await sessionManager.sendMessage(connection.sessionId, message.content!);
   }
 

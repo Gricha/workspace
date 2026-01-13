@@ -2,6 +2,7 @@ import type { Subprocess } from 'bun';
 import type { AgentAdapter, AdapterStartOptions, SessionStatus } from '../types';
 import type { ChatMessage } from '../../chat/types';
 import { execInContainer } from '../../docker';
+import { ensureOpenCodeServer } from '../opencode/server';
 
 type MessageCallback = (message: ChatMessage) => void;
 type StatusCallback = (status: SessionStatus) => void;
@@ -29,136 +30,7 @@ interface OpenCodeServerEvent {
 }
 
 const MESSAGE_TIMEOUT_MS = 30000;
-const SSE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes for long-running operations
-
-const serverPorts = new Map<string, number>();
-const serverStarting = new Map<string, Promise<number>>();
-
-let hostServerPort: number | null = null;
-let hostServerStarting: Promise<number> | null = null;
-let hostServerProcess: Subprocess<'ignore', 'pipe', 'pipe'> | null = null;
-
-async function findAvailablePort(containerName: string): Promise<number> {
-  const script = `import socket; s=socket.socket(); s.bind(('', 0)); print(s.getsockname()[1]); s.close()`;
-  const result = await execInContainer(containerName, ['python3', '-c', script], {
-    user: 'workspace',
-  });
-  return parseInt(result.stdout.trim(), 10);
-}
-
-async function findExistingServer(containerName: string): Promise<number | null> {
-  try {
-    const result = await execInContainer(
-      containerName,
-      ['sh', '-c', 'pgrep -a -f "opencode serve" | grep -oP "\\\\--port \\\\K[0-9]+"'],
-      { user: 'workspace' }
-    );
-    const ports = result.stdout
-      .trim()
-      .split('\n')
-      .filter(Boolean)
-      .map((p) => parseInt(p, 10))
-      .filter((p) => !isNaN(p));
-
-    for (const port of ports) {
-      if (await isServerRunning(containerName, port)) {
-        return port;
-      }
-    }
-  } catch {
-    // No existing server
-  }
-  return null;
-}
-
-async function isServerRunning(containerName: string, port: number): Promise<boolean> {
-  try {
-    const result = await execInContainer(
-      containerName,
-      [
-        'curl',
-        '-s',
-        '-o',
-        '/dev/null',
-        '-w',
-        '%{http_code}',
-        '--max-time',
-        '3',
-        `http://localhost:${port}/session`,
-      ],
-      { user: 'workspace' }
-    );
-    return result.stdout.trim() === '200';
-  } catch {
-    return false;
-  }
-}
-
-async function getServerLogs(containerName: string): Promise<string> {
-  try {
-    const result = await execInContainer(
-      containerName,
-      ['tail', '-20', '/tmp/opencode-server.log'],
-      {
-        user: 'workspace',
-      }
-    );
-    return result.stdout;
-  } catch {
-    return '(no logs available)';
-  }
-}
-
-async function startServer(containerName: string): Promise<number> {
-  const cached = serverPorts.get(containerName);
-  if (cached && (await isServerRunning(containerName, cached))) {
-    return cached;
-  }
-
-  const existing = await findExistingServer(containerName);
-  if (existing) {
-    console.log(`[opencode] Found existing server on port ${existing} in ${containerName}`);
-    serverPorts.set(containerName, existing);
-    return existing;
-  }
-
-  const starting = serverStarting.get(containerName);
-  if (starting) {
-    return starting;
-  }
-
-  const startPromise = (async () => {
-    const port = await findAvailablePort(containerName);
-    console.log(`[opencode] Starting server on port ${port} in ${containerName}`);
-
-    await execInContainer(
-      containerName,
-      [
-        'sh',
-        '-c',
-        `nohup opencode serve --port ${port} --hostname 127.0.0.1 > /tmp/opencode-server.log 2>&1 &`,
-      ],
-      { user: 'workspace' }
-    );
-
-    for (let i = 0; i < 30; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      if (await isServerRunning(containerName, port)) {
-        console.log(`[opencode] Server ready on port ${port}`);
-        serverPorts.set(containerName, port);
-        serverStarting.delete(containerName);
-        return port;
-      }
-    }
-
-    serverStarting.delete(containerName);
-    const logs = await getServerLogs(containerName);
-    throw new Error(`Failed to start OpenCode server. Logs:\n${logs}`);
-  })();
-
-  serverStarting.set(containerName, startPromise);
-  return startPromise;
-}
+const SSE_TIMEOUT_MS = 10 * 60 * 1000;
 
 export class OpenCodeAdapter implements AgentAdapter {
   readonly agentType = 'opencode' as const;
@@ -169,6 +41,8 @@ export class OpenCodeAdapter implements AgentAdapter {
   private status: SessionStatus = 'idle';
   private port?: number;
   private isHost = false;
+  private projectPath?: string;
+
   private sseProcess: Subprocess<'ignore', 'pipe', 'pipe'> | null = null;
   private currentMessageId?: string;
 
@@ -188,87 +62,27 @@ export class OpenCodeAdapter implements AgentAdapter {
     this.errorCallback = callback;
   }
 
+  setModel(model: string): void {
+    this.model = model;
+  }
+
   async start(options: AdapterStartOptions): Promise<void> {
     this.isHost = options.isHost;
     this.containerName = options.containerName;
     this.agentSessionId = options.agentSessionId;
     this.model = options.model;
+    this.projectPath = options.projectPath;
 
     try {
-      if (this.isHost) {
-        this.port = await this.startServerHost();
-      } else {
-        this.port = await startServer(this.containerName!);
-      }
+      this.port = await ensureOpenCodeServer({
+        isHost: this.isHost,
+        containerName: this.containerName,
+        projectPath: this.projectPath,
+      });
       this.setStatus('idle');
     } catch (err) {
       this.emitError(err as Error);
       throw err;
-    }
-  }
-
-  private async startServerHost(): Promise<number> {
-    if (hostServerPort && (await this.isServerRunningHost(hostServerPort))) {
-      return hostServerPort;
-    }
-
-    if (hostServerStarting) {
-      return hostServerStarting;
-    }
-
-    const startPromise = (async () => {
-      const port = await this.findAvailablePortHost();
-
-      console.log(`[opencode] Starting server on port ${port} on host`);
-
-      hostServerProcess = Bun.spawn(
-        ['opencode', 'serve', '--port', String(port), '--hostname', '127.0.0.1'],
-        {
-          stdin: 'ignore',
-          stdout: 'pipe',
-          stderr: 'pipe',
-        }
-      );
-
-      for (let i = 0; i < 30; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        if (await this.isServerRunningHost(port)) {
-          console.log(`[opencode] Server ready on port ${port}`);
-          hostServerPort = port;
-          hostServerStarting = null;
-          return port;
-        }
-      }
-
-      hostServerStarting = null;
-      if (hostServerProcess) {
-        hostServerProcess.kill();
-        await hostServerProcess.exited;
-        hostServerProcess = null;
-      }
-      throw new Error('Failed to start OpenCode server on host');
-    })();
-
-    hostServerStarting = startPromise;
-    return startPromise;
-  }
-
-  private async findAvailablePortHost(): Promise<number> {
-    const server = Bun.serve({
-      port: 0,
-      fetch: () => new Response(''),
-    });
-    const port = server.port!;
-    await server.stop();
-    return port;
-  }
-
-  private async isServerRunningHost(port: number): Promise<boolean> {
-    try {
-      const response = await fetch(`http://localhost:${port}/session`, { method: 'GET' });
-      return response.ok;
-    } catch {
-      return false;
     }
   }
 
@@ -291,10 +105,11 @@ export class OpenCodeAdapter implements AgentAdapter {
       if (this.agentSessionId) {
         const exists = await this.sessionExists(baseUrl, this.agentSessionId);
         if (!exists) {
-          console.log(
-            `[opencode] Session ${this.agentSessionId} not found on server, creating new`
+          throw new Error(
+            `OpenCode session not found on server: ${this.agentSessionId}. ` +
+              `Refusing to create a new session automatically. ` +
+              `This usually means the opencode server is running in a different projectPath or was restarted.`
           );
-          this.agentSessionId = undefined;
         }
       }
 
@@ -353,7 +168,7 @@ export class OpenCodeAdapter implements AgentAdapter {
   }
 
   private async createSession(baseUrl: string): Promise<string> {
-    const payload = this.model ? { model: this.model } : {};
+    const payload = {};
 
     if (this.isHost) {
       const response = await fetch(`${baseUrl}/session`, {
@@ -407,7 +222,6 @@ export class OpenCodeAdapter implements AgentAdapter {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     const payload: Record<string, unknown> = { parts: [{ type: 'text', text: message }] };
-    // Include model in each message so model changes take effect immediately
     if (this.model) {
       payload.model = this.model;
     }
@@ -476,7 +290,6 @@ export class OpenCodeAdapter implements AgentAdapter {
       const spawnArgs = this.isHost
         ? curlArgs
         : ['docker', 'exec', '-i', this.containerName!, ...curlArgs];
-
       const proc = Bun.spawn(spawnArgs, { stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' });
 
       this.sseProcess = proc;
@@ -485,18 +298,16 @@ export class OpenCodeAdapter implements AgentAdapter {
       let eventCount = 0;
 
       const finish = () => {
-        if (!resolved) {
-          resolved = true;
-          resolve();
-        }
+        if (resolved) return;
+        resolved = true;
+        resolve();
       };
 
       const timeout = setTimeout(() => {
         proc.kill();
-        if (!resolved) {
-          resolved = true;
-          reject(new Error('SSE stream timeout'));
-        }
+        if (resolved) return;
+        resolved = true;
+        reject(new Error('SSE stream timeout'));
       }, SSE_TIMEOUT_MS);
 
       (async () => {
@@ -526,7 +337,6 @@ export class OpenCodeAdapter implements AgentAdapter {
                   if (!idleSessionId || idleSessionId !== this.agentSessionId) {
                     continue;
                   }
-                  console.log(`[opencode] SSE received session.idle after ${eventCount} events`);
                   receivedIdle = true;
                   clearTimeout(timeout);
                   proc.kill();
@@ -571,7 +381,7 @@ export class OpenCodeAdapter implements AgentAdapter {
                   }
                 }
               } catch {
-                // Invalid JSON, skip
+                // skip
               }
             }
           }
@@ -631,10 +441,6 @@ export class OpenCodeAdapter implements AgentAdapter {
 
   getStatus(): SessionStatus {
     return this.status;
-  }
-
-  setModel(model: string): void {
-    this.model = model;
   }
 
   private setStatus(status: SessionStatus): void {

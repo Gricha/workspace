@@ -415,8 +415,9 @@ export class SessionManager {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
-    session.info.model = model;
     session.adapter.setModel(model);
+    session.info.model = model;
+    session.info.lastActivity = new Date();
   }
 
   hasActiveClients(sessionId: string): boolean {

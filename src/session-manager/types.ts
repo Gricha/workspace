@@ -44,6 +44,8 @@ export interface AgentAdapter {
 
   sendMessage(message: string): Promise<void>;
 
+  setModel(model: string): void;
+
   interrupt(): Promise<void>;
 
   dispose(): Promise<void>;
