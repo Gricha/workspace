@@ -11,9 +11,36 @@ export interface DockerProxyOptions {
   onError?: (error: Error) => void;
 }
 
-interface ProxySocket {
-  upstream: Socket<unknown> | null;
-  buffer: Buffer[];
+interface SocketData {
+  peer: Socket<SocketData> | null;
+  pendingWrite: Buffer[];
+  peerClosed: boolean;
+}
+
+function flushPending(socket: Socket<SocketData>): void {
+  while (socket.data.pendingWrite.length > 0) {
+    const chunk = socket.data.pendingWrite[0];
+    const written = socket.write(chunk);
+    if (written === 0) {
+      break;
+    }
+    if (written < chunk.length) {
+      socket.data.pendingWrite[0] = chunk.subarray(written);
+      break;
+    }
+    socket.data.pendingWrite.shift();
+  }
+}
+
+function writeToSocket(socket: Socket<SocketData>, data: Buffer | Uint8Array): void {
+  if (socket.data.pendingWrite.length > 0) {
+    socket.data.pendingWrite.push(Buffer.from(data));
+    return;
+  }
+  const written = socket.write(data);
+  if (written < data.length) {
+    socket.data.pendingWrite.push(Buffer.from(data).subarray(written));
+  }
 }
 
 export async function startDockerProxy(options: DockerProxyOptions): Promise<() => void> {
@@ -22,39 +49,43 @@ export async function startDockerProxy(options: DockerProxyOptions): Promise<() 
 
   for (const fwd of forwards) {
     try {
-      const server = Bun.listen<ProxySocket>({
+      const server = Bun.listen<SocketData>({
         hostname: '0.0.0.0',
         port: fwd.localPort,
         socket: {
-          open(socket) {
-            socket.data = { upstream: null, buffer: [] };
+          open(downstream) {
+            downstream.data = { peer: null, pendingWrite: [], peerClosed: false };
 
-            Bun.connect<{ downstream: Socket<ProxySocket> }>({
+            Bun.connect<SocketData>({
               hostname: containerIp,
               port: fwd.remotePort,
               socket: {
                 open(upstream) {
-                  socket.data.upstream = upstream;
-                  upstream.data = { downstream: socket };
-                  for (const chunk of socket.data.buffer) {
-                    upstream.write(chunk);
+                  upstream.data = { peer: downstream, pendingWrite: [], peerClosed: false };
+                  downstream.data.peer = upstream;
+                  for (const chunk of downstream.data.pendingWrite) {
+                    writeToSocket(upstream, chunk);
                   }
-                  socket.data.buffer = [];
+                  downstream.data.pendingWrite = [];
                 },
                 data(upstream, data) {
-                  const downstream = upstream.data?.downstream;
+                  const downstream = upstream.data.peer;
                   if (downstream) {
-                    downstream.write(data);
+                    writeToSocket(downstream, data);
                   }
                 },
+                drain(upstream) {
+                  flushPending(upstream);
+                },
                 close(upstream) {
-                  const downstream = upstream.data?.downstream;
-                  if (downstream) {
+                  upstream.data.peerClosed = true;
+                  const downstream = upstream.data.peer;
+                  if (downstream && downstream.data.pendingWrite.length === 0) {
                     downstream.end();
                   }
                 },
                 error(upstream, err) {
-                  const downstream = upstream.data?.downstream;
+                  const downstream = upstream.data.peer;
                   if (downstream) {
                     downstream.end();
                   }
@@ -62,25 +93,35 @@ export async function startDockerProxy(options: DockerProxyOptions): Promise<() 
                 },
               },
             }).catch((err) => {
-              socket.end();
+              downstream.end();
               if (onError) onError(err);
             });
           },
-          data(socket, data) {
-            if (socket.data.upstream) {
-              socket.data.upstream.write(data);
+          data(downstream, data) {
+            const upstream = downstream.data.peer;
+            if (upstream) {
+              writeToSocket(upstream, data);
             } else {
-              socket.data.buffer.push(Buffer.from(data));
+              downstream.data.pendingWrite.push(Buffer.from(data));
             }
           },
-          close(socket) {
-            if (socket.data.upstream) {
-              socket.data.upstream.end();
+          drain(downstream) {
+            flushPending(downstream);
+            if (downstream.data.peerClosed && downstream.data.pendingWrite.length === 0) {
+              downstream.end();
             }
           },
-          error(socket, err) {
-            if (socket.data.upstream) {
-              socket.data.upstream.end();
+          close(downstream) {
+            downstream.data.peerClosed = true;
+            const upstream = downstream.data.peer;
+            if (upstream && upstream.data.pendingWrite.length === 0) {
+              upstream.end();
+            }
+          },
+          error(downstream, err) {
+            const upstream = downstream.data.peer;
+            if (upstream) {
+              upstream.end();
             }
             if (onError) onError(err);
           },
