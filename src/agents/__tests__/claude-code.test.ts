@@ -156,5 +156,51 @@ describe('claudeCodeSync', () => {
 
       expect(parsed.mcpServers).toBeUndefined();
     });
+
+    it('renders local and remote MCP servers', async () => {
+      const context = createMockContext({
+        agentConfig: {
+          port: 7777,
+          credentials: { env: {}, files: {} },
+          scripts: {},
+          mcpServers: [
+            {
+              id: 'local-1',
+              name: 'local_server',
+              enabled: true,
+              type: 'local',
+              command: 'npx',
+              args: ['-y', 'my-local-mcp'],
+              env: { FOO: 'bar' },
+            },
+            {
+              id: 'remote-1',
+              name: 'remote_server',
+              enabled: true,
+              type: 'remote',
+              url: 'https://example.com/mcp',
+              headers: { Authorization: 'Bearer {env:API_KEY}' },
+            },
+          ],
+        },
+      });
+
+      const configs = await claudeCodeSync.getGeneratedConfigs(context);
+      const parsed = JSON.parse(configs[0].content);
+
+      expect(parsed.mcpServers).toMatchObject({
+        local_server: {
+          type: 'stdio',
+          command: 'npx',
+          args: ['-y', 'my-local-mcp'],
+          env: { FOO: 'bar' },
+        },
+        remote_server: {
+          type: 'http',
+          url: 'https://example.com/mcp',
+          headers: { Authorization: 'Bearer {env:API_KEY}' },
+        },
+      });
+    });
   });
 });

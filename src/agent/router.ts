@@ -99,9 +99,11 @@ const AgentTypeSchema = z.enum(['claude-code', 'opencode', 'codex']);
 
 const SkillAppliesToSchema = z.union([z.literal('all'), z.array(AgentTypeSchema)]);
 
+const SkillNameSchema = z.string().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/);
+
 const SkillDefinitionSchema = z.object({
   id: z.string(),
-  name: z.string(),
+  name: SkillNameSchema,
   description: z.string(),
   enabled: z.boolean(),
   appliesTo: SkillAppliesToSchema,

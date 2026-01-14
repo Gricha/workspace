@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, Save, Trash2 } from 'lucide-react';
 import type { McpServer } from '@shared/client-types';
@@ -6,6 +7,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { KeyValueEditor } from '@/components/KeyValueEditor';
 
 function newServer(): McpServer {
@@ -335,19 +337,24 @@ export function McpServers() {
                             }
                             className="font-mono"
                           />
-                          <Input
-                            value={(server.args || []).join(' ')}
-                            placeholder="args (space separated)"
-                            onChange={(e) =>
-                              setServer(index, {
-                                ...server,
-                                args: e.target.value
-                                  .split(' ')
-                                  .map((s) => s.trim())
-                                  .filter(Boolean),
-                              })
-                            }
+                          <Textarea
+                            value={JSON.stringify(server.args || [], null, 2)}
+                            placeholder='["-y", "@modelcontextprotocol/server-everything"]'
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                              try {
+                                const parsed = JSON.parse(e.target.value) as unknown;
+                                setServer(index, {
+                                  ...server,
+                                  args: Array.isArray(parsed)
+                                    ? parsed.filter((v): v is string => typeof v === 'string')
+                                    : server.args,
+                                });
+                              } catch {
+                                // ignore parse errors
+                              }
+                            }}
                             className="font-mono"
+                            rows={4}
                           />
                         </div>
 

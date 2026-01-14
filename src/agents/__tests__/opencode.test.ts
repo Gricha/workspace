@@ -124,13 +124,14 @@ describe('opencodeSync', () => {
       expect(parsed.model).toBe('opencode/claude-opus-4-5');
     });
 
-    it('does not include mcp when host has none', async () => {
+    it('does not include mcp when host has none and perry has none', async () => {
       const context = createMockContext({
         agentConfig: {
           port: 7777,
           credentials: { env: {}, files: {} },
           scripts: {},
           agents: { opencode: { zen_token: 'test-token' } },
+          mcpServers: [],
         },
       });
 
@@ -153,6 +154,7 @@ describe('opencodeSync', () => {
           credentials: { env: {}, files: {} },
           scripts: {},
           agents: { opencode: { zen_token: 'test-token' } },
+          mcpServers: [],
         },
         readHostFile: async (path) =>
           path === '~/.config/opencode/opencode.json' ? JSON.stringify(hostConfig) : null,
@@ -171,6 +173,7 @@ describe('opencodeSync', () => {
           credentials: { env: {}, files: {} },
           scripts: {},
           agents: { opencode: { zen_token: 'test-token' } },
+          mcpServers: [],
         },
         readHostFile: async (path) =>
           path === '~/.config/opencode/opencode.json' ? 'not valid json' : null,
@@ -192,6 +195,7 @@ describe('opencodeSync', () => {
           credentials: { env: {}, files: {} },
           scripts: {},
           agents: { opencode: { zen_token: 'test-token' } },
+          mcpServers: [],
         },
         readHostFile: async (path) =>
           path === '~/.config/opencode/opencode.json' ? JSON.stringify(hostConfig) : null,
@@ -201,6 +205,56 @@ describe('opencodeSync', () => {
       const parsed = JSON.parse(configs[0].content);
 
       expect(parsed.mcp).toBeUndefined();
+    });
+
+    it('renders local and remote MCP servers with auth', async () => {
+      const context = createMockContext({
+        agentConfig: {
+          port: 7777,
+          credentials: { env: {}, files: {} },
+          scripts: {},
+          agents: { opencode: { zen_token: 'test-token' } },
+          mcpServers: [
+            {
+              id: 'local-1',
+              name: 'local_server',
+              enabled: true,
+              type: 'local',
+              command: 'npx',
+              args: ['-y', 'my-local-mcp'],
+              env: { FOO: 'bar' },
+            },
+            {
+              id: 'remote-1',
+              name: 'remote_server',
+              enabled: true,
+              type: 'remote',
+              url: 'https://example.com/mcp',
+              headers: { Authorization: 'Bearer {env:API_KEY}' },
+              oauth: false,
+            },
+          ],
+        },
+      });
+
+      const configs = await opencodeSync.getGeneratedConfigs(context);
+      const parsed = JSON.parse(configs[0].content);
+
+      expect(parsed.mcp).toMatchObject({
+        local_server: {
+          type: 'local',
+          command: ['npx', '-y', 'my-local-mcp'],
+          enabled: true,
+          environment: { FOO: 'bar' },
+        },
+        remote_server: {
+          type: 'remote',
+          url: 'https://example.com/mcp',
+          enabled: true,
+          headers: { Authorization: 'Bearer {env:API_KEY}' },
+          oauth: false,
+        },
+      });
     });
   });
 });
