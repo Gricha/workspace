@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
+import { getUserWorkspaceNameError } from '../lib/workspace-name'
 import { parseNetworkError } from '../lib/network'
 import { useTheme } from '../contexts/ThemeContext'
 
@@ -23,6 +24,10 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
   const queryClient = useQueryClient()
   const [showCloneModal, setShowCloneModal] = useState(false)
   const [cloneName, setCloneName] = useState('')
+
+  const trimmedCloneName = cloneName.trim()
+  const cloneNameError = trimmedCloneName ? getUserWorkspaceNameError(trimmedCloneName) : null
+  const canClone = trimmedCloneName.length > 0 && !cloneNameError
 
   const { data: workspace, isLoading } = useQuery({
     queryKey: ['workspace', name],
@@ -75,9 +80,13 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
   })
 
   const handleClone = () => {
-    if (cloneName.trim()) {
-      cloneMutation.mutate(cloneName.trim())
+    const error = getUserWorkspaceNameError(cloneName)
+    if (error) {
+      Alert.alert('Error', error)
+      return
     }
+
+    cloneMutation.mutate(trimmedCloneName)
   }
 
   const handleDelete = () => {
@@ -259,6 +268,9 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
               autoCapitalize="none"
               autoCorrect={false}
             />
+            {cloneNameError && (
+              <Text style={{ color: colors.error, marginTop: 6, fontSize: 12 }}>{cloneNameError}</Text>
+            )}
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnCancel, { backgroundColor: colors.surfaceSecondary }]}
@@ -268,9 +280,14 @@ export function WorkspaceSettingsScreen({ route, navigation }: any) {
                 <Text style={[styles.modalBtnCancelText, { color: colors.text }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtn, styles.modalBtnConfirm, { backgroundColor: colors.accent }, !cloneName.trim() && [styles.modalBtnDisabled, { backgroundColor: colors.surfaceSecondary }]]}
+                style={[
+                  styles.modalBtn,
+                  styles.modalBtnConfirm,
+                  { backgroundColor: colors.accent },
+                  !canClone && [styles.modalBtnDisabled, { backgroundColor: colors.surfaceSecondary }],
+                ]}
                 onPress={handleClone}
-                disabled={!cloneName.trim() || cloneMutation.isPending}
+                disabled={!canClone || cloneMutation.isPending}
               >
                 {cloneMutation.isPending ? (
                   <ActivityIndicator size="small" color={colors.accentText} />

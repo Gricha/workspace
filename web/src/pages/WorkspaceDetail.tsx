@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { api, type SessionInfo, type AgentType, type PortMapping } from '@/lib/api'
 import { HOST_WORKSPACE_NAME } from '@shared/client-types'
+import { getUserWorkspaceNameError } from '@shared/workspace-name'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -406,6 +407,10 @@ export function WorkspaceDetail() {
   const [showCloneDialog, setShowCloneDialog] = useState(false)
   const [cloneName, setCloneName] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+
+  const trimmedCloneName = cloneName.trim()
+  const cloneNameError = trimmedCloneName ? getUserWorkspaceNameError(trimmedCloneName) : null
+  const canClone = trimmedCloneName.length > 0 && !cloneNameError
   const [debouncedQuery, setDebouncedQuery] = useState('')
 
   useEffect(() => {
@@ -1242,6 +1247,7 @@ export function WorkspaceDetail() {
               autoComplete="off"
               data-testid="clone-name-input"
             />
+            {cloneNameError && <p className="text-sm text-destructive mt-2">{cloneNameError}</p>}
             {cloneMutation.error && (
               <p className="text-sm text-destructive mt-2">
                 {(cloneMutation.error as Error).message || 'Clone failed'}
@@ -1252,11 +1258,11 @@ export function WorkspaceDetail() {
             <AlertDialogCancel onClick={() => setShowCloneDialog(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (cloneName.trim()) {
-                  cloneMutation.mutate(cloneName.trim())
+                if (canClone) {
+                  cloneMutation.mutate(trimmedCloneName)
                 }
               }}
-              disabled={!cloneName.trim() || cloneMutation.isPending}
+              disabled={!canClone || cloneMutation.isPending}
             >
               {cloneMutation.isPending ? (
                 <>

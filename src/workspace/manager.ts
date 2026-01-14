@@ -18,6 +18,7 @@ import {
 } from '../shared/constants';
 import { collectAuthorizedKeys, collectCopyKeys } from '../ssh/sync';
 import { syncAllAgents } from '../agents';
+import { assertUserWorkspaceName } from '../shared/workspace-name';
 
 async function findAvailablePort(start: number, end: number): Promise<number> {
   for (let port = start; port <= end; port++) {
@@ -373,6 +374,8 @@ export class WorkspaceManager {
   }
 
   async updateWorkerBinary(name: string): Promise<void> {
+    name = assertUserWorkspaceName(name);
+
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
       throw new Error(`Workspace '${name}' not found`);
@@ -719,6 +722,8 @@ export class WorkspaceManager {
   }
 
   async get(name: string): Promise<Workspace | null> {
+    name = assertUserWorkspaceName(name);
+
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
       return null;
@@ -730,11 +735,13 @@ export class WorkspaceManager {
   }
 
   async touch(name: string): Promise<Workspace | null> {
+    name = assertUserWorkspaceName(name);
     return this.state.touchWorkspace(name);
   }
 
   async create(options: CreateWorkspaceOptions): Promise<Workspace> {
-    const { name, clone, env } = options;
+    const { name: rawName, clone, env } = options;
+    const name = assertUserWorkspaceName(rawName);
     const containerName = getContainerName(name);
     const volumeName = `${VOLUME_PREFIX}${name}`;
 
@@ -836,6 +843,8 @@ export class WorkspaceManager {
     name: string,
     options?: { clone?: string; env?: Record<string, string> }
   ): Promise<Workspace> {
+    name = assertUserWorkspaceName(name);
+
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
       return this.create({ name, clone: options?.clone, env: options?.env });
@@ -939,6 +948,8 @@ export class WorkspaceManager {
   }
 
   async stop(name: string): Promise<Workspace> {
+    name = assertUserWorkspaceName(name);
+
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
       throw new Error(`Workspace '${name}' not found`);
@@ -963,6 +974,8 @@ export class WorkspaceManager {
   }
 
   async delete(name: string): Promise<void> {
+    name = assertUserWorkspaceName(name);
+
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
       throw new Error(`Workspace '${name}' not found`);
@@ -1007,6 +1020,8 @@ export class WorkspaceManager {
   }
 
   async getLogs(name: string, tail = 100): Promise<string> {
+    name = assertUserWorkspaceName(name);
+
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
       throw new Error(`Workspace '${name}' not found`);
@@ -1017,6 +1032,8 @@ export class WorkspaceManager {
   }
 
   async sync(name: string): Promise<void> {
+    name = assertUserWorkspaceName(name);
+
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
       throw new Error(`Workspace '${name}' not found`);
@@ -1032,6 +1049,8 @@ export class WorkspaceManager {
   }
 
   async setPortForwards(name: string, forwards: PortMapping[]): Promise<Workspace> {
+    name = assertUserWorkspaceName(name);
+
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
       throw new Error(`Workspace '${name}' not found`);
@@ -1043,6 +1062,8 @@ export class WorkspaceManager {
   }
 
   async getPortForwards(name: string): Promise<PortMapping[]> {
+    name = assertUserWorkspaceName(name);
+
     const workspace = await this.state.getWorkspace(name);
     if (!workspace) {
       throw new Error(`Workspace '${name}' not found`);
@@ -1051,6 +1072,9 @@ export class WorkspaceManager {
   }
 
   async clone(sourceName: string, cloneName: string): Promise<Workspace> {
+    sourceName = assertUserWorkspaceName(sourceName);
+    cloneName = assertUserWorkspaceName(cloneName);
+
     const source = await this.state.getWorkspace(sourceName);
     if (!source) {
       throw new Error(`Workspace '${sourceName}' not found`);
