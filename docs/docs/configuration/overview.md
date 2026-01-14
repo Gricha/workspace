@@ -56,6 +56,9 @@ Location: `~/.config/perry/config.json`
     ],
     "fail_on_error": false
   },
+  "tailscale": {
+    "authKey": "tskey-auth-..."
+  },
   "allowHostAccess": true
 }
 ```
@@ -110,4 +113,4 @@ perry config worker myserver.tail1234.ts.net
 - [Scripts](./scripts.md) - Run scripts after workspace starts
 - [GitHub](./github.md) - GitHub token and SSH key setup
 - [AI Agents](./ai-agents.md) - Claude Code, OpenCode, Codex CLI
-- [Tailscale](./tailscale.md) - Remote access via Tailscale
+- [Tailscale](./tailscale.md) - Remote agent access and workspace networking via Tailscale

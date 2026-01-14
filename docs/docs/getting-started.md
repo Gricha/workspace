@@ -62,6 +62,26 @@ You now have an isolated development environment with:
 - Docker support inside the container
 - All your configured credentials synced
 
+## Optional: Enable Tailscale Networking
+
+Want to access services running in your workspace from any device? Configure Tailscale:
+
+1. Generate an auth key at [Tailscale Admin Console](https://login.tailscale.com/admin/settings/keys)
+2. Go to **Settings > Tailscale** in the Web UI
+3. Paste your auth key and save
+
+Now workspaces get their own hostname on your tailnet:
+
+```bash
+# Access a dev server from any device
+curl http://perry-myproject:3000
+
+# SSH directly into workspace
+ssh workspace@perry-myproject
+```
+
+See [Tailscale Integration](./configuration/tailscale.md) for full details.
+
 ## Common Commands
 
 ```bash
