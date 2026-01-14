@@ -308,6 +308,7 @@ export class WorkspaceManager {
     await this.copyPerryWorker(containerName);
     await this.ensurePerryOnPath(containerName);
     await this.startWorkerServer(containerName, options);
+    await this.startOpenCodeServer(containerName);
     if (workspaceName) {
       await this.setupSSHKeys(containerName, workspaceName);
     }
@@ -489,6 +490,35 @@ export class WorkspaceManager {
     }
 
     console.warn(`[sync] Worker server failed to start in ${containerName}`);
+  }
+
+  private async startOpenCodeServer(containerName: string): Promise<void> {
+    const opencodeConfig = this.config.agents?.opencode?.server;
+    const hostname = opencodeConfig?.hostname ?? '0.0.0.0';
+    const username = opencodeConfig?.username;
+    const password = opencodeConfig?.password;
+
+    const env = {
+      ...(username ? { OPENCODE_SERVER_USERNAME: username } : {}),
+      ...(password ? { OPENCODE_SERVER_PASSWORD: password } : {}),
+    };
+
+    const startResult = await docker.execInContainer(
+      containerName,
+      [
+        'sh',
+        '-c',
+        'command -v opencode >/dev/null || exit 0; pgrep -a -f "opencode serve" >/dev/null && exit 0; nohup opencode serve --port 4096 --hostname "$1" > /tmp/opencode-server.log 2>&1 &',
+        'opencode',
+        hostname,
+      ],
+      { user: 'workspace', env }
+    );
+
+    if (startResult.exitCode !== 0) {
+      const details = startResult.stderr || startResult.stdout || 'unknown error';
+      console.warn(`[opencode] Failed to start server in ${containerName}: ${details}`);
+    }
   }
 
   private async runUserScripts(containerName: string): Promise<void> {
