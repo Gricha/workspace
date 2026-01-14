@@ -1,6 +1,5 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 
-
 // Ensure we don't accidentally spawn processes in unit tests.
 function stubEnsureOpenCodeServer() {
   return vi.fn(async () => 12345);
@@ -43,9 +42,8 @@ describe('OpenCode server config wiring', () => {
     }));
 
     // Import after mocks are registered.
-    const { OpenCodeAdapter: MockedAdapter } = await import(
-      '../../src/session-manager/adapters/opencode'
-    );
+    const { OpenCodeAdapter: MockedAdapter } =
+      await import('../../src/session-manager/adapters/opencode');
 
     const adapter = new MockedAdapter();
 
