@@ -32,6 +32,26 @@ interface OpenCodeServerEvent {
 const MESSAGE_TIMEOUT_MS = 30000;
 const SSE_TIMEOUT_MS = 10 * 60 * 1000;
 
+type OpenCodeModelParam = {
+  providerID: string;
+  modelID: string;
+};
+
+export function toOpenCodeModelParam(model: string): OpenCodeModelParam | null {
+  const trimmed = model.trim();
+  if (!trimmed) return null;
+
+  const slashIndex = trimmed.indexOf('/');
+  if (slashIndex === -1) return null;
+
+  const providerID = trimmed.slice(0, slashIndex);
+  const modelID = trimmed.slice(slashIndex + 1);
+
+  if (!providerID || !modelID) return null;
+
+  return { providerID, modelID };
+}
+
 export class OpenCodeAdapter implements AgentAdapter {
   readonly agentType = 'opencode' as const;
 
@@ -223,7 +243,10 @@ export class OpenCodeAdapter implements AgentAdapter {
 
     const payload: Record<string, unknown> = { parts: [{ type: 'text', text: message }] };
     if (this.model) {
-      payload.model = this.model;
+      const parsedModel = toOpenCodeModelParam(this.model);
+      if (parsedModel) {
+        payload.model = parsedModel;
+      }
     }
 
     if (this.isHost) {

@@ -83,7 +83,7 @@ describe('OpenCodeAdapter protocol', () => {
     );
     expect(promptCall).toBeTruthy();
     expect(promptCall?.json).toMatchObject({
-      model: 'opencode/gpt-5.1-codex',
+      model: { providerID: 'opencode', modelID: 'gpt-5.1-codex' },
       parts: [{ type: 'text', text: 'hello' }],
     });
   });
