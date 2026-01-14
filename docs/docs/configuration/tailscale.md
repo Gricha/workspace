@@ -147,13 +147,20 @@ http://myproject:3000  # Works from any device on your tailnet
 2. Click **Generate auth key**
 3. Configure the key:
    - **Reusable**: Yes (so multiple workspaces can use it)
-   - **Ephemeral**: No (so workspaces persist on your tailnet)
+   - **Ephemeral**: Yes (recommended) or No - see note below
    - **Tags**: Optional, for ACL control
    - **Expiration**: Set based on your security needs
 4. Copy the key (starts with `tskey-auth-`)
 
-:::tip
-For personal use, a reusable, non-ephemeral key with a long expiration works well. For teams, consider using tagged keys with ACLs.
+:::tip Ephemeral vs Non-Ephemeral Keys
+**Ephemeral keys (recommended)**: Workspaces auto-deregister from your tailnet after being offline for a period. This is ideal because:
+- Automatic cleanup if a workspace crashes or is force-removed
+- No orphaned devices cluttering your tailnet
+- Workspaces re-register automatically on every start
+
+**Non-ephemeral keys**: Workspaces persist on your tailnet even when stopped. Use this if you want to see offline workspaces in your Tailscale admin console.
+
+Perry always attempts to deregister workspaces on delete regardless of key type, but ephemeral keys provide a safety net for edge cases.
 :::
 
 #### 2. Configure Perry
@@ -390,9 +397,9 @@ Shows Tailscale status including DNS name and HTTPS URL if available.
 | Scenario | Behavior |
 |----------|----------|
 | No auth key configured | Workspaces don't join tailnet |
-| Auth key configured, workspace starting | Joins tailnet as `{prefix}{name}` (prefix is optional) |
-| Auth key configured, workspace stopping | Stays on tailnet (persists) |
-| Auth key configured, workspace deleted | Runs `tailscale logout`, removed from tailnet |
+| Auth key configured, workspace starting | Joins/re-joins tailnet as `{prefix}{name}` |
+| Auth key configured, workspace stopping | Depends on key type (ephemeral auto-removes after timeout) |
+| Auth key configured, workspace deleted | Perry runs `tailscale logout` for immediate removal |
 
 ## Advanced: Tailscale ACLs
 

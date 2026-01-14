@@ -57,13 +57,6 @@ async function ensureWorkspaceImage(): Promise<string> {
   );
 }
 
-function getTailscaleAuthKey(authKey: string): string {
-  if (!authKey.includes('?')) {
-    return authKey + '?ephemeral=false';
-  }
-  return authKey;
-}
-
 interface CopyCredentialOptions {
   source: string;
   dest: string;
@@ -593,7 +586,7 @@ export class WorkspaceManager {
         [
           'tailscale',
           'up',
-          `--authkey=${getTailscaleAuthKey(this.config.tailscale.authKey)}`,
+          `--authkey=${this.config.tailscale.authKey}`,
           `--hostname=${hostname}`,
           '--accept-routes',
           '--accept-dns=false',
@@ -760,7 +753,7 @@ export class WorkspaceManager {
       }
 
       if (this.config.tailscale?.enabled && this.config.tailscale?.authKey) {
-        containerEnv.TS_AUTHKEY = getTailscaleAuthKey(this.config.tailscale.authKey);
+        containerEnv.TS_AUTHKEY = this.config.tailscale.authKey;
       }
 
       const dockerVolumeName = `${VOLUME_PREFIX}${name}-docker`;
@@ -856,7 +849,7 @@ export class WorkspaceManager {
         }
 
         if (this.config.tailscale?.enabled && this.config.tailscale?.authKey) {
-          containerEnv.TS_AUTHKEY = getTailscaleAuthKey(this.config.tailscale.authKey);
+          containerEnv.TS_AUTHKEY = this.config.tailscale.authKey;
         }
 
         const dockerVolumeName = `${VOLUME_PREFIX}${name}-docker`;
@@ -1093,7 +1086,7 @@ export class WorkspaceManager {
       }
 
       if (this.config.tailscale?.enabled && this.config.tailscale?.authKey) {
-        containerEnv.TS_AUTHKEY = getTailscaleAuthKey(this.config.tailscale.authKey);
+        containerEnv.TS_AUTHKEY = this.config.tailscale.authKey;
       }
 
       const containerId = await docker.createContainer({

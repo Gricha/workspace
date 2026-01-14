@@ -159,7 +159,7 @@ export function TailscaleSettings() {
               className="font-mono"
             />
             <p className="text-xs text-muted-foreground">
-              Generate an auth key or OAuth client secret from the{' '}
+              Generate a reusable auth key from the{' '}
               <a
                 href="https://login.tailscale.com/admin/settings/keys"
                 target="_blank"
@@ -169,6 +169,7 @@ export function TailscaleSettings() {
                 Tailscale admin console
                 <ExternalLink className="h-3 w-3" />
               </a>
+              . Ephemeral keys recommended for automatic cleanup.
             </p>
           </div>
 
