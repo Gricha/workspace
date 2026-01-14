@@ -508,7 +508,7 @@ export class WorkspaceManager {
       [
         'sh',
         '-c',
-        'command -v opencode >/dev/null || exit 0; pgrep -a -f "opencode serve" >/dev/null && exit 0; nohup opencode serve --port 4096 --hostname "$1" > /tmp/opencode-server.log 2>&1 &',
+        'command -v opencode >/dev/null || exit 0; pgrep -f "opencode serve" | grep -v $$ >/dev/null && exit 0; nohup opencode serve --port 4096 --hostname "$1" > /tmp/opencode-server.log 2>&1 &',
         'opencode',
         hostname,
       ],
