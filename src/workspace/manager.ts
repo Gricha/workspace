@@ -569,6 +569,22 @@ export class WorkspaceManager {
     }
   }
 
+  private async waitForTailscaled(containerName: string, timeoutMs = 30000): Promise<boolean> {
+    const startTime = Date.now();
+    const interval = 1000;
+
+    while (Date.now() - startTime < timeoutMs) {
+      const result = await docker.execInContainer(containerName, ['tailscale', 'status'], {
+        user: 'root',
+      });
+      if (result.exitCode === 0 || result.stderr.includes('Logged out')) {
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, interval));
+    }
+    return false;
+  }
+
   private async setupTailscale(containerName: string, workspace: Workspace): Promise<void> {
     if (!this.config.tailscale?.enabled || !this.config.tailscale?.authKey) {
       workspace.tailscale = { status: 'none' };
@@ -579,6 +595,18 @@ export class WorkspaceManager {
     const hostname = prefix ? `${prefix}${workspace.name}` : workspace.name;
 
     try {
+      console.log(`[tailscale] Waiting for tailscaled to be ready...`);
+      const tailscaledReady = await this.waitForTailscaled(containerName);
+      if (!tailscaledReady) {
+        console.warn(`[tailscale] tailscaled did not become ready in time`);
+        workspace.tailscale = {
+          status: 'failed',
+          hostname,
+          error: 'tailscaled did not start in time',
+        };
+        return;
+      }
+
       console.log(`[tailscale] Setting up Tailscale for ${workspace.name} as ${hostname}...`);
 
       const result = await docker.execInContainer(
