@@ -84,7 +84,7 @@ export async function loadAgentConfig(configDir?: string): Promise<AgentConfig> 
         opencode: {
           ...config.agents?.opencode,
           server: {
-            hostname: config.agents?.opencode?.server?.hostname ?? '0.0.0.0',
+            hostname: config.agents?.opencode?.server?.hostname || '0.0.0.0',
             username: config.agents?.opencode?.server?.username,
             password: config.agents?.opencode?.server?.password,
           },

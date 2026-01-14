@@ -1,5 +1,6 @@
 import type { Subprocess } from 'bun';
 import { execInContainer } from '../../docker';
+import { Buffer } from 'buffer';
 
 export interface EnsureOpenCodeServerOptions {
   isHost: boolean;
@@ -185,9 +186,24 @@ async function findAvailablePortHost(): Promise<number> {
   return port;
 }
 
-async function isServerRunningHost(port: number): Promise<boolean> {
+async function isServerRunningHost(
+  port: number,
+  auth?: { username?: string; password?: string }
+): Promise<boolean> {
   try {
-    const response = await fetch(`http://localhost:${port}/session`, { method: 'GET' });
+    const headers: Record<string, string> = {};
+    if (auth?.password) {
+      const username = auth.username || 'opencode';
+      const token = Buffer.from(`${username}:${auth.password}`).toString('base64');
+      headers.Authorization = `Basic ${token}`;
+    }
+
+    const response = await fetch(`http://localhost:${port}/session`, {
+      method: 'GET',
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
+    });
+
+    // Authenticated servers may return 401 for this endpoint if unauth'd.
     return response.ok;
   } catch {
     return false;
@@ -207,7 +223,7 @@ async function ensureHostServer(options: {
   const key = projectPath ?? '';
 
   const cached = hostServerPorts.get(key);
-  if (cached && (await isServerRunningHost(cached))) {
+  if (cached && (await isServerRunningHost(cached, auth))) {
     return cached;
   }
 
@@ -239,7 +255,7 @@ async function ensureHostServer(options: {
 
     for (let i = 0; i < 30; i++) {
       await new Promise((resolve) => setTimeout(resolve, 500));
-      if (await isServerRunningHost(port)) {
+      if (await isServerRunningHost(port, auth)) {
         console.log(`[opencode] Server ready on port ${port}`);
         hostServerPorts.set(key, port);
         hostServerStarting.delete(key);
