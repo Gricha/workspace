@@ -8,6 +8,7 @@ import {
   ConnectionSettingsScreen,
   ThemeSettingsScreen,
   AgentsSettingsScreen,
+  GitHubSettingsScreen,
   EnvironmentSettingsScreen,
   FilesSettingsScreen,
   ScriptsSettingsScreen,
@@ -33,6 +34,7 @@ export function TabNavigator() {
       <Stack.Screen name="SettingsConnection" component={ConnectionSettingsScreen} />
       <Stack.Screen name="SettingsTheme" component={ThemeSettingsScreen} />
       <Stack.Screen name="SettingsAgents" component={AgentsSettingsScreen} />
+      <Stack.Screen name="SettingsGitHub" component={GitHubSettingsScreen} />
       <Stack.Screen name="SettingsEnvironment" component={EnvironmentSettingsScreen} />
       <Stack.Screen name="SettingsFiles" component={FilesSettingsScreen} />
       <Stack.Screen name="SettingsScripts" component={ScriptsSettingsScreen} />

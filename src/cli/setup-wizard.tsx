@@ -5,10 +5,27 @@ import { loadAgentConfig, saveAgentConfig, getConfigDir, ensureConfigDir } from 
 import { discoverSSHKeys } from '../ssh';
 import type { SSHKeyInfo } from '../shared/client-types';
 
-type Step = 'welcome' | 'agents' | 'claude' | 'opencode' | 'github' | 'ssh' | 'tailscale' | 'complete';
+type Step =
+  | 'welcome'
+  | 'agents'
+  | 'claude'
+  | 'opencode'
+  | 'github'
+  | 'ssh'
+  | 'tailscale'
+  | 'complete';
 type AgentId = 'claude' | 'opencode';
 
-const STEPS: Step[] = ['welcome', 'agents', 'claude', 'opencode', 'github', 'ssh', 'tailscale', 'complete'];
+const STEPS: Step[] = [
+  'welcome',
+  'agents',
+  'claude',
+  'opencode',
+  'github',
+  'ssh',
+  'tailscale',
+  'complete',
+];
 
 interface WizardState {
   selectedAgents: AgentId[];
@@ -496,7 +513,9 @@ function SetupWizard() {
               placeholder="tskey-auth-..."
               helpText="Generate at https://login.tailscale.com/admin/settings/keys (Reusable: Yes, Ephemeral: No)"
               value={state.tailscaleAuthKey}
-              onChange={(v: string) => setState((s: WizardState) => ({ ...s, tailscaleAuthKey: v }))}
+              onChange={(v: string) =>
+                setState((s: WizardState) => ({ ...s, tailscaleAuthKey: v }))
+              }
               onNext={nextStep}
               onBack={prevStep}
               optional

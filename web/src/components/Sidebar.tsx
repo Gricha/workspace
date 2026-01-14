@@ -12,6 +12,8 @@ import {
   Boxes,
   Wand2,
   Plug,
+  Github,
+  Network,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api, type WorkspaceInfo } from '@/lib/api';
@@ -38,15 +40,18 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     queryFn: api.getHostInfo,
   });
 
-  const settingsLinks = [
+  const workspaceLinks = [
     { to: '/settings/environment', label: 'Environment', icon: KeyRound },
-    { to: '/settings/agents', label: 'Configuration', icon: Settings },
     { to: '/settings/files', label: 'Files', icon: FolderSync },
+    { to: '/settings/ssh', label: 'SSH Keys', icon: KeyRound },
     { to: '/settings/scripts', label: 'Scripts', icon: Terminal },
     { to: '/settings/terminal', label: 'Terminal', icon: SquareTerminal },
-    { to: '/settings/ssh', label: 'SSH Keys', icon: KeyRound },
-    { to: '/skills', label: 'Skills', icon: Wand2 },
-    { to: '/mcp', label: 'MCP', icon: Plug },
+  ];
+
+  const integrationLinks = [
+    { to: '/settings/agents', label: 'AI Agents', icon: Settings },
+    { to: '/settings/github', label: 'GitHub', icon: Github },
+    { to: '/settings/tailscale', label: 'Tailscale', icon: Network },
   ];
 
   return (
@@ -142,24 +147,73 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
             </div>
           </nav>
 
-          {/* Settings Section - Sticky at bottom of scrollable area */}
-          <div className="flex-shrink-0 border-t px-3 py-2">
-            <div className="section-header">Settings</div>
-            <div className="space-y-0">
-              {settingsLinks.map((link) => (
+          {/* Settings Sections */}
+          <div className="flex-shrink-0 border-t px-3 py-2 space-y-3">
+            <div>
+              <div className="section-header">Workspace</div>
+              <div className="space-y-0">
+                {workspaceLinks.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className={cn(
+                      'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent',
+                      location.pathname === link.to && 'nav-active'
+                    )}
+                    onClick={() => isOpen && onToggle()}
+                  >
+                    <link.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>{link.label}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="section-header">Integrations</div>
+              <div className="space-y-0">
+                {integrationLinks.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className={cn(
+                      'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent',
+                      location.pathname === link.to && 'nav-active'
+                    )}
+                    onClick={() => isOpen && onToggle()}
+                  >
+                    <link.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>{link.label}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="space-y-0">
                 <Link
-                  key={link.to}
-                  to={link.to}
+                  to="/skills"
                   className={cn(
                     'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent',
-                    location.pathname === link.to && 'nav-active'
+                    location.pathname === '/skills' && 'nav-active'
                   )}
                   onClick={() => isOpen && onToggle()}
                 >
-                  <link.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{link.label}</span>
+                  <Wand2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Skills</span>
                 </Link>
-              ))}
+                <Link
+                  to="/mcp"
+                  className={cn(
+                    'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent',
+                    location.pathname === '/mcp' && 'nav-active'
+                  )}
+                  onClick={() => isOpen && onToggle()}
+                >
+                  <Plug className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>MCP</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

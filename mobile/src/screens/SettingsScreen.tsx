@@ -205,36 +205,15 @@ export function SettingsScreen({ navigation }: any) {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Agent Configuration</Text>
-          <View style={styles.navGroup}>
-            <NavigationRow
-              title="Coding Agents"
-              subtitle="Claude Code, OpenCode, GitHub"
-              onPress={() => navigation.navigate('SettingsAgents')}
-            />
-            <NavigationRow
-              title="Skills"
-              subtitle="SKILL.md files"
-              onPress={() => navigation.navigate('Skills')}
-            />
-            <NavigationRow
-              title="MCP Servers"
-              subtitle="Model Context Protocol"
-              onPress={() => navigation.navigate('Mcp')}
-            />
-          </View>
-        </View>
-
-        <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Workspace</Text>
           <View style={styles.navGroup}>
             <NavigationRow
-              title="Environment Variables"
-              subtitle="Injected into workspaces"
+              title="Environment"
+              subtitle="Environment variables"
               onPress={() => navigation.navigate('SettingsEnvironment')}
             />
             <NavigationRow
-              title="File Mappings"
+              title="Files"
               subtitle="SSH keys, configs"
               onPress={() => navigation.navigate('SettingsFiles')}
             />
@@ -247,6 +226,37 @@ export function SettingsScreen({ navigation }: any) {
               title="Sync"
               subtitle="Push to all workspaces"
               onPress={() => navigation.navigate('SettingsSync')}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Integrations</Text>
+          <View style={styles.navGroup}>
+            <NavigationRow
+              title="AI Agents"
+              subtitle="Claude Code, OpenCode"
+              onPress={() => navigation.navigate('SettingsAgents')}
+            />
+            <NavigationRow
+              title="GitHub"
+              subtitle="Personal access token"
+              onPress={() => navigation.navigate('SettingsGitHub')}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.navGroup}>
+            <NavigationRow
+              title="Skills"
+              subtitle="SKILL.md files"
+              onPress={() => navigation.navigate('Skills')}
+            />
+            <NavigationRow
+              title="MCP Servers"
+              subtitle="Model Context Protocol"
+              onPress={() => navigation.navigate('Mcp')}
             />
           </View>
         </View>
@@ -408,7 +418,6 @@ export function AgentsSettingsScreen({ navigation }: any) {
 
   const [opencodeZenToken, setOpencodeZenToken] = useState('');
   const [opencodeModel, setOpencodeModel] = useState('');
-  const [githubToken, setGithubToken] = useState('');
   const [claudeOAuthToken, setClaudeOAuthToken] = useState('');
   const [claudeModel, setClaudeModel] = useState('sonnet');
   const [hasChanges, setHasChanges] = useState(false);
@@ -418,7 +427,6 @@ export function AgentsSettingsScreen({ navigation }: any) {
     if (agents && !initialized) {
       setOpencodeZenToken(agents.opencode?.zen_token || '');
       setOpencodeModel(agents.opencode?.model || '');
-      setGithubToken(agents.github?.token || '');
       setClaudeOAuthToken(agents.claude_code?.oauth_token || '');
       setClaudeModel(agents.claude_code?.model || 'sonnet');
       setInitialized(true);
@@ -443,9 +451,6 @@ export function AgentsSettingsScreen({ navigation }: any) {
         zen_token: opencodeZenToken.trim() || undefined,
         model: opencodeModel || undefined,
       },
-      github: {
-        token: githubToken.trim() || undefined,
-      },
       claude_code: {
         oauth_token: claudeOAuthToken.trim() || undefined,
         model: claudeModel,
@@ -455,7 +460,7 @@ export function AgentsSettingsScreen({ navigation }: any) {
 
   if (isLoading) {
     return (
-      <ScreenWrapper title="Coding Agents" navigation={navigation}>
+      <ScreenWrapper title="AI Agents" navigation={navigation}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.accent} />
         </View>
@@ -464,7 +469,7 @@ export function AgentsSettingsScreen({ navigation }: any) {
   }
 
   return (
-    <ScreenWrapper title="Coding Agents" navigation={navigation}>
+    <ScreenWrapper title="AI Agents" navigation={navigation}>
       <Card>
         <Text style={[styles.cardTitle, { color: colors.text }]}>OpenCode</Text>
         <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
@@ -516,23 +521,6 @@ export function AgentsSettingsScreen({ navigation }: any) {
             setClaudeModel(m);
             setHasChanges(true);
           }}
-        />
-      </Card>
-
-      <Card>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>GitHub</Text>
-        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
-          Personal Access Token for git operations
-        </Text>
-        <SettingRow
-          label="Token"
-          value={githubToken}
-          placeholder="ghp_..."
-          onChangeText={(t) => {
-            setGithubToken(t);
-            setHasChanges(true);
-          }}
-          secureTextEntry
         />
       </Card>
 
@@ -1022,6 +1010,88 @@ export function AboutSettingsScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
         )}
+      </Card>
+    </ScreenWrapper>
+  );
+}
+
+export function GitHubSettingsScreen({ navigation }: any) {
+  const { colors } = useTheme();
+  const queryClient = useQueryClient();
+
+  const { data: agents, isLoading } = useQuery({
+    queryKey: ['agents'],
+    queryFn: api.getAgents,
+  });
+
+  const [githubToken, setGithubToken] = useState('');
+  const [hasChanges, setHasChanges] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (agents && !initialized) {
+      setGithubToken(agents.github?.token || '');
+      setInitialized(true);
+    }
+  }, [agents, initialized]);
+
+  const mutation = useMutation({
+    mutationFn: (data: CodingAgents) => api.updateAgents(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      setHasChanges(false);
+      Alert.alert('Success', 'GitHub token saved');
+    },
+    onError: (err) => {
+      Alert.alert('Error', parseNetworkError(err));
+    },
+  });
+
+  const handleSave = () => {
+    mutation.mutate({
+      ...agents,
+      github: { token: githubToken.trim() || undefined },
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <ScreenWrapper title="GitHub" navigation={navigation}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      </ScreenWrapper>
+    );
+  }
+
+  return (
+    <ScreenWrapper title="GitHub" navigation={navigation}>
+      <Card>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Personal Access Token</Text>
+        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
+          Used for git operations. Injected as GITHUB_TOKEN.
+        </Text>
+        <SettingRow
+          label="Token"
+          value={githubToken}
+          placeholder="ghp_... or github_pat_..."
+          onChangeText={(t) => {
+            setGithubToken(t);
+            setHasChanges(true);
+          }}
+          secureTextEntry
+        />
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: colors.accent }, !hasChanges && styles.saveButtonDisabled]}
+          onPress={handleSave}
+          disabled={!hasChanges || mutation.isPending}
+        >
+          {mutation.isPending ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.saveButtonText}>Save</Text>
+          )}
+        </TouchableOpacity>
       </Card>
     </ScreenWrapper>
   );
