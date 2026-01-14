@@ -219,17 +219,60 @@ export class ApiClient {
   }
 }
 
-export function createApiClient(worker: string, port?: number, timeoutMs?: number): ApiClient {
-  let baseUrl: string;
+function parsePort(value: string): number | null {
+  if (!/^\d{1,5}$/.test(value)) return null;
+  const port = Number(value);
+  if (port < 1 || port > 65535) return null;
+  return port;
+}
 
-  if (worker.includes('://')) {
-    baseUrl = worker;
-  } else if (worker.includes(':')) {
-    baseUrl = `http://${worker}`;
-  } else {
-    const effectivePort = port || DEFAULT_AGENT_PORT;
-    baseUrl = `http://${worker}:${effectivePort}`;
+function countColons(value: string): number {
+  let count = 0;
+  for (const ch of value) {
+    if (ch === ':') count++;
+  }
+  return count;
+}
+
+function formatWorkerBaseUrl(worker: string, port?: number): string {
+  const trimmed = worker.trim();
+  const effectivePort = port || DEFAULT_AGENT_PORT;
+
+  if (trimmed.includes('://')) {
+    return trimmed;
   }
 
+  if (trimmed.startsWith('[')) {
+    if (trimmed.includes(']:')) {
+      return `http://${trimmed}`;
+    }
+    if (trimmed.endsWith(']')) {
+      return `http://${trimmed}:${effectivePort}`;
+    }
+    return `http://${trimmed}`;
+  }
+
+  const colonCount = countColons(trimmed);
+  if (colonCount === 0) {
+    return `http://${trimmed}:${effectivePort}`;
+  }
+
+  if (colonCount === 1) {
+    return `http://${trimmed}`;
+  }
+
+  const match = trimmed.match(/^(.*):(\d{1,5})$/);
+  if (match) {
+    const parsed = parsePort(match[2]);
+    if (parsed) {
+      return `http://[${match[1]}]:${parsed}`;
+    }
+  }
+
+  return `http://[${trimmed}]:${effectivePort}`;
+}
+
+export function createApiClient(worker: string, port?: number, timeoutMs?: number): ApiClient {
+  const baseUrl = formatWorkerBaseUrl(worker, port);
   return new ApiClient({ baseUrl, timeout: timeoutMs });
 }

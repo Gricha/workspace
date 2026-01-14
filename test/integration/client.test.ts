@@ -197,4 +197,20 @@ describe('createApiClient', () => {
 
     expect(url).toBe('ws://my-worker.local:8080/rpc/terminal/test-workspace');
   });
+
+  it('generates correct terminal URL for IPv6 host', () => {
+    const client = createApiClient('fd01:10:100:0:c985:2a19:9f22:c84a');
+    const url = client.getTerminalUrl('test-workspace');
+
+    expect(url).toBe('ws://[fd01:10:100:0:c985:2a19:9f22:c84a]:7391/rpc/terminal/test-workspace');
+    expect(() => new URL(url)).not.toThrow();
+  });
+
+  it('generates correct terminal URL for IPv6 host with port', () => {
+    const client = createApiClient('fd01:10:100:0:c985:2a19:9f22:c84a:7391');
+    const url = client.getTerminalUrl('test-workspace');
+
+    expect(url).toBe('ws://[fd01:10:100:0:c985:2a19:9f22:c84a]:7391/rpc/terminal/test-workspace');
+    expect(() => new URL(url)).not.toThrow();
+  });
 });

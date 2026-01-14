@@ -147,7 +147,15 @@ export function isDemoMode(): boolean {
 }
 
 function normalizeHost(host: string): string {
-  return host.trim().toLowerCase();
+  const trimmed = host.trim().toLowerCase();
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) return trimmed;
+
+  const colonCount = (trimmed.match(/:/g) || []).length;
+  if (colonCount > 1) {
+    return `[${trimmed}]`;
+  }
+
+  return trimmed;
 }
 
 function resolveMode(host: string, storedMode?: ServerMode): ServerMode {
@@ -162,7 +170,7 @@ export async function loadServerConfig(): Promise<ServerConfig | null> {
   const config = JSON.parse(stored) as ServerConfig;
   const mode = resolveMode(config.host, config.mode);
 
-  baseUrl = `http://${config.host}:${config.port}`;
+  baseUrl = `http://${normalizeHost(config.host)}:${config.port}`;
   client = createClient();
   setServerMode(mode);
   setUserContext(baseUrl);
@@ -176,7 +184,7 @@ export async function saveServerConfig(host: string, port: number = DEFAULT_PORT
 
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 
-  baseUrl = `http://${host}:${port}`;
+  baseUrl = `http://${normalizeHost(host)}:${port}`;
   client = createClient();
   setServerMode(mode);
   setUserContext(baseUrl);
