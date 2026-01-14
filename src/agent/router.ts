@@ -5,6 +5,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { AgentConfig } from '../shared/types';
 import { HOST_WORKSPACE_NAME } from '../shared/client-types';
+import { AnyWorkspaceNameSchema, UserWorkspaceNameSchema } from '../shared/workspace-name';
 import { getDockerVersion, execInContainer, getContainerName, type ExecResult } from '../docker';
 import { createWorkerClient } from '../worker/client';
 import type { WorkspaceManager } from '../workspace/manager';
@@ -207,31 +208,33 @@ export function createRouter(ctx: RouterContext) {
     return ctx.workspaces.list();
   });
 
-  const getWorkspace = os.input(z.object({ name: z.string() })).handler(async ({ input }) => {
-    const workspace = await ctx.workspaces.get(input.name);
-    if (!workspace) {
-      throw new ORPCError('NOT_FOUND', { message: 'Workspace not found' });
-    }
-
-    let workerVersion: string | null = null;
-    if (workspace.status === 'running') {
-      try {
-        const containerName = getContainerName(input.name);
-        const client = await createWorkerClient(containerName);
-        const health = await client.health();
-        workerVersion = health.version;
-      } catch {
-        // Worker not reachable
+  const getWorkspace = os
+    .input(z.object({ name: UserWorkspaceNameSchema }))
+    .handler(async ({ input }) => {
+      const workspace = await ctx.workspaces.get(input.name);
+      if (!workspace) {
+        throw new ORPCError('NOT_FOUND', { message: 'Workspace not found' });
       }
-    }
 
-    return { ...workspace, workerVersion };
-  });
+      let workerVersion: string | null = null;
+      if (workspace.status === 'running') {
+        try {
+          const containerName = getContainerName(input.name);
+          const client = await createWorkerClient(containerName);
+          const health = await client.health();
+          workerVersion = health.version;
+        } catch {
+          // Worker not reachable
+        }
+      }
+
+      return { ...workspace, workerVersion };
+    });
 
   const createWorkspace = os
     .input(
       z.object({
-        name: z.string(),
+        name: UserWorkspaceNameSchema,
         clone: z.string().optional(),
         env: z.record(z.string(), z.string()).optional(),
       })
@@ -245,20 +248,22 @@ export function createRouter(ctx: RouterContext) {
       }
     });
 
-  const deleteWorkspace = os.input(z.object({ name: z.string() })).handler(async ({ input }) => {
-    try {
-      ctx.terminalServer.closeConnectionsForWorkspace(input.name);
-      await ctx.workspaces.delete(input.name);
-      return { success: true };
-    } catch (err) {
-      mapErrorToORPC(err, 'Failed to delete workspace');
-    }
-  });
+  const deleteWorkspace = os
+    .input(z.object({ name: UserWorkspaceNameSchema }))
+    .handler(async ({ input }) => {
+      try {
+        ctx.terminalServer.closeConnectionsForWorkspace(input.name);
+        await ctx.workspaces.delete(input.name);
+        return { success: true };
+      } catch (err) {
+        mapErrorToORPC(err, 'Failed to delete workspace');
+      }
+    });
 
   const startWorkspace = os
     .input(
       z.object({
-        name: z.string(),
+        name: UserWorkspaceNameSchema,
         clone: z.string().optional(),
         env: z.record(z.string(), z.string()).optional(),
       })
@@ -276,7 +281,7 @@ export function createRouter(ctx: RouterContext) {
     });
 
   const stopWorkspace = os
-    .input(z.object({ name: z.string() }))
+    .input(z.object({ name: UserWorkspaceNameSchema }))
     .output(WorkspaceInfoSchema)
     .handler(async ({ input }) => {
       try {
@@ -288,7 +293,7 @@ export function createRouter(ctx: RouterContext) {
     });
 
   const getLogs = os
-    .input(z.object({ name: z.string(), tail: z.number().optional().default(100) }))
+    .input(z.object({ name: UserWorkspaceNameSchema, tail: z.number().optional().default(100) }))
     .handler(async ({ input }) => {
       try {
         return await ctx.workspaces.getLogs(input.name, input.tail);
@@ -297,14 +302,16 @@ export function createRouter(ctx: RouterContext) {
       }
     });
 
-  const syncWorkspace = os.input(z.object({ name: z.string() })).handler(async ({ input }) => {
-    try {
-      await ctx.workspaces.sync(input.name);
-      return { success: true };
-    } catch (err) {
-      mapErrorToORPC(err, 'Failed to sync workspace');
-    }
-  });
+  const syncWorkspace = os
+    .input(z.object({ name: UserWorkspaceNameSchema }))
+    .handler(async ({ input }) => {
+      try {
+        await ctx.workspaces.sync(input.name);
+        return { success: true };
+      } catch (err) {
+        mapErrorToORPC(err, 'Failed to sync workspace');
+      }
+    });
 
   const syncAllWorkspaces = os.handler(async () => {
     const workspaces = await ctx.workspaces.list();
@@ -327,17 +334,19 @@ export function createRouter(ctx: RouterContext) {
     };
   });
 
-  const updateWorker = os.input(z.object({ name: z.string() })).handler(async ({ input }) => {
-    try {
-      await ctx.workspaces.updateWorkerBinary(input.name);
-      return { success: true };
-    } catch (err) {
-      mapErrorToORPC(err, 'Failed to update worker');
-    }
-  });
+  const updateWorker = os
+    .input(z.object({ name: UserWorkspaceNameSchema }))
+    .handler(async ({ input }) => {
+      try {
+        await ctx.workspaces.updateWorkerBinary(input.name);
+        return { success: true };
+      } catch (err) {
+        mapErrorToORPC(err, 'Failed to update worker');
+      }
+    });
 
   const touchWorkspace = os
-    .input(z.object({ name: z.string() }))
+    .input(z.object({ name: UserWorkspaceNameSchema }))
     .output(WorkspaceInfoSchema)
     .handler(async ({ input }) => {
       const workspace = await ctx.workspaces.touch(input.name);
@@ -348,7 +357,7 @@ export function createRouter(ctx: RouterContext) {
     });
 
   const getPortForwards = os
-    .input(z.object({ name: z.string() }))
+    .input(z.object({ name: UserWorkspaceNameSchema }))
     .output(z.object({ forwards: z.array(PortMappingSchema) }))
     .handler(async ({ input }) => {
       try {
@@ -360,7 +369,7 @@ export function createRouter(ctx: RouterContext) {
     });
 
   const setPortForwards = os
-    .input(z.object({ name: z.string(), forwards: z.array(PortMappingSchema) }))
+    .input(z.object({ name: UserWorkspaceNameSchema, forwards: z.array(PortMappingSchema) }))
     .output(WorkspaceInfoSchema)
     .handler(async ({ input }) => {
       try {
@@ -373,8 +382,8 @@ export function createRouter(ctx: RouterContext) {
   const cloneWorkspace = os
     .input(
       z.object({
-        sourceName: z.string(),
-        cloneName: z.string(),
+        sourceName: UserWorkspaceNameSchema,
+        cloneName: UserWorkspaceNameSchema,
       })
     )
     .output(WorkspaceInfoSchema)
@@ -389,7 +398,7 @@ export function createRouter(ctx: RouterContext) {
   const execInWorkspace = os
     .input(
       z.object({
-        name: z.string(),
+        name: UserWorkspaceNameSchema,
         command: z.union([z.string(), z.array(z.string())]),
         timeout: z.number().optional(),
       })
@@ -916,7 +925,7 @@ export function createRouter(ctx: RouterContext) {
   const listSessions = os
     .input(
       z.object({
-        workspaceName: z.string(),
+        workspaceName: AnyWorkspaceNameSchema,
         agentType: z.enum(['claude-code', 'opencode', 'codex']).optional(),
         limit: z.number().optional().default(50),
         offset: z.number().optional().default(0),
@@ -929,7 +938,7 @@ export function createRouter(ctx: RouterContext) {
   const getSession = os
     .input(
       z.object({
-        workspaceName: z.string(),
+        workspaceName: AnyWorkspaceNameSchema,
         sessionId: z.string(),
         agentType: z.enum(['claude-code', 'opencode', 'codex']).optional(),
         projectPath: z.string().optional(),
@@ -1022,7 +1031,7 @@ export function createRouter(ctx: RouterContext) {
   const renameSession = os
     .input(
       z.object({
-        workspaceName: z.string(),
+        workspaceName: AnyWorkspaceNameSchema,
         sessionId: z.string(),
         name: z.string().min(1).max(200),
       })
@@ -1035,7 +1044,7 @@ export function createRouter(ctx: RouterContext) {
   const clearSessionName = os
     .input(
       z.object({
-        workspaceName: z.string(),
+        workspaceName: AnyWorkspaceNameSchema,
         sessionId: z.string(),
       })
     )
@@ -1058,7 +1067,7 @@ export function createRouter(ctx: RouterContext) {
   const recordSessionAccess = os
     .input(
       z.object({
-        workspaceName: z.string(),
+        workspaceName: AnyWorkspaceNameSchema,
         sessionId: z.string(),
         agentType: z.enum(['claude-code', 'opencode', 'codex']),
       })
@@ -1071,7 +1080,7 @@ export function createRouter(ctx: RouterContext) {
   const deleteSession = os
     .input(
       z.object({
-        workspaceName: z.string(),
+        workspaceName: AnyWorkspaceNameSchema,
         sessionId: z.string(),
         agentType: z.enum(['claude-code', 'opencode', 'codex']),
       })
@@ -1138,7 +1147,7 @@ export function createRouter(ctx: RouterContext) {
   const searchSessions = os
     .input(
       z.object({
-        workspaceName: z.string(),
+        workspaceName: AnyWorkspaceNameSchema,
         query: z.string().min(1).max(500),
       })
     )
@@ -1355,7 +1364,7 @@ export function createRouter(ctx: RouterContext) {
     .input(
       z.object({
         agentType: z.enum(['claude-code', 'opencode']),
-        workspaceName: z.string().optional(),
+        workspaceName: AnyWorkspaceNameSchema.optional(),
       })
     )
     .handler(async ({ input }) => {
@@ -1416,7 +1425,7 @@ export function createRouter(ctx: RouterContext) {
   const listLiveSessions = os
     .input(
       z.object({
-        workspaceName: z.string().optional(),
+        workspaceName: AnyWorkspaceNameSchema.optional(),
       })
     )
     .handler(async ({ input }) => {
@@ -1463,7 +1472,7 @@ export function createRouter(ctx: RouterContext) {
   const startLiveSession = os
     .input(
       z.object({
-        workspaceName: z.string(),
+        workspaceName: AnyWorkspaceNameSchema,
         agentType: LiveAgentTypeSchema,
         sessionId: z.string().optional(),
         agentSessionId: z.string().optional(),

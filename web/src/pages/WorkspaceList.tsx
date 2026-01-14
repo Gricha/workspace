@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, RefreshCw, Boxes, ChevronRight, Sparkles, Monitor, AlertTriangle, Shield } from 'lucide-react'
 import { api, type WorkspaceInfo, type CreateWorkspaceRequest, type HostInfo } from '@/lib/api'
 import { HOST_WORKSPACE_NAME } from '@shared/client-types'
+import { getUserWorkspaceNameError } from '@shared/workspace-name'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -162,6 +163,10 @@ export function WorkspaceList() {
   const [newName, setNewName] = useState('')
   const [newRepo, setNewRepo] = useState('')
 
+  const trimmedNewName = newName.trim()
+  const newNameError = trimmedNewName ? getUserWorkspaceNameError(trimmedNewName) : null
+  const canCreate = trimmedNewName.length > 0 && !newNameError
+
   const { data: workspaces, isLoading, error, refetch } = useQuery({
     queryKey: ['workspaces'],
     queryFn: api.listWorkspaces,
@@ -184,9 +189,10 @@ export function WorkspaceList() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newName.trim()) return
+    if (!canCreate) return
+
     createMutation.mutate({
-      name: newName.trim(),
+      name: trimmedNewName,
       clone: newRepo.trim() || undefined,
     })
   }
@@ -268,6 +274,7 @@ export function WorkspaceList() {
                   placeholder="my-project"
                   autoFocus
                 />
+                {newNameError && <p className="text-sm text-destructive">{newNameError}</p>}
               </div>
               <RepoSelector
                 value={newRepo}
@@ -275,7 +282,7 @@ export function WorkspaceList() {
                 placeholder="https://github.com/user/repo"
               />
               <div className="flex gap-2 pt-2">
-                <Button type="submit" disabled={createMutation.isPending || !newName.trim()}>
+                <Button type="submit" disabled={createMutation.isPending || !canCreate}>
                   {createMutation.isPending ? 'Creating...' : 'Create Workspace'}
                 </Button>
                 <Button

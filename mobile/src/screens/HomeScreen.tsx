@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, WorkspaceInfo, HOST_WORKSPACE_NAME, CreateWorkspaceRequest } from '../lib/api'
+import { getUserWorkspaceNameError } from '../lib/workspace-name'
 import { useNetwork, parseNetworkError } from '../lib/network'
 import { useTheme } from '../contexts/ThemeContext'
 import { RepoSelector } from '../components/RepoSelector'
@@ -146,6 +147,10 @@ export function HomeScreen() {
   const [newName, setNewName] = useState('')
   const [newRepo, setNewRepo] = useState('')
 
+  const trimmedNewName = newName.trim()
+  const newNameError = trimmedNewName ? getUserWorkspaceNameError(trimmedNewName) : null
+  const canCreate = trimmedNewName.length > 0 && !newNameError
+
   const { data: workspaces, isLoading, refetch, isRefetching, error } = useQuery({
     queryKey: ['workspaces'],
     queryFn: api.listWorkspaces,
@@ -192,10 +197,12 @@ export function HomeScreen() {
 
   const handleCreate = () => {
     const name = newName.trim()
-    if (!name) {
-      Alert.alert('Error', 'Please enter a workspace name')
+    const error = getUserWorkspaceNameError(name)
+    if (error) {
+      Alert.alert('Error', error)
       return
     }
+
     createMutation.mutate({
       name,
       clone: newRepo.trim() || undefined,
@@ -307,19 +314,25 @@ export function HomeScreen() {
               <Text style={[styles.modalCancelText, { color: colors.accent }]}>Cancel</Text>
             </TouchableOpacity>
             <Text style={[styles.modalTitle, { color: colors.text }]}>New Workspace</Text>
-            <TouchableOpacity
-              onPress={handleCreate}
-              style={styles.modalCreateBtn}
-              disabled={createMutation.isPending || !newName.trim()}
-            >
-              {createMutation.isPending ? (
-                <ActivityIndicator size="small" color={colors.accent} />
-              ) : (
-                <Text style={[styles.modalCreateText, { color: colors.accent }, !newName.trim() && { color: colors.textMuted }]}>
-                  Create
-                </Text>
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleCreate}
+                style={styles.modalCreateBtn}
+                disabled={createMutation.isPending || !canCreate}
+              >
+                {createMutation.isPending ? (
+                  <ActivityIndicator size="small" color={colors.accent} />
+                ) : (
+                  <Text
+                    style={[
+                      styles.modalCreateText,
+                      { color: colors.accent },
+                      !canCreate && { color: colors.textMuted },
+                    ]}
+                  >
+                    Create
+                  </Text>
+                )}
+              </TouchableOpacity>
           </View>
           <View style={styles.modalContent}>
             <View style={styles.inputGroup}>
@@ -334,6 +347,9 @@ export function HomeScreen() {
                 autoCorrect={false}
                 autoFocus
               />
+              {newNameError && (
+                <Text style={{ color: colors.error, marginTop: 6, fontSize: 12 }}>{newNameError}</Text>
+              )}
             </View>
             <RepoSelector
               value={newRepo}

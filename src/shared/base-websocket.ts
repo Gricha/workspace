@@ -3,6 +3,8 @@ import { Duplex } from 'stream';
 import { createHash } from 'crypto';
 import { WebSocket } from 'ws';
 
+import { isValidWorkspaceName } from './workspace-name';
+
 const WEBSOCKET_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 export interface BaseConnection {
@@ -88,6 +90,12 @@ export abstract class BaseWebSocketServer<TConnection extends BaseConnection> {
     head: Buffer,
     workspaceName: string
   ): Promise<void> {
+    if (!isValidWorkspaceName(workspaceName, { allowHost: true })) {
+      socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
+      socket.end();
+      return;
+    }
+
     const running = await this.isWorkspaceRunning(workspaceName);
     if (!running) {
       socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
@@ -105,6 +113,11 @@ export abstract class BaseWebSocketServer<TConnection extends BaseConnection> {
     const workspaceName = ws.workspaceName;
     if (!workspaceName) {
       ws.close(1008, 'Missing workspace name');
+      return;
+    }
+
+    if (!isValidWorkspaceName(workspaceName, { allowHost: true })) {
+      ws.close(1008, 'Invalid workspace name');
       return;
     }
 
