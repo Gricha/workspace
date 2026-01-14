@@ -206,11 +206,35 @@ describe('createApiClient', () => {
     expect(() => new URL(url)).not.toThrow();
   });
 
-  it('generates correct terminal URL for IPv6 host with port', () => {
-    const client = createApiClient('fd01:10:100:0:c985:2a19:9f22:c84a:7391');
+  it('generates correct terminal URL for IPv6 host with custom port argument', () => {
+    const client = createApiClient('fd01:10:100:0:c985:2a19:9f22:c84a', 8080);
     const url = client.getTerminalUrl('test-workspace');
 
-    expect(url).toBe('ws://[fd01:10:100:0:c985:2a19:9f22:c84a]:7391/rpc/terminal/test-workspace');
+    expect(url).toBe('ws://[fd01:10:100:0:c985:2a19:9f22:c84a]:8080/rpc/terminal/test-workspace');
+    expect(() => new URL(url)).not.toThrow();
+  });
+
+  it('generates correct terminal URL for bracketed IPv6 host with port', () => {
+    const client = createApiClient('[fd01:10:100:0:c985:2a19:9f22:c84a]:8080');
+    const url = client.getTerminalUrl('test-workspace');
+
+    expect(url).toBe('ws://[fd01:10:100:0:c985:2a19:9f22:c84a]:8080/rpc/terminal/test-workspace');
+    expect(() => new URL(url)).not.toThrow();
+  });
+
+  it('does not misparse compressed IPv6 as port', () => {
+    const client = createApiClient('::1');
+    const url = client.getTerminalUrl('test-workspace');
+
+    expect(url).toBe('ws://[::1]:7391/rpc/terminal/test-workspace');
+    expect(() => new URL(url)).not.toThrow();
+  });
+
+  it('does not misparse IPv6 hextet as port', () => {
+    const client = createApiClient('fe80::5678');
+    const url = client.getTerminalUrl('test-workspace');
+
+    expect(url).toBe('ws://[fe80::5678]:7391/rpc/terminal/test-workspace');
     expect(() => new URL(url)).not.toThrow();
   });
 });

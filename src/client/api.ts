@@ -219,13 +219,6 @@ export class ApiClient {
   }
 }
 
-function parsePort(value: string): number | null {
-  if (!/^\d{1,5}$/.test(value)) return null;
-  const port = Number(value);
-  if (port < 1 || port > 65535) return null;
-  return port;
-}
-
 function countColons(value: string): number {
   let count = 0;
   for (const ch of value) {
@@ -242,6 +235,7 @@ function formatWorkerBaseUrl(worker: string, port?: number): string {
     return trimmed;
   }
 
+  // Bracketed IPv6 (optionally with port).
   if (trimmed.startsWith('[')) {
     if (trimmed.includes(']:')) {
       return `http://${trimmed}`;
@@ -257,18 +251,14 @@ function formatWorkerBaseUrl(worker: string, port?: number): string {
     return `http://${trimmed}:${effectivePort}`;
   }
 
+  // Hostname:port or IPv4:port.
   if (colonCount === 1) {
     return `http://${trimmed}`;
   }
 
-  const match = trimmed.match(/^(.*):(\d{1,5})$/);
-  if (match) {
-    const parsed = parsePort(match[2]);
-    if (parsed) {
-      return `http://[${match[1]}]:${parsed}`;
-    }
-  }
-
+  // Bracketless IPv6 literal. We cannot safely infer an explicit port here
+  // because addresses like `::1` or `fe80::5678` end with decimal digits.
+  // If a non-default port is needed, require bracket form: `[fd01::1]:7391`.
   return `http://[${trimmed}]:${effectivePort}`;
 }
 
