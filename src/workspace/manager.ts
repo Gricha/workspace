@@ -593,7 +593,7 @@ export class WorkspaceManager {
         [
           'tailscale',
           'up',
-          `--authkey=${this.config.tailscale.authKey}`,
+          `--authkey=${getTailscaleAuthKey(this.config.tailscale.authKey)}`,
           `--hostname=${hostname}`,
           '--accept-routes',
           '--accept-dns=false',
@@ -1092,6 +1092,10 @@ export class WorkspaceManager {
         containerEnv.WORKSPACE_REPO_URL = workspace.repo;
       }
 
+      if (this.config.tailscale?.enabled && this.config.tailscale?.authKey) {
+        containerEnv.TS_AUTHKEY = getTailscaleAuthKey(this.config.tailscale.authKey);
+      }
+
       const containerId = await docker.createContainer({
         name: cloneContainerName,
         image: workspaceImage,
@@ -1122,6 +1126,9 @@ export class WorkspaceManager {
       await this.state.setWorkspace(workspace);
 
       await this.runUserScripts(cloneContainerName);
+
+      await this.setupTailscale(cloneContainerName, workspace);
+      await this.state.setWorkspace(workspace);
 
       return workspace;
     } catch (err) {
