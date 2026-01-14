@@ -207,7 +207,22 @@ program
       const client = await getClient();
       console.log(`Starting workspace '${name}'...`);
 
-      const workspace = await client.startWorkspace(name, { clone: options.clone });
+      let workspace;
+      // Check if workspace exists first
+      const existingWorkspace = await client.getWorkspace(name).catch(() => null);
+
+      if (!existingWorkspace) {
+        // Workspace doesn't exist - use createWorkspace (same as web UI)
+        workspace = await client.createWorkspace({ name, clone: options.clone });
+      } else {
+        // Workspace exists - just start it (clone option is ignored for existing workspaces)
+        if (options.clone) {
+          console.warn(
+            `Warning: --clone option is ignored because workspace '${name}' already exists.`
+          );
+        }
+        workspace = await client.startWorkspace(name);
+      }
 
       console.log(`Workspace '${workspace.name}' started.`);
       console.log(`  Status: ${workspace.status}`);
