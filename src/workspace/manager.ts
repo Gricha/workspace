@@ -577,7 +577,8 @@ export class WorkspaceManager {
       const result = await docker.execInContainer(containerName, ['tailscale', 'status'], {
         user: 'root',
       });
-      if (result.exitCode === 0 || result.stderr.includes('Logged out')) {
+      const output = result.stdout + result.stderr;
+      if (result.exitCode === 0 || output.includes('Logged out')) {
         return true;
       }
       await new Promise((resolve) => setTimeout(resolve, interval));
