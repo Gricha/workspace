@@ -3,7 +3,17 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { WorkspaceDetailScreen } from '../screens/WorkspaceDetailScreen';
 import { SessionChatScreen } from '../screens/SessionChatScreen';
 import { TerminalScreen } from '../screens/TerminalScreen';
-import { SettingsScreen } from '../screens/SettingsScreen';
+import {
+  SettingsScreen,
+  ConnectionSettingsScreen,
+  ThemeSettingsScreen,
+  AgentsSettingsScreen,
+  EnvironmentSettingsScreen,
+  FilesSettingsScreen,
+  ScriptsSettingsScreen,
+  SyncSettingsScreen,
+  AboutSettingsScreen,
+} from '../screens/SettingsScreen';
 import { SkillsScreen } from '../screens/SkillsScreen';
 import { McpServersScreen } from '../screens/McpServersScreen';
 import { WorkspaceSettingsScreen } from '../screens/WorkspaceSettingsScreen';
@@ -20,6 +30,14 @@ export function TabNavigator() {
     >
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="SettingsConnection" component={ConnectionSettingsScreen} />
+      <Stack.Screen name="SettingsTheme" component={ThemeSettingsScreen} />
+      <Stack.Screen name="SettingsAgents" component={AgentsSettingsScreen} />
+      <Stack.Screen name="SettingsEnvironment" component={EnvironmentSettingsScreen} />
+      <Stack.Screen name="SettingsFiles" component={FilesSettingsScreen} />
+      <Stack.Screen name="SettingsScripts" component={ScriptsSettingsScreen} />
+      <Stack.Screen name="SettingsSync" component={SyncSettingsScreen} />
+      <Stack.Screen name="SettingsAbout" component={AboutSettingsScreen} />
       <Stack.Screen name="Skills" component={SkillsScreen} />
       <Stack.Screen name="Mcp" component={McpServersScreen} />
       <Stack.Screen name="WorkspaceDetail" component={WorkspaceDetailScreen} />

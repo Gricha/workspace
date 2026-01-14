@@ -30,13 +30,26 @@ import { useNetwork, parseNetworkError } from '../lib/network';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemeId } from '../lib/themes';
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function ScreenWrapper({ title, navigation, children }: { title: string; navigation: any; children: React.ReactNode }) {
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+
   return (
-    <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>{title}</Text>
-      {children}
-    </View>
+    <KeyboardAvoidingView
+      style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={[styles.backBtnText, { color: colors.accent }]}>‹</Text>
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{title}</Text>
+        <View style={styles.headerPlaceholder} />
+      </View>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}>
+        {children}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -53,15 +66,16 @@ function SettingRow({
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#666"
+        placeholderTextColor={colors.textMuted}
         secureTextEntry={secureTextEntry}
         autoCapitalize="none"
         autoCorrect={false}
@@ -87,6 +101,7 @@ function ModelPicker({
   selectedModel: string;
   onSelect: (model: string) => void;
 }) {
+  const { colors } = useTheme();
   const selectedModelInfo = models.find((m) => m.id === selectedModel);
 
   const showPicker = () => {
@@ -107,10 +122,10 @@ function ModelPicker({
 
   return (
     <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <TouchableOpacity style={styles.modelPicker} onPress={showPicker}>
-        <Text style={styles.modelPickerText}>{selectedModelInfo?.name || 'Select Model'}</Text>
-        <Text style={styles.modelPickerChevron}>›</Text>
+      <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
+      <TouchableOpacity style={[styles.modelPicker, { backgroundColor: colors.surfaceSecondary }]} onPress={showPicker}>
+        <Text style={[styles.modelPickerText, { color: colors.text }]}>{selectedModelInfo?.name || 'Select Model'}</Text>
+        <Text style={[styles.modelPickerChevron, { color: colors.textMuted }]}>›</Text>
       </TouchableOpacity>
     </View>
   );
@@ -118,23 +133,23 @@ function ModelPicker({
 
 function NavigationRow({
   title,
-  value,
+  subtitle,
   onPress,
 }: {
   title: string;
-  value?: string;
+  subtitle?: string;
   onPress: () => void;
 }) {
   const { colors } = useTheme();
   return (
     <TouchableOpacity
-      style={[styles.navRow, { borderBottomColor: colors.border }]}
+      style={[styles.navRow, { backgroundColor: colors.surface }]}
       onPress={onPress}
     >
       <View style={styles.navRowContent}>
         <Text style={[styles.navRowTitle, { color: colors.text }]}>{title}</Text>
-        {value ? (
-          <Text style={[styles.navRowValue, { color: colors.textMuted }]}>{value}</Text>
+        {subtitle ? (
+          <Text style={[styles.navRowSubtitle, { color: colors.textMuted }]}>{subtitle}</Text>
         ) : null}
       </View>
       <Text style={[styles.navRowChevron, { color: colors.textMuted }]}>›</Text>
@@ -142,7 +157,233 @@ function NavigationRow({
   );
 }
 
-function AgentsSettings() {
+function Card({ children }: { children: React.ReactNode }) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      {children}
+    </View>
+  );
+}
+
+export function SettingsScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const { status } = useNetwork();
+  const { data: info } = useQuery({
+    queryKey: ['info'],
+    queryFn: api.getInfo,
+    retry: false,
+  });
+
+  const isConnected = status === 'connected';
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={[styles.backBtnText, { color: colors.accent }]}>‹</Text>
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
+        <View style={styles.headerPlaceholder} />
+      </View>
+      <ScrollView contentContainerStyle={[styles.indexContent, { paddingBottom: insets.bottom + 20 }]}>
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>General</Text>
+          <View style={styles.navGroup}>
+            <NavigationRow
+              title="Connection"
+              subtitle={isConnected ? info?.hostname : 'Not connected'}
+              onPress={() => navigation.navigate('SettingsConnection')}
+            />
+            <NavigationRow
+              title="Appearance"
+              subtitle="Theme"
+              onPress={() => navigation.navigate('SettingsTheme')}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Agent Configuration</Text>
+          <View style={styles.navGroup}>
+            <NavigationRow
+              title="Coding Agents"
+              subtitle="Claude Code, OpenCode, GitHub"
+              onPress={() => navigation.navigate('SettingsAgents')}
+            />
+            <NavigationRow
+              title="Skills"
+              subtitle="SKILL.md files"
+              onPress={() => navigation.navigate('Skills')}
+            />
+            <NavigationRow
+              title="MCP Servers"
+              subtitle="Model Context Protocol"
+              onPress={() => navigation.navigate('Mcp')}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Workspace</Text>
+          <View style={styles.navGroup}>
+            <NavigationRow
+              title="Environment Variables"
+              subtitle="Injected into workspaces"
+              onPress={() => navigation.navigate('SettingsEnvironment')}
+            />
+            <NavigationRow
+              title="File Mappings"
+              subtitle="SSH keys, configs"
+              onPress={() => navigation.navigate('SettingsFiles')}
+            />
+            <NavigationRow
+              title="Scripts"
+              subtitle="Post-start hooks"
+              onPress={() => navigation.navigate('SettingsScripts')}
+            />
+            <NavigationRow
+              title="Sync"
+              subtitle="Push to all workspaces"
+              onPress={() => navigation.navigate('SettingsSync')}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Info</Text>
+          <View style={styles.navGroup}>
+            <NavigationRow
+              title="About"
+              subtitle={isConnected ? 'Connected' : 'Disconnected'}
+              onPress={() => navigation.navigate('SettingsAbout')}
+            />
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+export function ConnectionSettingsScreen({ navigation }: any) {
+  const { colors } = useTheme();
+  const currentUrl = getBaseUrl();
+  const urlMatch = currentUrl.match(/^https?:\/\/([^:]+):(\d+)$/);
+  const [host, setHost] = useState(urlMatch?.[1] || '');
+  const [port, setPort] = useState(urlMatch?.[2] || String(getDefaultPort()));
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleSave = async () => {
+    const trimmedHost = host.trim();
+    if (!trimmedHost) {
+      Alert.alert('Error', 'Please enter a hostname');
+      return;
+    }
+    const portNum = parseInt(port, 10);
+    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+      Alert.alert('Error', 'Please enter a valid port number');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await saveServerConfig(trimmedHost, portNum);
+      refreshClient();
+      queryClient.invalidateQueries();
+      setHasChanges(false);
+      Alert.alert('Success', 'Server settings updated');
+    } catch {
+      Alert.alert('Error', 'Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <ScreenWrapper title="Connection" navigation={navigation}>
+      <Card>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Agent Server</Text>
+        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
+          Hostname and port of the workspace agent
+        </Text>
+        <SettingRow
+          label="Hostname"
+          value={host}
+          placeholder="my-server.tailnet.ts.net"
+          onChangeText={(t) => {
+            setHost(t);
+            setHasChanges(true);
+          }}
+        />
+        <SettingRow
+          label="Port"
+          value={port}
+          placeholder={String(getDefaultPort())}
+          onChangeText={(t) => {
+            setPort(t);
+            setHasChanges(true);
+          }}
+        />
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: colors.accent }, !hasChanges && styles.saveButtonDisabled]}
+          onPress={handleSave}
+          disabled={!hasChanges || isSaving}
+        >
+          {isSaving ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.saveButtonText}>Update Server</Text>
+          )}
+        </TouchableOpacity>
+      </Card>
+    </ScreenWrapper>
+  );
+}
+
+export function ThemeSettingsScreen({ navigation }: any) {
+  const { themeId, setTheme, definitions, colors } = useTheme();
+
+  return (
+    <ScreenWrapper title="Appearance" navigation={navigation}>
+      <Card>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Theme</Text>
+        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
+          Choose your preferred color scheme
+        </Text>
+        <View style={styles.themeList}>
+          {definitions.map((theme) => (
+            <TouchableOpacity
+              key={theme.id}
+              style={[
+                styles.themeItem,
+                { backgroundColor: colors.surfaceSecondary },
+                themeId === theme.id && { borderColor: colors.accent, borderWidth: 2 },
+              ]}
+              onPress={() => setTheme(theme.id as ThemeId)}
+            >
+              <View style={[styles.themePreviewDot, { backgroundColor: theme.preview.accent }]} />
+              <View style={styles.themeItemContent}>
+                <Text style={[styles.themeItemName, { color: colors.text }]}>{theme.name}</Text>
+                <Text style={[styles.themeItemDescription, { color: colors.textMuted }]}>
+                  {theme.description}
+                </Text>
+              </View>
+              {themeId === theme.id && (
+                <Text style={[styles.themeCheckmark, { color: colors.accent }]}>✓</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Card>
+    </ScreenWrapper>
+  );
+}
+
+export function AgentsSettingsScreen({ navigation }: any) {
+  const { colors } = useTheme();
   const queryClient = useQueryClient();
 
   const { data: agents, isLoading } = useQuery({
@@ -214,17 +455,21 @@ function AgentsSettings() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#0a84ff" />
-      </View>
+      <ScreenWrapper title="Coding Agents" navigation={navigation}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <Section title="Coding Agents">
-      <View style={styles.agentCard}>
-        <Text style={styles.agentName}>OpenCode</Text>
-        <Text style={styles.agentDescription}>Zen token for OpenCode AI assistant</Text>
+    <ScreenWrapper title="Coding Agents" navigation={navigation}>
+      <Card>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>OpenCode</Text>
+        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
+          Zen token for OpenCode AI assistant
+        </Text>
         <SettingRow
           label="Zen Token"
           value={opencodeZenToken}
@@ -246,11 +491,13 @@ function AgentsSettings() {
             }}
           />
         )}
-      </View>
+      </Card>
 
-      <View style={styles.agentCard}>
-        <Text style={styles.agentName}>Claude Code</Text>
-        <Text style={styles.agentDescription}>Run `claude setup-token` locally to generate</Text>
+      <Card>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Claude Code</Text>
+        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
+          Run `claude setup-token` locally to generate
+        </Text>
         <SettingRow
           label="OAuth Token"
           value={claudeOAuthToken}
@@ -270,11 +517,13 @@ function AgentsSettings() {
             setHasChanges(true);
           }}
         />
-      </View>
+      </Card>
 
-      <View style={styles.agentCard}>
-        <Text style={styles.agentName}>GitHub</Text>
-        <Text style={styles.agentDescription}>Personal Access Token for git operations</Text>
+      <Card>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>GitHub</Text>
+        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
+          Personal Access Token for git operations
+        </Text>
         <SettingRow
           label="Token"
           value={githubToken}
@@ -285,10 +534,10 @@ function AgentsSettings() {
           }}
           secureTextEntry
         />
-      </View>
+      </Card>
 
       <TouchableOpacity
-        style={[styles.saveButton, !hasChanges && styles.saveButtonDisabled]}
+        style={[styles.saveButton, { backgroundColor: colors.accent }, !hasChanges && styles.saveButtonDisabled]}
         onPress={handleSave}
         disabled={!hasChanges || mutation.isPending}
       >
@@ -298,11 +547,12 @@ function AgentsSettings() {
           <Text style={styles.saveButtonText}>Save Changes</Text>
         )}
       </TouchableOpacity>
-    </Section>
+    </ScreenWrapper>
   );
 }
 
-function EnvironmentSettings() {
+export function EnvironmentSettingsScreen({ navigation }: any) {
+  const { colors } = useTheme();
   const queryClient = useQueryClient();
 
   const { data: credentials, isLoading } = useQuery({
@@ -366,49 +616,51 @@ function EnvironmentSettings() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#0a84ff" />
-      </View>
+      <ScreenWrapper title="Environment Variables" navigation={navigation}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <Section title="Environment Variables">
-      <View style={styles.agentCard}>
-        <Text style={styles.agentDescription}>
+    <ScreenWrapper title="Environment Variables" navigation={navigation}>
+      <Card>
+        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
           Environment variables injected into all workspaces
         </Text>
         {envVars.map((envVar, index) => (
           <View key={index} style={styles.envVarRow}>
             <TextInput
-              style={[styles.input, styles.envKeyInput]}
+              style={[styles.input, styles.envKeyInput, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}
               value={envVar.key}
               onChangeText={(t) => handleUpdateVar(index, 'key', t)}
               placeholder="NAME"
-              placeholderTextColor="#666"
+              placeholderTextColor={colors.textMuted}
               autoCapitalize="characters"
               autoCorrect={false}
             />
             <TextInput
-              style={[styles.input, styles.envValueInput]}
+              style={[styles.input, styles.envValueInput, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}
               value={envVar.value}
               onChangeText={(t) => handleUpdateVar(index, 'value', t)}
               placeholder="value"
-              placeholderTextColor="#666"
+              placeholderTextColor={colors.textMuted}
               secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
             />
             <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveVar(index)}>
-              <Text style={styles.removeButtonText}>-</Text>
+              <Text style={styles.removeButtonText}>−</Text>
             </TouchableOpacity>
           </View>
         ))}
-        <TouchableOpacity style={styles.addButton} onPress={handleAddVar}>
-          <Text style={styles.addButtonText}>+ Add Variable</Text>
+        <TouchableOpacity style={[styles.addButton, { borderColor: colors.border }]} onPress={handleAddVar}>
+          <Text style={[styles.addButtonText, { color: colors.accent }]}>+ Add Variable</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.saveButton, !hasChanges && styles.saveButtonDisabled]}
+          style={[styles.saveButton, { backgroundColor: colors.accent }, !hasChanges && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={!hasChanges || mutation.isPending}
         >
@@ -418,12 +670,13 @@ function EnvironmentSettings() {
             <Text style={styles.saveButtonText}>Save</Text>
           )}
         </TouchableOpacity>
-      </View>
-    </Section>
+      </Card>
+    </ScreenWrapper>
   );
 }
 
-function FilesSettings() {
+export function FilesSettingsScreen({ navigation }: any) {
+  const { colors } = useTheme();
   const queryClient = useQueryClient();
 
   const { data: credentials, isLoading } = useQuery({
@@ -490,37 +743,39 @@ function FilesSettings() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#0a84ff" />
-      </View>
+      <ScreenWrapper title="File Mappings" navigation={navigation}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <Section title="File Mappings">
-      <View style={styles.agentCard}>
-        <Text style={styles.agentDescription}>
+    <ScreenWrapper title="File Mappings" navigation={navigation}>
+      <Card>
+        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
           Copy files from host to workspace (e.g., SSH keys, configs)
         </Text>
         {fileMappings.map((mapping, index) => (
           <View key={index} style={styles.fileMappingRow}>
             <View style={styles.fileMappingInputs}>
               <TextInput
-                style={[styles.input, styles.fileInput]}
+                style={[styles.input, styles.fileInput, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}
                 value={mapping.source}
                 onChangeText={(t) => handleUpdateMapping(index, 'source', t)}
                 placeholder="~/.ssh/id_rsa"
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <Text style={styles.arrowText}>{'->'}</Text>
+              <Text style={[styles.arrowText, { color: colors.textMuted }]}>→</Text>
               <TextInput
-                style={[styles.input, styles.fileInput]}
+                style={[styles.input, styles.fileInput, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}
                 value={mapping.dest}
                 onChangeText={(t) => handleUpdateMapping(index, 'dest', t)}
                 placeholder="~/.ssh/id_rsa"
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -529,15 +784,15 @@ function FilesSettings() {
               style={styles.removeButton}
               onPress={() => handleRemoveMapping(index)}
             >
-              <Text style={styles.removeButtonText}>-</Text>
+              <Text style={styles.removeButtonText}>−</Text>
             </TouchableOpacity>
           </View>
         ))}
-        <TouchableOpacity style={styles.addButton} onPress={handleAddMapping}>
-          <Text style={styles.addButtonText}>+ Add Mapping</Text>
+        <TouchableOpacity style={[styles.addButton, { borderColor: colors.border }]} onPress={handleAddMapping}>
+          <Text style={[styles.addButtonText, { color: colors.accent }]}>+ Add Mapping</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.saveButton, !hasChanges && styles.saveButtonDisabled]}
+          style={[styles.saveButton, { backgroundColor: colors.accent }, !hasChanges && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={!hasChanges || mutation.isPending}
         >
@@ -547,12 +802,13 @@ function FilesSettings() {
             <Text style={styles.saveButtonText}>Save</Text>
           )}
         </TouchableOpacity>
-      </View>
-    </Section>
+      </Card>
+    </ScreenWrapper>
   );
 }
 
-function ScriptsSettings() {
+export function ScriptsSettingsScreen({ navigation }: any) {
+  const { colors } = useTheme();
   const queryClient = useQueryClient();
 
   const { data: scripts, isLoading } = useQuery({
@@ -591,17 +847,19 @@ function ScriptsSettings() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#0a84ff" />
-      </View>
+      <ScreenWrapper title="Scripts" navigation={navigation}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <Section title="Scripts">
-      <View style={styles.agentCard}>
-        <Text style={styles.agentName}>Post-Start Script</Text>
-        <Text style={styles.agentDescription}>
+    <ScreenWrapper title="Scripts" navigation={navigation}>
+      <Card>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Post-Start Script</Text>
+        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
           Executed after each workspace starts as the workspace user
         </Text>
         <SettingRow
@@ -614,7 +872,7 @@ function ScriptsSettings() {
           }}
         />
         <TouchableOpacity
-          style={[styles.saveButton, !hasChanges && styles.saveButtonDisabled]}
+          style={[styles.saveButton, { backgroundColor: colors.accent }, !hasChanges && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={!hasChanges || mutation.isPending}
         >
@@ -624,12 +882,13 @@ function ScriptsSettings() {
             <Text style={styles.saveButtonText}>Save</Text>
           )}
         </TouchableOpacity>
-      </View>
-    </Section>
+      </Card>
+    </ScreenWrapper>
   );
 }
 
-function SyncSettings() {
+export function SyncSettingsScreen({ navigation }: any) {
+  const { colors } = useTheme();
   const queryClient = useQueryClient();
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
 
@@ -659,16 +918,16 @@ function SyncSettings() {
   });
 
   return (
-    <Section title="Sync">
-      <View style={styles.agentCard}>
-        <Text style={styles.agentName}>Sync All Workspaces</Text>
-        <Text style={styles.agentDescription}>
+    <ScreenWrapper title="Sync" navigation={navigation}>
+      <Card>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Sync All Workspaces</Text>
+        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
           Push environment variables, file mappings, and agent credentials to all running workspaces
         </Text>
         {lastResult && (
-          <View style={styles.syncResultContainer}>
+          <View style={[styles.syncResultContainer, { backgroundColor: colors.surfaceSecondary }]}>
             <View style={styles.syncResultRow}>
-              <Text style={styles.syncResultLabel}>Last sync:</Text>
+              <Text style={[styles.syncResultLabel, { color: colors.textMuted }]}>Last sync:</Text>
               <Text
                 style={[
                   styles.syncResultValue,
@@ -691,210 +950,8 @@ function SyncSettings() {
             <Text style={styles.syncButtonText}>Sync Now</Text>
           )}
         </TouchableOpacity>
-      </View>
-    </Section>
-  );
-}
-
-function ConnectionSettings() {
-  const currentUrl = getBaseUrl();
-  const urlMatch = currentUrl.match(/^https?:\/\/([^:]+):(\d+)$/);
-  const [host, setHost] = useState(urlMatch?.[1] || '');
-  const [port, setPort] = useState(urlMatch?.[2] || String(getDefaultPort()));
-  const [hasChanges, setHasChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const queryClient = useQueryClient();
-
-  const handleSave = async () => {
-    const trimmedHost = host.trim();
-    if (!trimmedHost) {
-      Alert.alert('Error', 'Please enter a hostname');
-      return;
-    }
-    const portNum = parseInt(port, 10);
-    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      Alert.alert('Error', 'Please enter a valid port number');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await saveServerConfig(trimmedHost, portNum);
-      refreshClient();
-      queryClient.invalidateQueries();
-      setHasChanges(false);
-      Alert.alert('Success', 'Server settings updated');
-    } catch {
-      Alert.alert('Error', 'Failed to save settings');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <Section title="Connection">
-      <View style={styles.agentCard}>
-        <Text style={styles.agentName}>Agent Server</Text>
-        <Text style={styles.agentDescription}>Hostname and port of the workspace agent</Text>
-        <SettingRow
-          label="Hostname"
-          value={host}
-          placeholder="my-server.tailnet.ts.net"
-          onChangeText={(t) => {
-            setHost(t);
-            setHasChanges(true);
-          }}
-        />
-        <SettingRow
-          label="Port"
-          value={port}
-          placeholder={String(getDefaultPort())}
-          onChangeText={(t) => {
-            setPort(t);
-            setHasChanges(true);
-          }}
-        />
-        <TouchableOpacity
-          style={[styles.saveButton, !hasChanges && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={!hasChanges || isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.saveButtonText}>Update Server</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </Section>
-  );
-}
-
-function AboutSection() {
-  const { status, checkConnection } = useNetwork();
-  const { data: info, isLoading } = useQuery({
-    queryKey: ['info'],
-    queryFn: api.getInfo,
-    retry: false,
-  });
-
-  const isConnected = status === 'connected';
-
-  return (
-    <Section title="About">
-      <View style={styles.aboutCard}>
-        {isLoading && status === 'connecting' ? (
-          <ActivityIndicator size="small" color="#0a84ff" />
-        ) : isConnected && info ? (
-          <>
-            <View style={styles.aboutRow}>
-              <Text style={styles.aboutLabel}>Host</Text>
-              <Text style={styles.aboutValue}>{info.hostname}</Text>
-            </View>
-            <View style={styles.aboutRow}>
-              <Text style={styles.aboutLabel}>Docker</Text>
-              <Text style={styles.aboutValue}>{info.dockerVersion}</Text>
-            </View>
-            <View style={styles.aboutRow}>
-              <Text style={styles.aboutLabel}>Workspaces</Text>
-              <Text style={styles.aboutValue}>{info.workspacesCount}</Text>
-            </View>
-            <View style={styles.aboutRow}>
-              <Text style={styles.aboutLabel}>Uptime</Text>
-              <Text style={styles.aboutValue}>{formatUptime(info.uptime)}</Text>
-            </View>
-            <View style={[styles.aboutRow, styles.statusRow]}>
-              <Text style={styles.aboutLabel}>Status</Text>
-              <View style={styles.statusBadge}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusText}>Connected</Text>
-              </View>
-            </View>
-          </>
-        ) : (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorIcon}>⚠</Text>
-            <Text style={styles.errorTitle}>
-              {status === 'server-unreachable' ? 'Server Unreachable' : 'Connection Error'}
-            </Text>
-            <Text style={styles.errorText}>
-              {status === 'server-unreachable'
-                ? 'Cannot reach the workspace agent. Check your Tailscale VPN connection and server URL.'
-                : 'Unable to connect to the server.'}
-            </Text>
-            <TouchableOpacity style={styles.retryButton} onPress={checkConnection}>
-              <Text style={styles.retryButtonText}>Retry Connection</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    </Section>
-  );
-}
-
-function ThemeSettings() {
-  const { themeId, setTheme, definitions, colors } = useTheme();
-  const currentTheme = definitions.find((t) => t.id === themeId) || definitions[0];
-
-  const showPicker = () => {
-    const options = [...definitions.map((t) => t.name), 'Cancel'];
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options,
-        cancelButtonIndex: options.length - 1,
-        title: 'Select Theme',
-      },
-      (buttonIndex) => {
-        if (buttonIndex < definitions.length) {
-          setTheme(definitions[buttonIndex].id as ThemeId);
-        }
-      }
-    );
-  };
-
-  return (
-    <Section title="Appearance">
-      <View style={[styles.themeCard, { backgroundColor: colors.surface }]}>
-        <Text style={[styles.themeLabel, { color: colors.textMuted }]}>Theme</Text>
-        <TouchableOpacity
-          style={[styles.themePicker, { backgroundColor: colors.surfaceSecondary }]}
-          onPress={showPicker}
-        >
-          <View style={styles.themePreviewRow}>
-            <View
-              style={[styles.themePreviewDot, { backgroundColor: currentTheme.preview.accent }]}
-            />
-            <View style={styles.themeInfo}>
-              <Text style={[styles.themeName, { color: colors.text }]}>{currentTheme.name}</Text>
-              <Text style={[styles.themeDescription, { color: colors.textMuted }]}>
-                {currentTheme.description}
-              </Text>
-            </View>
-          </View>
-          <Text style={[styles.themeChevron, { color: colors.textMuted }]}>›</Text>
-        </TouchableOpacity>
-        <View style={styles.themeGrid}>
-          {definitions.map((theme) => (
-            <TouchableOpacity
-              key={theme.id}
-              style={[
-                styles.themeOption,
-                { backgroundColor: theme.preview.bg, borderColor: theme.preview.accent },
-                themeId === theme.id && styles.themeOptionSelected,
-              ]}
-              onPress={() => setTheme(theme.id as ThemeId)}
-            >
-              <View style={[styles.themeOptionDot, { backgroundColor: theme.preview.accent }]} />
-              {themeId === theme.id && (
-                <View style={[styles.themeCheckmark, { backgroundColor: theme.preview.accent }]}>
-                  <Text style={styles.themeCheckmarkText}>✓</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-    </Section>
+      </Card>
+    </ScreenWrapper>
   );
 }
 
@@ -907,48 +964,72 @@ function formatUptime(seconds: number): string {
   return `${mins}m`;
 }
 
-export function SettingsScreen({ navigation }: any) {
-  const insets = useSafeAreaInsets();
+export function AboutSettingsScreen({ navigation }: any) {
   const { colors } = useTheme();
+  const { status, checkConnection } = useNetwork();
+  const { data: info, isLoading } = useQuery({
+    queryKey: ['info'],
+    queryFn: api.getInfo,
+    retry: false,
+  });
+
+  const isConnected = status === 'connected';
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={[styles.backBtnText, { color: colors.accent }]}>‹</Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
-        <View style={styles.headerPlaceholder} />
-      </View>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}>
-        <ConnectionSettings />
-        <ThemeSettings />
-        <SyncSettings />
-        <Section title="Skills">
-          <NavigationRow
-            title="Skills"
-            value="SKILL.md"
-            onPress={() => navigation.navigate('Skills')}
-          />
-          <NavigationRow title="MCP" value="Servers" onPress={() => navigation.navigate('Mcp')} />
-        </Section>
-        <AgentsSettings />
-        <EnvironmentSettings />
-        <FilesSettings />
-        <ScriptsSettings />
-        <AboutSection />
-      </ScrollView>
-    </KeyboardAvoidingView>
+    <ScreenWrapper title="About" navigation={navigation}>
+      <Card>
+        {isLoading && status === 'connecting' ? (
+          <ActivityIndicator size="large" color={colors.accent} />
+        ) : isConnected && info ? (
+          <>
+            <View style={[styles.aboutRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>Host</Text>
+              <Text style={[styles.aboutValue, { color: colors.text }]}>{info.hostname}</Text>
+            </View>
+            <View style={[styles.aboutRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>Docker</Text>
+              <Text style={[styles.aboutValue, { color: colors.text }]}>{info.dockerVersion}</Text>
+            </View>
+            <View style={[styles.aboutRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>Workspaces</Text>
+              <Text style={[styles.aboutValue, { color: colors.text }]}>{info.workspacesCount}</Text>
+            </View>
+            <View style={[styles.aboutRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>Uptime</Text>
+              <Text style={[styles.aboutValue, { color: colors.text }]}>{formatUptime(info.uptime)}</Text>
+            </View>
+            <View style={[styles.aboutRow, styles.statusRow]}>
+              <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>Status</Text>
+              <View style={styles.statusBadge}>
+                <View style={styles.statusDot} />
+                <Text style={styles.statusText}>Connected</Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorIcon}>⚠</Text>
+            <Text style={[styles.errorTitle, { color: colors.text }]}>
+              {status === 'server-unreachable' ? 'Server Unreachable' : 'Connection Error'}
+            </Text>
+            <Text style={[styles.errorText, { color: colors.textMuted }]}>
+              {status === 'server-unreachable'
+                ? 'Cannot reach the workspace agent. Check your Tailscale VPN connection and server URL.'
+                : 'Unable to connect to the server.'}
+            </Text>
+            <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.accent }]} onPress={checkConnection}>
+              <Text style={styles.retryButtonText}>Retry Connection</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </Card>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
     flexDirection: 'row',
@@ -956,7 +1037,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#1c1c1e',
   },
   backBtn: {
     width: 44,
@@ -966,14 +1046,12 @@ const styles = StyleSheet.create({
   },
   backBtnText: {
     fontSize: 32,
-    color: '#0a84ff',
     fontWeight: '300',
   },
   headerTitle: {
     flex: 1,
     fontSize: 17,
     fontWeight: '600',
-    color: '#fff',
     textAlign: 'center',
   },
   headerPlaceholder: {
@@ -982,26 +1060,8 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
-  navRow: {
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-  },
-  navRowContent: {
-    flex: 1,
-  },
-  navRowTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  navRowValue: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  navRowChevron: {
-    fontSize: 18,
-    paddingHorizontal: 8,
+  indexContent: {
+    padding: 16,
   },
   section: {
     marginBottom: 24,
@@ -1009,26 +1069,49 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#8e8e93',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 12,
+    marginBottom: 8,
+    marginLeft: 4,
   },
-  agentCard: {
-    backgroundColor: '#1c1c1e',
+  navGroup: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  navRowContent: {
+    flex: 1,
+  },
+  navRowTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  navRowSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  navRowChevron: {
+    fontSize: 20,
+    marginLeft: 8,
+  },
+  card: {
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  agentName: {
+  cardTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#fff',
     marginBottom: 4,
   },
-  agentDescription: {
+  cardDescription: {
     fontSize: 13,
-    color: '#8e8e93',
     marginBottom: 16,
   },
   row: {
@@ -1036,19 +1119,15 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    color: '#8e8e93',
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#2c2c2e',
     borderRadius: 8,
     padding: 12,
     fontSize: 15,
-    color: '#fff',
     fontFamily: 'monospace',
   },
   modelPicker: {
-    backgroundColor: '#2c2c2e',
     borderRadius: 8,
     padding: 12,
     flexDirection: 'row',
@@ -1057,21 +1136,18 @@ const styles = StyleSheet.create({
   },
   modelPickerText: {
     fontSize: 15,
-    color: '#fff',
   },
   modelPickerChevron: {
     fontSize: 18,
-    color: '#636366',
   },
   saveButton: {
-    backgroundColor: '#0a84ff',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 8,
   },
   saveButtonDisabled: {
-    backgroundColor: '#2c2c2e',
+    opacity: 0.5,
   },
   saveButtonText: {
     fontSize: 15,
@@ -1079,79 +1155,42 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   loadingContainer: {
-    padding: 20,
+    flex: 1,
+    padding: 40,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  aboutCard: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
-    padding: 16,
+  themeList: {
+    gap: 8,
   },
-  aboutRow: {
+  themeItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2c2c2e',
-  },
-  aboutLabel: {
-    fontSize: 14,
-    color: '#8e8e93',
-  },
-  aboutValue: {
-    fontSize: 14,
-    color: '#fff',
-  },
-  errorContainer: {
     alignItems: 'center',
-    paddingVertical: 16,
-  },
-  errorIcon: {
-    fontSize: 32,
-    marginBottom: 12,
-  },
-  errorTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#8e8e93',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#0a84ff',
+    padding: 12,
     borderRadius: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  retryButtonText: {
-    fontSize: 14,
+  themePreviewDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  themeItemContent: {
+    flex: 1,
+  },
+  themeItemName: {
+    fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
   },
-  statusRow: {
-    borderBottomWidth: 0,
+  themeItemDescription: {
+    fontSize: 12,
+    marginTop: 2,
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#34c759',
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 14,
-    color: '#34c759',
-    fontWeight: '500',
+  themeCheckmark: {
+    fontSize: 18,
+    fontWeight: '600',
   },
   envVarRow: {
     flexDirection: 'row',
@@ -1175,7 +1214,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   removeButtonText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: '#fff',
   },
@@ -1183,14 +1222,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2c2c2e',
     borderRadius: 8,
     borderStyle: 'dashed',
     marginBottom: 8,
   },
   addButtonText: {
     fontSize: 14,
-    color: '#0a84ff',
     fontWeight: '500',
   },
   fileMappingRow: {
@@ -1207,7 +1244,6 @@ const styles = StyleSheet.create({
   },
   arrowText: {
     fontSize: 14,
-    color: '#8e8e93',
     fontFamily: 'monospace',
   },
   syncButton: {
@@ -1223,7 +1259,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   syncResultContainer: {
-    backgroundColor: '#2c2c2e',
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
@@ -1235,94 +1270,69 @@ const styles = StyleSheet.create({
   },
   syncResultLabel: {
     fontSize: 13,
-    color: '#8e8e93',
   },
   syncResultValue: {
     fontSize: 13,
     fontWeight: '600',
   },
-  themeCard: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
-    padding: 16,
-  },
-  themeLabel: {
-    fontSize: 13,
-    color: '#8e8e93',
-    marginBottom: 8,
-  },
-  themePicker: {
-    backgroundColor: '#2c2c2e',
-    borderRadius: 8,
-    padding: 12,
+  aboutRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  aboutLabel: {
+    fontSize: 14,
+  },
+  aboutValue: {
+    fontSize: 14,
+  },
+  statusRow: {
+    borderBottomWidth: 0,
+  },
+  statusBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#34c759',
+    marginRight: 6,
+  },
+  statusText: {
+    fontSize: 14,
+    color: '#34c759',
+    fontWeight: '500',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  errorIcon: {
+    fontSize: 32,
+    marginBottom: 12,
+  },
+  errorTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
     marginBottom: 16,
   },
-  themePreviewRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  themePreviewDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 12,
-  },
-  themeInfo: {
-    flex: 1,
-  },
-  themeName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  themeDescription: {
-    fontSize: 12,
-    color: '#8e8e93',
-    marginTop: 2,
-  },
-  themeChevron: {
-    fontSize: 18,
-    color: '#636366',
-    marginLeft: 8,
-  },
-  themeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  themeOption: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  themeOptionSelected: {
-    borderWidth: 3,
-  },
-  themeOptionDot: {
-    width: 16,
-    height: 16,
+  retryButton: {
     borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
-  themeCheckmark: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  themeCheckmarkText: {
-    fontSize: 10,
-    fontWeight: '700',
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#fff',
   },
 });
