@@ -134,22 +134,26 @@ async function ensureContainerServer(
       `[opencode] Starting server on port ${port} in ${containerName}${projectPath ? ` (cwd ${projectPath})` : ''}`
     );
 
-    const envPrefix = auth?.password
-      ? `OPENCODE_SERVER_PASSWORD='${auth.password.replace(/'/g, "'\\''")}'` +
-        (auth.username
-          ? ` OPENCODE_SERVER_USERNAME='${auth.username.replace(/'/g, "'\\''")}'`
-          : '') +
-        ' '
-      : '';
-
     await execInContainer(
       containerName,
       [
         'sh',
         '-c',
-        `${envPrefix}nohup opencode serve --port ${port} --hostname ${hostname} > /tmp/opencode-server.log 2>&1 &`,
+        // Use positional parameters to avoid shell interpolation of hostname.
+        // $1=port, $2=hostname
+        'nohup opencode serve --port "$1" --hostname "$2" > /tmp/opencode-server.log 2>&1 &',
+        'opencode',
+        String(port),
+        hostname,
       ],
-      { user: 'workspace', workdir: projectPath }
+      {
+        user: 'workspace',
+        workdir: projectPath,
+        env: {
+          ...(auth?.password ? { OPENCODE_SERVER_PASSWORD: auth.password } : {}),
+          ...(auth?.username ? { OPENCODE_SERVER_USERNAME: auth.username } : {}),
+        },
+      }
     );
 
     for (let i = 0; i < 30; i++) {
@@ -225,6 +229,7 @@ async function ensureHostServer(options: {
       stderr: 'pipe',
       cwd: projectPath,
       env: {
+        ...process.env,
         ...(auth?.password ? { OPENCODE_SERVER_PASSWORD: auth.password } : {}),
         ...(auth?.username ? { OPENCODE_SERVER_USERNAME: auth.username } : {}),
       },
