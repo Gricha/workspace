@@ -418,6 +418,9 @@ export function AgentsSettingsScreen({ navigation }: any) {
 
   const [opencodeZenToken, setOpencodeZenToken] = useState('');
   const [opencodeModel, setOpencodeModel] = useState('');
+  const [opencodeServerHostname, setOpencodeServerHostname] = useState('0.0.0.0');
+  const [opencodeServerUsername, setOpencodeServerUsername] = useState('');
+  const [opencodeServerPassword, setOpencodeServerPassword] = useState('');
   const [claudeOAuthToken, setClaudeOAuthToken] = useState('');
   const [claudeModel, setClaudeModel] = useState('sonnet');
   const [hasChanges, setHasChanges] = useState(false);
@@ -427,6 +430,9 @@ export function AgentsSettingsScreen({ navigation }: any) {
     if (agents && !initialized) {
       setOpencodeZenToken(agents.opencode?.zen_token || '');
       setOpencodeModel(agents.opencode?.model || '');
+      setOpencodeServerHostname(agents.opencode?.server?.hostname || '0.0.0.0');
+      setOpencodeServerUsername(agents.opencode?.server?.username || '');
+      setOpencodeServerPassword(agents.opencode?.server?.password || '');
       setClaudeOAuthToken(agents.claude_code?.oauth_token || '');
       setClaudeModel(agents.claude_code?.model || 'sonnet');
       setInitialized(true);
@@ -450,6 +456,11 @@ export function AgentsSettingsScreen({ navigation }: any) {
       opencode: {
         zen_token: opencodeZenToken.trim() || undefined,
         model: opencodeModel || undefined,
+        server: {
+          hostname: opencodeServerHostname.trim() || undefined,
+          username: opencodeServerUsername.trim() || undefined,
+          password: opencodeServerPassword || undefined,
+        },
       },
       claude_code: {
         oauth_token: claudeOAuthToken.trim() || undefined,
@@ -496,6 +507,34 @@ export function AgentsSettingsScreen({ navigation }: any) {
             }}
           />
         )}
+        <SettingRow
+          label="Server Hostname"
+          value={opencodeServerHostname}
+          placeholder="0.0.0.0 or 127.0.0.1"
+          onChangeText={(t) => {
+            setOpencodeServerHostname(t);
+            setHasChanges(true);
+          }}
+        />
+        <SettingRow
+          label="Server Username (optional)"
+          value={opencodeServerUsername}
+          placeholder="opencode"
+          onChangeText={(t) => {
+            setOpencodeServerUsername(t);
+            setHasChanges(true);
+          }}
+        />
+        <SettingRow
+          label="Server Password (optional)"
+          value={opencodeServerPassword}
+          placeholder="(recommended when 0.0.0.0)"
+          onChangeText={(t) => {
+            setOpencodeServerPassword(t);
+            setHasChanges(true);
+          }}
+          secureTextEntry
+        />
       </Card>
 
       <Card>

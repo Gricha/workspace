@@ -5,6 +5,11 @@ export interface EnsureOpenCodeServerOptions {
   isHost: boolean;
   containerName?: string;
   projectPath?: string;
+  hostname?: string;
+  auth?: {
+    username?: string;
+    password?: string;
+  };
 }
 
 const serverPorts = new Map<string, number>();
@@ -89,7 +94,19 @@ async function getServerLogs(containerName: string): Promise<string> {
   }
 }
 
-async function ensureContainerServer(containerName: string, projectPath?: string): Promise<number> {
+async function ensureContainerServer(
+  containerName: string,
+  options: {
+    projectPath?: string;
+    hostname?: string;
+    auth?: { username?: string; password?: string };
+  }
+): Promise<number> {
+  const projectPath = options.projectPath;
+  const hostname = options.hostname ?? '0.0.0.0';
+  const auth = options.auth;
+
+  // hostname/auth used when spawning server (below)
   const key = getServerKey(containerName, projectPath);
 
   const cached = serverPorts.get(key);
@@ -117,12 +134,20 @@ async function ensureContainerServer(containerName: string, projectPath?: string
       `[opencode] Starting server on port ${port} in ${containerName}${projectPath ? ` (cwd ${projectPath})` : ''}`
     );
 
+    const envPrefix = auth?.password
+      ? `OPENCODE_SERVER_PASSWORD='${auth.password.replace(/'/g, "'\\''")}'` +
+        (auth.username
+          ? ` OPENCODE_SERVER_USERNAME='${auth.username.replace(/'/g, "'\\''")}'`
+          : '') +
+        ' '
+      : '';
+
     await execInContainer(
       containerName,
       [
         'sh',
         '-c',
-        `nohup opencode serve --port ${port} --hostname 127.0.0.1 > /tmp/opencode-server.log 2>&1 &`,
+        `${envPrefix}nohup opencode serve --port ${port} --hostname ${hostname} > /tmp/opencode-server.log 2>&1 &`,
       ],
       { user: 'workspace', workdir: projectPath }
     );
@@ -165,7 +190,16 @@ async function isServerRunningHost(port: number): Promise<boolean> {
   }
 }
 
-async function ensureHostServer(projectPath?: string): Promise<number> {
+async function ensureHostServer(options: {
+  projectPath?: string;
+  hostname?: string;
+  auth?: { username?: string; password?: string };
+}): Promise<number> {
+  const projectPath = options.projectPath;
+  const hostname = options.hostname ?? '0.0.0.0';
+  const auth = options.auth;
+
+  // hostname/auth used when spawning server (below)
   const key = projectPath ?? '';
 
   const cached = hostServerPorts.get(key);
@@ -185,15 +219,16 @@ async function ensureHostServer(projectPath?: string): Promise<number> {
       `[opencode] Starting server on port ${port} on host${projectPath ? ` (cwd ${projectPath})` : ''}`
     );
 
-    const proc = Bun.spawn(
-      ['opencode', 'serve', '--port', String(port), '--hostname', '127.0.0.1'],
-      {
-        stdin: 'ignore',
-        stdout: 'pipe',
-        stderr: 'pipe',
-        cwd: projectPath,
-      }
-    );
+    const proc = Bun.spawn(['opencode', 'serve', '--port', String(port), '--hostname', hostname], {
+      stdin: 'ignore',
+      stdout: 'pipe',
+      stderr: 'pipe',
+      cwd: projectPath,
+      env: {
+        ...(auth?.password ? { OPENCODE_SERVER_PASSWORD: auth.password } : {}),
+        ...(auth?.username ? { OPENCODE_SERVER_USERNAME: auth.username } : {}),
+      },
+    });
 
     hostServerProcesses.set(key, proc);
 
@@ -224,12 +259,20 @@ async function ensureHostServer(projectPath?: string): Promise<number> {
 
 export async function ensureOpenCodeServer(options: EnsureOpenCodeServerOptions): Promise<number> {
   if (options.isHost) {
-    return ensureHostServer(options.projectPath);
+    return ensureHostServer({
+      projectPath: options.projectPath,
+      hostname: options.hostname,
+      auth: options.auth,
+    });
   }
 
   if (!options.containerName) {
     throw new Error('containerName is required when isHost=false');
   }
 
-  return ensureContainerServer(options.containerName, options.projectPath);
+  return ensureContainerServer(options.containerName, {
+    projectPath: options.projectPath,
+    hostname: options.hostname,
+    auth: options.auth,
+  });
 }

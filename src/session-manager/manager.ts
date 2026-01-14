@@ -120,6 +120,7 @@ export class SessionManager {
       model: options.model,
       projectPath: options.projectPath,
       isHost,
+      configDir: this.stateDir || undefined,
     });
 
     this.sessions.set(sessionId, session);

@@ -64,6 +64,11 @@ export interface CodingAgents {
   opencode?: {
     zen_token?: string;
     model?: string;
+    server?: {
+      hostname?: string;
+      username?: string;
+      password?: string;
+    };
   };
   github?: {
     token?: string;

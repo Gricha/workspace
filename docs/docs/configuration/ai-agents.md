@@ -67,11 +67,22 @@ Perry also copies `~/.claude/.credentials.json` if it exists on your host. This 
    {
      "agents": {
        "opencode": {
-         "zen_token": "your-zen-token"
+         "zen_token": "your-zen-token",
+         "server": {
+           "hostname": "0.0.0.0",
+           "username": "opencode",
+           "password": "your-password"
+         }
        }
      }
    }
    ```
+
+   Notes:
+   - `server.hostname` controls what Perry passes to `opencode serve --hostname` inside workspaces.
+   - Default is `0.0.0.0` to allow connecting over Tailscale.
+   - Set `server.hostname` to `127.0.0.1` if you want local-only.
+   - `server.password` is optional but strongly recommended when binding `0.0.0.0`.
 
    **Via Web UI:**
    - Settings > Agents > OpenCode Zen Token

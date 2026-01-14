@@ -47,6 +47,9 @@ export function AgentsSettings() {
 
   const [opencodeZenToken, setOpencodeZenToken] = useState('')
   const [opencodeModel, setOpencodeModel] = useState('')
+  const [opencodeServerHostname, setOpencodeServerHostname] = useState('0.0.0.0')
+  const [opencodeServerUsername, setOpencodeServerUsername] = useState('')
+  const [opencodeServerPassword, setOpencodeServerPassword] = useState('')
   const [claudeOAuthToken, setClaudeOAuthToken] = useState('')
   const [claudeModel, setClaudeModel] = useState('sonnet')
   const [opencodeHasChanges, setOpencodeHasChanges] = useState(false)
@@ -63,6 +66,9 @@ export function AgentsSettings() {
     if (agents && !initialized) {
       setOpencodeZenToken(agents.opencode?.zen_token || '')
       setOpencodeModel(agents.opencode?.model || '')
+      setOpencodeServerHostname(agents.opencode?.server?.hostname || '0.0.0.0')
+      setOpencodeServerUsername(agents.opencode?.server?.username || '')
+      setOpencodeServerPassword(agents.opencode?.server?.password || '')
       setClaudeOAuthToken(agents.claude_code?.oauth_token || '')
       setClaudeModel(agents.claude_code?.model || 'sonnet')
       setInitialized(true)
@@ -83,10 +89,15 @@ export function AgentsSettings() {
     mutation.mutate(
       {
         ...agents,
-        opencode: {
-          zen_token: opencodeZenToken.trim() || undefined,
-          model: opencodeModel || undefined,
-        },
+          opencode: {
+            zen_token: opencodeZenToken.trim() || undefined,
+            model: opencodeModel || undefined,
+            server: {
+              hostname: opencodeServerHostname.trim() || undefined,
+              username: opencodeServerUsername.trim() || undefined,
+              password: opencodeServerPassword || undefined,
+            },
+          },
       },
       { onSuccess: () => showSaved('opencode') }
     )
@@ -200,6 +211,15 @@ export function AgentsSettings() {
                   />
                 </div>
               )}
+              <Input
+                value={opencodeServerHostname}
+                onChange={(e) => {
+                  setOpencodeServerHostname(e.target.value)
+                  setOpencodeHasChanges(true)
+                }}
+                placeholder="opencode server hostname (0.0.0.0 or 127.0.0.1)"
+                className="w-full sm:w-[260px] font-mono text-sm h-11 sm:h-9"
+              />
               <Button
                 onClick={handleSaveOpencode}
                 disabled={mutation.isPending || !opencodeHasChanges}

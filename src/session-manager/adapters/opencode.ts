@@ -3,6 +3,7 @@ import type { AgentAdapter, AdapterStartOptions, SessionStatus } from '../types'
 import type { ChatMessage } from '../../chat/types';
 import { execInContainer } from '../../docker';
 import { ensureOpenCodeServer } from '../opencode/server';
+import { loadAgentConfig } from '../../config/loader';
 
 type MessageCallback = (message: ChatMessage) => void;
 type StatusCallback = (status: SessionStatus) => void;
@@ -93,11 +94,19 @@ export class OpenCodeAdapter implements AgentAdapter {
     this.model = options.model;
     this.projectPath = options.projectPath;
 
+    const config = options.configDir ? await loadAgentConfig(options.configDir) : null;
+    const opencodeServer = config?.agents?.opencode?.server;
+
     try {
       this.port = await ensureOpenCodeServer({
         isHost: this.isHost,
         containerName: this.containerName,
         projectPath: this.projectPath,
+        hostname: opencodeServer?.hostname,
+        auth: {
+          username: opencodeServer?.username,
+          password: opencodeServer?.password,
+        },
       });
       this.setStatus('idle');
     } catch (err) {

@@ -74,6 +74,8 @@ export interface AdapterStartOptions {
   model?: string;
   projectPath?: string;
   isHost: boolean;
+  /** Perry config directory (agent's config dir). */
+  configDir?: string;
 }
 
 export interface AdapterFactory {

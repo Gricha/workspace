@@ -26,7 +26,15 @@ export function createDefaultAgentConfig(): AgentConfig {
       post_start: ['~/.perry/userscripts'],
       fail_on_error: false,
     },
-    agents: {},
+    agents: {
+      opencode: {
+        server: {
+          // Default to binding on all interfaces for Tailscale/remote access.
+          // Users can override to 127.0.0.1 if they want local-only.
+          hostname: '0.0.0.0',
+        },
+      },
+    },
     skills: [],
     mcpServers: [],
     allowHostAccess: true,
@@ -71,7 +79,17 @@ export async function loadAgentConfig(configDir?: string): Promise<AgentConfig> 
         post_start: migratePostStart(config.scripts?.post_start),
         fail_on_error: config.scripts?.fail_on_error ?? false,
       },
-      agents: config.agents || {},
+      agents: {
+        ...config.agents,
+        opencode: {
+          ...config.agents?.opencode,
+          server: {
+            hostname: config.agents?.opencode?.server?.hostname ?? '0.0.0.0',
+            username: config.agents?.opencode?.server?.username,
+            password: config.agents?.opencode?.server?.password,
+          },
+        },
+      },
       skills: Array.isArray(config.skills) ? config.skills : [],
       mcpServers: Array.isArray(config.mcpServers) ? config.mcpServers : [],
       allowHostAccess: config.allowHostAccess ?? true,

@@ -33,6 +33,9 @@ interface WizardState {
   claudeModel: string;
   opencodeToken: string;
   opencodeModel: string;
+  opencodeServerHostname: string;
+  opencodeServerUsername: string;
+  opencodeServerPassword: string;
   githubToken: string;
   selectedSSHKeys: string[];
   tailscaleAuthKey: string;
@@ -316,6 +319,9 @@ function SetupWizard() {
     claudeModel: 'sonnet',
     opencodeToken: '',
     opencodeModel: '',
+    opencodeServerHostname: '0.0.0.0',
+    opencodeServerUsername: '',
+    opencodeServerPassword: '',
     githubToken: '',
     selectedSSHKeys: [],
     tailscaleAuthKey: '',
@@ -339,6 +345,9 @@ function SetupWizard() {
         claudeModel: config.agents?.claude_code?.model || 'sonnet',
         opencodeToken: config.agents?.opencode?.zen_token || '',
         opencodeModel: config.agents?.opencode?.model || '',
+        opencodeServerHostname: config.agents?.opencode?.server?.hostname || '0.0.0.0',
+        opencodeServerUsername: config.agents?.opencode?.server?.username || '',
+        opencodeServerPassword: config.agents?.opencode?.server?.password || '',
         githubToken: config.agents?.github?.token || '',
         selectedSSHKeys: config.ssh?.global.copy || [],
         tailscaleAuthKey: config.tailscale?.authKey || '',
@@ -407,7 +416,15 @@ function SetupWizard() {
             ? { oauth_token: state.claudeToken, model: state.claudeModel }
             : config.agents?.claude_code,
           opencode: state.opencodeToken
-            ? { zen_token: state.opencodeToken, model: state.opencodeModel || undefined }
+            ? {
+                zen_token: state.opencodeToken,
+                model: state.opencodeModel || undefined,
+                server: {
+                  hostname: state.opencodeServerHostname.trim() || undefined,
+                  username: state.opencodeServerUsername.trim() || undefined,
+                  password: state.opencodeServerPassword || undefined,
+                },
+              }
             : config.agents?.opencode,
           github: state.githubToken ? { token: state.githubToken } : config.agents?.github,
         };
@@ -476,15 +493,60 @@ function SetupWizard() {
             />
           )}
           {step === 'opencode' && (
-            <TokenInputStep
-              title="OpenCode Token"
-              placeholder="zen_..."
-              helpText="Get your token from https://opencode.ai/auth"
-              value={state.opencodeToken}
-              onChange={(v: string) => setState((s: WizardState) => ({ ...s, opencodeToken: v }))}
-              onNext={nextStep}
-              onBack={prevStep}
-            />
+            <Box flexDirection="column" gap={1}>
+              <TokenInputStep
+                title="OpenCode Token"
+                placeholder="zen_..."
+                helpText="Get your token from https://opencode.ai/auth"
+                value={state.opencodeToken}
+                onChange={(v: string) => setState((s: WizardState) => ({ ...s, opencodeToken: v }))}
+                onNext={nextStep}
+                onBack={prevStep}
+              />
+              <Box flexDirection="column" marginTop={1}>
+                <Text bold>OpenCode Server (optional)</Text>
+                <Text color="gray">
+                  Hostname for 'opencode serve'. Use 0.0.0.0 to allow remote attach over Tailscale,
+                  or 127.0.0.1 for local-only.
+                </Text>
+                <Box marginTop={1}>
+                  <Text>Hostname: </Text>
+                  <TextInput
+                    value={state.opencodeServerHostname}
+                    onChange={(v: string) =>
+                      setState((s: WizardState) => ({ ...s, opencodeServerHostname: v }))
+                    }
+                    placeholder="0.0.0.0"
+                  />
+                </Box>
+                <Box marginTop={1}>
+                  <Text color="gray">
+                    Optional basic auth for remote access (recommended if binding 0.0.0.0)
+                  </Text>
+                </Box>
+                <Box marginTop={1}>
+                  <Text>Username: </Text>
+                  <TextInput
+                    value={state.opencodeServerUsername}
+                    onChange={(v: string) =>
+                      setState((s: WizardState) => ({ ...s, opencodeServerUsername: v }))
+                    }
+                    placeholder="opencode"
+                  />
+                </Box>
+                <Box marginTop={1}>
+                  <Text>Password: </Text>
+                  <TextInput
+                    value={state.opencodeServerPassword}
+                    onChange={(v: string) =>
+                      setState((s: WizardState) => ({ ...s, opencodeServerPassword: v }))
+                    }
+                    placeholder="(optional)"
+                    mask="*"
+                  />
+                </Box>
+              </Box>
+            </Box>
           )}
           {step === 'github' && (
             <TokenInputStep

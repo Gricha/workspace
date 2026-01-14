@@ -19,6 +19,14 @@ export interface CodingAgents {
   opencode?: {
     zen_token?: string;
     model?: string;
+    server?: {
+      /** Hostname passed to `opencode serve --hostname` inside workspaces. */
+      hostname?: string;
+      /** Optional HTTP basic auth username for `opencode serve`. */
+      username?: string;
+      /** Optional HTTP basic auth password for `opencode serve`. */
+      password?: string;
+    };
   };
   github?: {
     token?: string;

@@ -89,6 +89,13 @@ const CodingAgentsSchema = z.object({
     .object({
       zen_token: z.string().optional(),
       model: z.string().optional(),
+      server: z
+        .object({
+          hostname: z.string().optional(),
+          username: z.string().optional(),
+          password: z.string().optional(),
+        })
+        .optional(),
     })
     .optional(),
   github: z
