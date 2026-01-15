@@ -1,0 +1,63 @@
+---
+id: config-skills-get
+title: "config.skills.get"
+description: "config.skills.get"
+sidebar_label: "config.skills.get"
+hide_title: true
+hide_table_of_contents: true
+api: eJx1VMFu2zAM/RWB6GlQ4nQ7DPOttwXb0ADtToEHMDKTqJUlVZS9Zp7/faCdtmmb+SJZpB7J957dQ4iUMNvglzWUYILf2t2c761zPN9RBg2JOAbPxFD28HGxkKUmNslGuQclXH8DLVcz+SxRjNFZM6IWdywpPbDZU4Oyy4dIUAKmhAfQYDM1fHIeNndkpG5M0lu2U2Fbn+RwTtbvYNDgsaH3AQ0Rc6Ykzf1a4+zPYvalOq6z6sPTycXf5+CFgL2a6kwx8rhxdNrIJgRH6CU4Dk18G0YG/OF6C+W6F1o4y7jOwaD/Pz35toFyDcZhW9PMhJpAizr+uJXlEaphqAYNo0A/zlEyiGAPrU3S51poO5L0eryXYU47fwGuhvF5w8lZfzSU90HMEwPnifo9lFBMucWUW0y5TKmjxCMzbXJQwj7nWBaFCwbdPnAuP3/6cglv636XsFpRSgeFO7HZUGmwfjuynW12wsEUv1otQYOUme5ezhfzxTvEq9VSbUNSDXrcWb87gv8O6Z4jGmKtrpZTLcXEgsVaoa/VNFc7fTXz472YQmdrYmU5OMxUa8XktjMZiWpVU0cuxEbQyHc2BS97VmiMgG8cqdBRUjc3X8cit2gdG3Q0F28Jsw2OppwMf1aI8/bN9JiL6NCOLh1J748arY8wT7ozaBCoSoP0LQl9v0Gmn8kNgxw/tJQOUK4rDR0mKw6St0HDnrCmNAp7Twch2BiK0laHrh0t//avIBI+m2d1fXMLw/AP8XKPFg==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"config.skills.get"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/config/skills/get"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+config.skills.get
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string","pattern":"^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"},"description":{"type":"string"},"enabled":{"type":"boolean"},"appliesTo":{"anyOf":[{"const":"all"},{"type":"array","items":{"enum":["claude-code","opencode","codex"]}}]},"skillMd":{"type":"string"}},"required":["id","name","description","enabled","appliesTo","skillMd"]}}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

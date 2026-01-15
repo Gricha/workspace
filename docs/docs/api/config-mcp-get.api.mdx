@@ -1,0 +1,63 @@
+---
+id: config-mcp-get
+title: "config.mcp.get"
+description: "config.mcp.get"
+sidebar_label: "config.mcp.get"
+hide_title: true
+hide_table_of_contents: true
+api: eJytVE1v2zAM/SsGz1qSbodhvvW2YMMaIN0pyIGRGUetvirJ3gzD/32glHVt43Y7zBfbIvkoPj5yBOcpYFLOrhuoQTp7VO3CSL9oKYGAQNE7GylCPcL71YpfDUUZlOcgqOHmCwiOS2QTW9F7rWSGXN5FdhkhyhMZ5K80eIIaMAQcQIBKZOKTc3e4I8l5feCLJVUSq+aJT0xB2RYmARYNzRrI4kHT06CDc5rQsrGcjEC2M1DvQDuJOpdqXCLYT1yOMWjnk2Jo4z9U8jsg36Z/o8ThGxqaixSATaOYR9SbZ3RcpuiCnkU4ETYU3mL4v6R32KVTbr4dbo5Q70ZWRExQH1FHmsTfGiy1IpvW84wX45ZkoDTrEKXzc0J4tYZyqz07BHroVGCt7FhmZ1H9kdBZL/u3ofIjXkzGxTAZSifHY+ZdzBwgswbL4rg00i+LY6TQ57btxtJaOKXk6+Uya/XkYqo/fvh0BS8zfmVztaEQhgpbHshpL0DZo8vsqKSZnmK/3qxBAKcpsVeL1WJ1gXi9WVdHFyqDFltl2zP4Dxfuo0dJUVTX65KrihQZK4oKbVOVorqyXBbnOB9crxqKlYpOY6JGVJH08R2XRE3VUE/aecNoZHsVnOXvWKGUDH7QVLmeQrXdfs5JblHpKFHTgnXAtBrMG6eshssWPKvuUTCJfqal16jygjgPU+nO7ozB7ZMeBDDOXgDfmK3jeMBI34OeJj5+6CgMUO/2AnoMijXEf4+jmFt6TwNTKyV5vlOPusur5OXm5OY9amZzs72FafoFimL4IA==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"config.mcp.get"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/config/mcp/get"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+config.mcp.get
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"enabled":{"type":"boolean"},"type":{"enum":["local","remote"]},"command":{"type":"string"},"args":{"type":"array","items":{"type":"string"}},"env":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"string"}},"url":{"type":"string"},"headers":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"string"}},"oauth":{"anyOf":[{"const":false},{"type":"object","properties":{"clientId":{"type":"string"},"clientSecret":{"type":"string"},"scope":{"type":"string"}},"additionalProperties":false}]}},"required":["id","name","enabled","type"],"additionalProperties":false}}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

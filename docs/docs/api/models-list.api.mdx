@@ -1,0 +1,71 @@
+---
+id: models-list
+title: "models.list"
+description: "models.list"
+sidebar_label: "models.list"
+hide_title: true
+hide_table_of_contents: true
+api: eJyVVMFu2zAM/RWBZzVJt8Mw3bJhwIINS7B2pyAHRmIctbKkSnLSwPC/D5SDNk2BAfPFskS+9/hIuYcQKWGxwS8MKGiDIZcnzuYCEhI9dZTLl2BOoPr6aRMZUCV1JEEHX8gXPsIYndUVZ/qQg+e9rPfUIq/KKRIoCNsH0owbE7MWS7nmNuTLfQ3pgXzXglqDdtgZutHBEEgW6etyM0g4hvSYI2r6hS1dwOeSrG9gGOSF0vUF/GYYxsMcg88j+YfZjF+Gsk42sn5QsPwB/1Ed+tNyB2rdD7IHHzhjGCrXIK+A39rbUtkHdj2G+h2x7EHBdIyanqMypQOlzATQJQcK9qVENZ26oNHtQy7q08fPt3DN9ZOPxYpSOonqAQwbCSz/92tbvz1jG1118crWFzslWL8L1WdbOBRGzPlqARJY2sh3O5lNZu9UzFcLsQtJtOixsb45C3ohy1LMF6M+kSkzVpYCvRE6+J1tunE4J+e8mMLBGsrC5uCwkJEik9vdsA1khKEDuRBbRiN/sCl4XmeBWjP41pEIB0ri7u57JblH67JGRxMulPvQYm2vH01427A3pb3MXaHnMo0OrWeM2qL+3Mv1GQAkVIiNBFbKB32/xUx/khsG3n7qKJ1ArTcSDpgsbtnpNY/7ntBQqu1/pBMo+DoO5k2daQ53Hct4N6Q8jmPGXGuK5Z+xm4txXC3v7kHC9nztuQRQkPDIvwQ8goJ6JTm73qG614ND33TYcOyIyc9f5X6F5g==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"models.list"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/models/list"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+models.list
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"agentType":{"enum":["claude-code","opencode"]},"workspaceName":{"type":"string"}},"required":["agentType"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"anyOf":[{},{"not":{}}]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

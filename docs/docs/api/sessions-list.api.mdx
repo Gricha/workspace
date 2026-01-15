@@ -1,0 +1,71 @@
+---
+id: sessions-list
+title: "sessions.list"
+description: "sessions.list"
+sidebar_label: "sessions.list"
+hide_title: true
+hide_table_of_contents: true
+api: eJyVVMFu2zAM/RWDZzVxNxTDdEuHAQs2rMHanYIcGJl21MqSKslpA8P/PlB20ywdCswXSxT1+MhHqgfnKWDSzi4rkBApRu1snBkdEwgI9NhRTNeuOoDs81YHqkCm0JEA5Wwim/gIvTdaZaT5fXSWbVHtqEVepYMnkOC296QY1weOmzRFPn1y4SF6VPQTWzpxjylo28AgABuy6S5beyDbtSDXoAx2FV0oVxEITsROS/49w2YQYHSr0wmi7dotBRBQUY2dSSCvykGAq+tI7/uVwyBO8l+fkd4Mw+gQvbNxTOtDWfKvoqiC9lwZkHDzHf6jbmgPNzXIdT+IHqzjG8OQYw3iDPhcupbSzrGm3uW9x7QDCfMXv/nkFynsKUQOAl0wIGGXkpfzuXEKzc7FJD99/HwJ5/F+8HGxohAORZYHho0ATuHXa9N8fcbWG/qHyC/iHjW6Kl91YE20rV1WRCcGgDHSYrUEAUx4ZHE5K2flG26L1bKoXShatNho20w0jxSiKBbLkXXxUg9RoK0K5Wytm24cidl0zwe31xXFQkdnMFElikimvuDiUFVUtCfjfMtoZPc6OMvrWKBSDL41VLg9heL29lsOcofaRIWGZtzbrE+LWXg7leZMyr+SO/Zoouc09wa1ZZQsXT+pvD5C5PrGBBsBzJaP+n6LkX4HMwxsfuwoHECuNwL2GDRuudprHp4dYUUhN8YDHUDCl7FtL/IgsrvpmMibFuZmHW8slCKf3vXdnLTq6ub2DgRsp+em5XGWEPCJnyJ8Agl50FPOjN8jtvVg0DYdNuw7YvL3B+lHrw0=
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"sessions.list"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/sessions/list"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+sessions.list
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"workspaceName":{"type":"string"},"agentType":{"enum":["claude-code","opencode","codex"]},"limit":{"type":"number","default":50},"offset":{"type":"number","default":0}},"required":["workspaceName"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"anyOf":[{},{"not":{}}]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

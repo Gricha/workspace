@@ -1,0 +1,71 @@
+---
+id: config-ssh-update
+title: "config.ssh.update"
+description: "config.ssh.update"
+sidebar_label: "config.ssh.update"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVk1v2zAM/SsGz2qSbodhvmXDgAYd1mDtTkEOtM3YamVJFeW0XuD/PtBOmo92HQbssEN9sSyRj+TjM+0NOE8Bo3Z2VkAKubMrXY6Yq1HjC4wECgLdN8TxkytaSDf9ow5UQBpDQ0pcItkoR+i90XmPNr5lZ2WP84pqlFVsPUEKLrulPIICHyR21MS9bxPdtImVC/onXTiOl9TygVvmnCG00CkojcvQ/Bkyd749sMIQsAUFOlJ9iMwxaFtC1ylJYkjgb9w6dcDJYoh6CLXsFDy4cMcec+JX0m6/YU0vhVCARaGFVjTzoxL/DwKecfByM586d8THcufO3lkeEn83mcitIM6D9lI4pHB1CW9qe1PbP1Bbp06k9dLYqylWTmaid9wXi7GCFMaD7Zi5Gj/ZMoU1BYZ0sYEmGEihitGn47FxOZrKcUw/vP94Dqdxv8pxMqcQ2gRL0XW3VCBi/r4ful8esfaGXpHtMIj3Qh06sdhxtjxier99qhThRduV61nXUULCkNt0PgMFUuKQ9/loMpo8q2Y6nyUrF5IaLZbaltvC9jFUMp0NdSZMLFisErRFMnDaDB+i0dbPB7fWBXGi2RmMVKiEyazOhE4qkoLWZJyvBY3sWgdnZc0J5rmAZ4YSt6aQXF9f9EFuUBvO0dBINC5drbEfGhZr+o0Ijgp80mKkxzj2BnU/IPqGb7b6WGxhRBRcgYIt1FKB5C0Gm02GTD+C6TrZvm8oSLeWCtYYNGbC+0KaUxEWFHpR3VELKXweht/ZjaQh5qbpX5nTQdipncc0z8nHV22XB1KfX13fgIJs+6mvXSE+AR/kNwAfIAVQ4Ho6+nez39uAQVs2WIrtgCnXL0/a7W8=
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"config.ssh.update"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/config/ssh/update"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+config.ssh.update
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"autoAuthorizeHostKeys":{"type":"boolean"},"global":{"type":"object","properties":{"copy":{"type":"array","items":{"type":"string"}},"authorize":{"type":"array","items":{"type":"string"}}},"required":["copy","authorize"]},"workspaces":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","properties":{"copy":{"type":"array","items":{"type":"string"}},"authorize":{"type":"array","items":{"type":"string"}}}}}},"required":["autoAuthorizeHostKeys","global","workspaces"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"autoAuthorizeHostKeys":{"type":"boolean"},"global":{"type":"object","properties":{"copy":{"type":"array","items":{"type":"string"}},"authorize":{"type":"array","items":{"type":"string"}}},"required":["copy","authorize"]},"workspaces":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","properties":{"copy":{"type":"array","items":{"type":"string"}},"authorize":{"type":"array","items":{"type":"string"}}}}}},"required":["autoAuthorizeHostKeys","global","workspaces"]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

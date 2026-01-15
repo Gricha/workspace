@@ -1,0 +1,71 @@
+---
+id: workspaces-exec
+title: "workspaces.exec"
+description: "workspaces.exec"
+sidebar_label: "workspaces.exec"
+hide_title: true
+hide_table_of_contents: true
+api: eJytVMFu2zAM/RWDZzVJt8Mw37JiwIINaLB2pyAHRmIctbKkSnIaI/C/D5Sz2E2K7TJfbJPU0+PTo47gPAVM2tmFghJeXXiOHiXFCR1IgoBALw3F9MWpFspj/tWBFJQpNCRAOpvIJk6h90bLjDV9is5yLMod1chfqfUEJbjNE8kEAnzgnZOmyFmLNY2qYgraVtAxfl2jVRnftvdbKFfXVecIhoAtCNCJ6vgOXrfuBCRdk2vSKG2bekMBuk6M+lv1pAYK667rK6J3Nva8P8xm/FIUZdCeW4cS7r/DfxMmJvWW6yBNTIpCeDdFB53unKJ/93jCP6ON1uZ+O3HR3LVDako7x+bxLuYGMO2ghOlQOT1VRgp7CjGfYRMMlLBLyZfTqXESzc7FVH76+PkWLvf8weliSSG0BVasarcWwFL+HNz59YC1NzS46Y8eIxMNobMJZp0AbbcuS6UTA0C/03y5AAFMuGdxO5lNZlfc5stFsXWhqNFipW11ojk0L4r5omddRIqMFUWBVhXS2a2umn76Jqd1Pri9VhQLHZ3BREoUkcz2hsUhVSjak3G+ZjSyex2c5e9YoJQMvjFUuD2F4uHhW97kEbWJEg1N2Bd8QjXakUbXx/mmvbN9Eh3S1BvUlnHy4R1PJ70agWT/kIS1AGbMyeNxg5F+BdN1HH5pKLRQrtYC9hg0bljxFc/ljlBRyOZ4phZKuOtH6OaRKXC5afKQX44TXwD9irmU5NNfa9cjwy7vHx5BwOZ0t9V5YiDgK997+AolgACXpcjDmGNHMGirBiuu7TH5+Q2bMdWN
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"workspaces.exec"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/workspaces/exec"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+workspaces.exec
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string"},"command":{"anyOf":[{"type":"string"},{"type":"array","items":{"type":"string"}}]},"timeout":{"type":"number"}},"required":["name","command"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"stdout":{"type":"string"},"stderr":{"type":"string"},"exitCode":{"type":"number"}},"required":["stdout","stderr","exitCode"]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

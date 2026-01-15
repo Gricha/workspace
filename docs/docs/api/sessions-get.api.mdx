@@ -1,0 +1,71 @@
+---
+id: sessions-get
+title: "sessions.get"
+description: "sessions.get"
+sidebar_label: "sessions.get"
+hide_title: true
+hide_table_of_contents: true
+api: eJyVVE1v2zAM/SsGz2qSbodhumXDgAUb1mDtTkEOjEw7amVJleS0geH/PlB2mo8GA5aLFZJ6/HhP7MB5Cpi0s4sSJESKUTsbJzUlEBDouaWYvrhyD7LLf3WgEmQKLQlQziayiV3ovdEqA00fo7Nsi2pLDfIp7T2BBLd5JMW4PnDapCmy98WFp+hR0S9s6CQ8pqBtDb04lMUlXvFiTTY9ZGsHZNsG5AqUwbakG+VKAsFd2vHIn1dY97kKrmeJaXsV1+hGpxOPbZsNBfa4qop0zdWLkyGtLjo77WPd90Nw9M7GYQ4fZjP+lBRV0J5HCRLufsB/DBrt/q4Cuep60YF1fKPvc65eXABfUN1Q2jqWgHcxU5SnAtND2HQIixR2FCKngDYYkLBNycvp1DiFZutikp8+fr6Fy2w/2V0sKYR9kfmCfi2AG/h91Ni3V2y8oSuaOLByJoWj8YzJo3kkcHYkbNYL0LZymTqdOBcMRc2XCxDAvQ0F305mk9m7NubLRVG5UDRosda2Hjt6qzaKYr4YGiwOkxMF2rJQzla6boe3Nhnv+eB2uqRY6OgMJipFEclUNzxHKouSdmScbxiN7E4HZ/kcC1SKwTeGCrejUNzff89JHlCbqNDQhFXKTDaYFWLHKZ5zftbbm5YTvaapN6gtg2SSu1EOqzcEEMAYawFcK3u6boOR/gTT92x+binsQa7WAnYYNG541it+dlvCkkJW0BPtQcLXQd03+QlzuGm5jndKZ00PN+ZKkU//jF2fSHp5d/8AAjbjGmt4EUgI+MIrDl9AQl4RKTfGe45tHRi0dYs1xw6Y/PsLTMrNyA==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"sessions.get"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/sessions/get"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+sessions.get
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"workspaceName":{"type":"string"},"sessionId":{"type":"string"},"agentType":{"enum":["claude-code","opencode","codex"]},"projectPath":{"type":"string"},"limit":{"type":"number"},"offset":{"type":"number"}},"required":["workspaceName","sessionId"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"anyOf":[{},{"not":{}}]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: workspaces-start
+title: "workspaces.start"
+description: "workspaces.start"
+sidebar_label: "workspaces.start"
+hide_title: true
+hide_table_of_contents: true
+api: eJy1VU1v2zAM/SsGz1rSruiG+dYNA1ZsWIO1OwU5MDaTqJUllZLTBoH/+0ApadzU67bDcoktfj09PtJbcJ4Yo3b2soYSHhzfBY8VhVGIyBEUMN23FOJHV2+g3KZXzVRDGbklBZWzkWwUE3pvdJWSjW+Ds3IWqhU1KE9x4wlKcPNbqiSvZykdNQWxWmyo5xUia7uETkFlnB22kF2/knfzHZuc+kUg1rUWkGgmzzAcOXad6t12miHOut158M6GHPf25ET+agoVay+ZoYSrr/D/yQkRY5tcyLaNgOTWWjGKzXlPtaBgwpgPidkxzLoMDbUllr4P8S5BNGxj8m7Q4B3H8Of7hLDqOdm2mRNL+CpGP2hYOH5ArvupkRk3oEBHav6i5MqF2PPSNtKSGBQ02upGuDtV0OBjfn53fn523ifpX0OPpJOq99PNXqhLOJG+GAzxZ/gN8RG1CRUa+guOX0jDyiAlEJaqmJSxQG2oTnUF4m91pv3wBCY1DUzO0dUylNngQD2J+LkkDwLcqypNXqeOxmxgYTUUV06Wmc+se4wrKGF8cB3vXQPxmjhAOd1CywbKJMFyPDauQiOUlO/PPpzCcdVvYi4mxLwpcCkT3s0UyFj/OGzLz4/Y+NyqTOyen6eldjjIu0yup+0iz5aOEgu5yMXkEhQI1gzgdHQyOnkB62JyWSwcFw1aXGq73CE8XFwVF5cZcBEoSK6gCrR1UTm70Ms2fwlGuzjPbq1rCoUOzkgvVBHILN4IL1QXNa3JON9INrJrzc7KcyiwqiT53FDh1sTF9fWXVORmr95R3hUhNmh79Az08tn9nnQW6TGOvUFtJVFq3HbX5mkvS9YWR5ip3fxPYbudY6CfbLpOju9b4g2U05mCNbLGuXA+TfNAWMvcT7dwRxso4VPe5W9uBIO4mzbtoeO93ql9xEVVkY+v+s56cp1cXd+AgvnuQ9u4WmIYH+QjjA9QAihwiYs01+lsCwbtssWl+Oac8vsF74O2Hw==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"workspaces.start"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/workspaces/start"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+workspaces.start
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string"},"clone":{"type":"string"},"env":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"string"}}},"required":["name"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string"},"status":{"enum":["running","stopped","creating","error"]},"containerId":{"type":"string"},"created":{"type":"string"},"repo":{"type":"string"},"ports":{"type":"object","properties":{"ssh":{"type":"number"},"http":{"type":"number"},"forwards":{"type":"array","items":{"type":"object","properties":{"host":{"type":"integer","minimum":1,"maximum":65535},"container":{"type":"integer","minimum":1,"maximum":65535}},"required":["host","container"]}}},"required":["ssh"]},"lastUsed":{"type":"string"},"tailscale":{"type":"object","properties":{"status":{"enum":["none","connected","failed"]},"hostname":{"type":"string"},"ip":{"type":"string"},"error":{"type":"string"}},"required":["status"]}},"required":["name","status","containerId","created","ports"]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

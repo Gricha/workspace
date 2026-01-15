@@ -1,0 +1,71 @@
+---
+id: live-start
+title: "live.start"
+description: "live.start"
+sidebar_label: "live.start"
+hide_title: true
+hide_table_of_contents: true
+api: eJyVVE1v2zAM/SsCz2qSbodhvmXDgAUb1mDpTkEOjMw4amVJlWS3geH/PlB2m492BZaLFZJ64uN7UgfOU8CknV2UUIDRLU1iwpBAQqCHhmL64soDFF3+qwOVUKTQkATlbCKbOIXeG60yzPQuOsuxqPZUI6/SwRMU4LZ3pBjXBz40aYqcfXThPnpU9AtrOimPKWhbQS8BK7LpNkc7INvUUKxBGWxKAskErHJ5yZ8n2PQSIsU4cvoX4OrdktqVZN7M+OCYxxLT/o18L0/mtL4gd0pl0/dDcfTOxmEUH2Yz/pQUVdCepwkF3PyA/5g12sPNDop118sOrOMdfZ/P6uUF8JnWNaW9Ywd4F7NGmR5MuWj6XBQptBQiw0MTDBSwT8kX06lxCs3exVR8+vj5Gi5P+slpsaQQDiJPAPqNBG7+99Fi356w9obesMTzcM9kPQYv1TxmRhGPgTPtTjTVdueymDpxBzC0Ol8uQAIzHmhcT2aT2Sty8+VC7FwQNVqstK1Gni8cohTzxUBbjP1HKdCWQjm701UzXL/JuM8H1+qSotDRGUxUShHJ7K54ulSKkloyzteMRrbVwVleR4FKMfjWkHAtBbFafc+H3KI2UaGhSTavi6nG7Bk7zPbMBWfMXryd6ClNvUFtGSIL340GWef9rExG2EjgPjnedVuM9CeYvufwQ0PhAMV6I6HFoHHLc17zVd0TlhSyp+7pAAV8Hbx+la8Jl5uGu3jle3b4sGOuFPn0bu3mxOLLm9UtSNiO7xq7BAoI+MhvHj5CAflZ4d35WuZYBwZt1WDFtQMm//4CeRzTSw==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"live.start"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/live/start"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+live.start
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"workspaceName":{"type":"string"},"agentType":{"enum":["claude","opencode","codex"]},"sessionId":{"type":"string"},"agentSessionId":{"type":"string"},"model":{"type":"string"},"projectPath":{"type":"string"}},"required":["workspaceName","agentType"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"anyOf":[{},{"not":{}}]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

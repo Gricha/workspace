@@ -1,0 +1,63 @@
+---
+id: config-ssh-get
+title: "config.ssh.get"
+description: "config.ssh.get"
+sidebar_label: "config.ssh.get"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVMFu2zAM/RWBZy1Ot8Mw33Jr0GENkO4U5MDIjK1WtlRR9uYZ/veBdpAlbdFht51smOQj33ukB/CBIibrm3UBORjfHG25YK4WJSXQEImDb5gY8gE+LpfyKIhNtEGKIIf7O9BSl6hJEsUQnDUTZPbIkjIAm4pqlLfUB4Ic/OGRjOCHKAMkOzfANvlVmyof7S+69ZzuqOeLsoP3jrCBUUPp/AHd3yGND/1FFsaIPWiwiepLZE7RNiWMo5Yh5gH+pWwUqZ5bG6mAfDd3vYTajxp++PjEAQ3xO2P337Cmt1powKKwIiu6zRXF/0OAVxq8bebZuSs99qf669V6tY01pcrLngbPE1NMFeSQzYkZc5XNiUyxo8iQ7wZoo4McqpRCnmXOG3SV55R//vTlBl52/CphtaEYe4WlbPS412Cbo5842+SE9BxfbdagQdrMtTeL5WL5CnG1Waujj6rGBkvblCfwP9y1Wq3nXoqJBYu1wqZQM6l2vs7FqS5E39mCWFn2DhMVWjG54wehRIUqqCPnQy1o1HQ2+kbeWaExAn5wpHxHUW23t1OTB7SODTpayIaJrDVOJ9tgTW9ZcMXuvAaJfqYsOLTTbU6KDyd3dicMcYUr8Z8S7DXIxBIdhgMyfY9uHOXzc0uxh3y319BhtHgQxXdyPhVhQXGy9Il6kdYYCjJTh66dlvTlr0fMO+/M5n77AOP4Gxf1uIU=
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"config.ssh.get"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/config/ssh/get"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+config.ssh.get
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"autoAuthorizeHostKeys":{"type":"boolean"},"global":{"type":"object","properties":{"copy":{"type":"array","items":{"type":"string"}},"authorize":{"type":"array","items":{"type":"string"}}},"required":["copy","authorize"]},"workspaces":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","properties":{"copy":{"type":"array","items":{"type":"string"}},"authorize":{"type":"array","items":{"type":"string"}}}}}},"required":["autoAuthorizeHostKeys","global","workspaces"]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -21,7 +21,3 @@ docs/.docusaurus/
 docs/build/
 docs/.cache-loader/
 docs/node_modules/
-
-# Generated API docs
-docs/docs/api/
-docs/static/openapi.json

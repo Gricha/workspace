@@ -1,0 +1,63 @@
+---
+id: config-ssh-list-keys
+title: "config.ssh.listKeys"
+description: "config.ssh.listKeys"
+sidebar_label: "config.ssh.listKeys"
+hide_title: true
+hide_table_of_contents: true
+api: eJx1U8Fu2zAM/RWBZy1OOxRDfcttQQY0QLtTkAMjM7FaWVJF2V1g+N8H2l6XpZ0PliCR75F8Tz2ESAmzDX5dQQkm+KM9LZjrhbOcN3Rm0JCIY/BMDGUPt8ulLBWxSTZKJpTwsAEtyZl8lluM0Vkz4hbPLCE9sKmpQdnlcyQoAVPCM2iwmRq+OA+HZzIZNMQk1WU7EXts6CKKc7L+BIOGiLn+/KI9OGs2dN7+L2I66IF820C5A6pu7+5u7qVnRtBAphrX6d/6Fx/ePOwHDUfrT5RislPDH5Br5G2yHWba0Pki4hCCI/QwDDLX19YmqoR57G7u5bryuc5/Sa8p9sP46StlPle0oVwHETwGzn9oSyim6IK5Li6imVJHiaHc9dAmByXUOceyKFww6OrAufz29f4Grrl/yLXaUkpnhSexxrDXYP0xjAOx2clEpvvVdg0ahGbKvVksF8sPiKvtWh1DUg16PFl/msHfQnrhiIZYq9V64lJMLFisFfpKTZ21k9cXc15MobMVsbIcHGaqtGJyxy/SElWqoo5ciI2gke9sCl72rNAYAT84UqGjpB4fv48kT2gdG3S0GO0XODfo/3r3Wgw1z/efHt+dkulXLqJD6wVsnHs/C7WbkUQbFn+8i7XXIMVLSN8fkOlncsMgx68tpTOUu72GDpPFgwx/J1auCStKo7ov4lVYGUNRbNGha8eXev2cRcd3D20fHp9gGH4DpT16rA==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"config.ssh.listKeys"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/config/ssh/listKeys"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+config.ssh.listKeys
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"path":{"type":"string"},"publicKeyPath":{"type":"string"},"type":{"enum":["ed25519","rsa","ecdsa","dsa","unknown"]},"fingerprint":{"type":"string"},"hasPrivateKey":{"type":"boolean"}},"required":["name","path","publicKeyPath","type","fingerprint","hasPrivateKey"]}}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

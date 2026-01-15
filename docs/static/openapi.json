@@ -1,0 +1,3379 @@
+{
+  "info": {
+    "title": "Perry API",
+    "version": "1.0.0",
+    "description": "API for managing Perry workspaces, AI agent sessions, and configuration. Perry provides isolated, self-hosted development environments accessible over SSH and Tailscale."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:7391",
+      "description": "Local Perry agent"
+    }
+  ],
+  "openapi": "3.1.1",
+  "paths": {
+    "/workspaces/list": {
+      "post": {
+        "operationId": "workspaces.list",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/get": {
+      "post": {
+        "operationId": "workspaces.get",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/create": {
+      "post": {
+        "operationId": "workspaces.create",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "clone": {
+                    "type": "string"
+                  },
+                  "env": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "running",
+                        "stopped",
+                        "creating",
+                        "error"
+                      ]
+                    },
+                    "containerId": {
+                      "type": "string"
+                    },
+                    "created": {
+                      "type": "string"
+                    },
+                    "repo": {
+                      "type": "string"
+                    },
+                    "ports": {
+                      "type": "object",
+                      "properties": {
+                        "ssh": {
+                          "type": "number"
+                        },
+                        "http": {
+                          "type": "number"
+                        },
+                        "forwards": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "host": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              },
+                              "container": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              }
+                            },
+                            "required": [
+                              "host",
+                              "container"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "ssh"
+                      ]
+                    },
+                    "lastUsed": {
+                      "type": "string"
+                    },
+                    "tailscale": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "none",
+                            "connected",
+                            "failed"
+                          ]
+                        },
+                        "hostname": {
+                          "type": "string"
+                        },
+                        "ip": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "status",
+                    "containerId",
+                    "created",
+                    "ports"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/clone": {
+      "post": {
+        "operationId": "workspaces.clone",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sourceName": {
+                    "type": "string"
+                  },
+                  "cloneName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sourceName",
+                  "cloneName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "running",
+                        "stopped",
+                        "creating",
+                        "error"
+                      ]
+                    },
+                    "containerId": {
+                      "type": "string"
+                    },
+                    "created": {
+                      "type": "string"
+                    },
+                    "repo": {
+                      "type": "string"
+                    },
+                    "ports": {
+                      "type": "object",
+                      "properties": {
+                        "ssh": {
+                          "type": "number"
+                        },
+                        "http": {
+                          "type": "number"
+                        },
+                        "forwards": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "host": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              },
+                              "container": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              }
+                            },
+                            "required": [
+                              "host",
+                              "container"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "ssh"
+                      ]
+                    },
+                    "lastUsed": {
+                      "type": "string"
+                    },
+                    "tailscale": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "none",
+                            "connected",
+                            "failed"
+                          ]
+                        },
+                        "hostname": {
+                          "type": "string"
+                        },
+                        "ip": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "status",
+                    "containerId",
+                    "created",
+                    "ports"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/delete": {
+      "post": {
+        "operationId": "workspaces.delete",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/start": {
+      "post": {
+        "operationId": "workspaces.start",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "clone": {
+                    "type": "string"
+                  },
+                  "env": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "running",
+                        "stopped",
+                        "creating",
+                        "error"
+                      ]
+                    },
+                    "containerId": {
+                      "type": "string"
+                    },
+                    "created": {
+                      "type": "string"
+                    },
+                    "repo": {
+                      "type": "string"
+                    },
+                    "ports": {
+                      "type": "object",
+                      "properties": {
+                        "ssh": {
+                          "type": "number"
+                        },
+                        "http": {
+                          "type": "number"
+                        },
+                        "forwards": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "host": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              },
+                              "container": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              }
+                            },
+                            "required": [
+                              "host",
+                              "container"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "ssh"
+                      ]
+                    },
+                    "lastUsed": {
+                      "type": "string"
+                    },
+                    "tailscale": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "none",
+                            "connected",
+                            "failed"
+                          ]
+                        },
+                        "hostname": {
+                          "type": "string"
+                        },
+                        "ip": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "status",
+                    "containerId",
+                    "created",
+                    "ports"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/stop": {
+      "post": {
+        "operationId": "workspaces.stop",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "running",
+                        "stopped",
+                        "creating",
+                        "error"
+                      ]
+                    },
+                    "containerId": {
+                      "type": "string"
+                    },
+                    "created": {
+                      "type": "string"
+                    },
+                    "repo": {
+                      "type": "string"
+                    },
+                    "ports": {
+                      "type": "object",
+                      "properties": {
+                        "ssh": {
+                          "type": "number"
+                        },
+                        "http": {
+                          "type": "number"
+                        },
+                        "forwards": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "host": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              },
+                              "container": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              }
+                            },
+                            "required": [
+                              "host",
+                              "container"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "ssh"
+                      ]
+                    },
+                    "lastUsed": {
+                      "type": "string"
+                    },
+                    "tailscale": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "none",
+                            "connected",
+                            "failed"
+                          ]
+                        },
+                        "hostname": {
+                          "type": "string"
+                        },
+                        "ip": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "status",
+                    "containerId",
+                    "created",
+                    "ports"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/logs": {
+      "post": {
+        "operationId": "workspaces.logs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "tail": {
+                    "type": "number",
+                    "default": 100
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/sync": {
+      "post": {
+        "operationId": "workspaces.sync",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/syncAll": {
+      "post": {
+        "operationId": "workspaces.syncAll",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/touch": {
+      "post": {
+        "operationId": "workspaces.touch",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "running",
+                        "stopped",
+                        "creating",
+                        "error"
+                      ]
+                    },
+                    "containerId": {
+                      "type": "string"
+                    },
+                    "created": {
+                      "type": "string"
+                    },
+                    "repo": {
+                      "type": "string"
+                    },
+                    "ports": {
+                      "type": "object",
+                      "properties": {
+                        "ssh": {
+                          "type": "number"
+                        },
+                        "http": {
+                          "type": "number"
+                        },
+                        "forwards": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "host": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              },
+                              "container": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              }
+                            },
+                            "required": [
+                              "host",
+                              "container"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "ssh"
+                      ]
+                    },
+                    "lastUsed": {
+                      "type": "string"
+                    },
+                    "tailscale": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "none",
+                            "connected",
+                            "failed"
+                          ]
+                        },
+                        "hostname": {
+                          "type": "string"
+                        },
+                        "ip": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "status",
+                    "containerId",
+                    "created",
+                    "ports"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/getPortForwards": {
+      "post": {
+        "operationId": "workspaces.getPortForwards",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "forwards": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "host": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 65535
+                          },
+                          "container": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 65535
+                          }
+                        },
+                        "required": [
+                          "host",
+                          "container"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "forwards"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/setPortForwards": {
+      "post": {
+        "operationId": "workspaces.setPortForwards",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "forwards": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "host": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 65535
+                        },
+                        "container": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 65535
+                        }
+                      },
+                      "required": [
+                        "host",
+                        "container"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "forwards"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "running",
+                        "stopped",
+                        "creating",
+                        "error"
+                      ]
+                    },
+                    "containerId": {
+                      "type": "string"
+                    },
+                    "created": {
+                      "type": "string"
+                    },
+                    "repo": {
+                      "type": "string"
+                    },
+                    "ports": {
+                      "type": "object",
+                      "properties": {
+                        "ssh": {
+                          "type": "number"
+                        },
+                        "http": {
+                          "type": "number"
+                        },
+                        "forwards": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "host": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              },
+                              "container": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              }
+                            },
+                            "required": [
+                              "host",
+                              "container"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "ssh"
+                      ]
+                    },
+                    "lastUsed": {
+                      "type": "string"
+                    },
+                    "tailscale": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "none",
+                            "connected",
+                            "failed"
+                          ]
+                        },
+                        "hostname": {
+                          "type": "string"
+                        },
+                        "ip": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "status",
+                    "containerId",
+                    "created",
+                    "ports"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/updateWorker": {
+      "post": {
+        "operationId": "workspaces.updateWorker",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/exec": {
+      "post": {
+        "operationId": "workspaces.exec",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "command": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "timeout": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "name",
+                  "command"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stdout": {
+                      "type": "string"
+                    },
+                    "stderr": {
+                      "type": "string"
+                    },
+                    "exitCode": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "stdout",
+                    "stderr",
+                    "exitCode"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/list": {
+      "post": {
+        "operationId": "sessions.list",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceName": {
+                    "type": "string"
+                  },
+                  "agentType": {
+                    "enum": [
+                      "claude-code",
+                      "opencode",
+                      "codex"
+                    ]
+                  },
+                  "limit": {
+                    "type": "number",
+                    "default": 50
+                  },
+                  "offset": {
+                    "type": "number",
+                    "default": 0
+                  }
+                },
+                "required": [
+                  "workspaceName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/get": {
+      "post": {
+        "operationId": "sessions.get",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceName": {
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "agentType": {
+                    "enum": [
+                      "claude-code",
+                      "opencode",
+                      "codex"
+                    ]
+                  },
+                  "projectPath": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "number"
+                  },
+                  "offset": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "workspaceName",
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/rename": {
+      "post": {
+        "operationId": "sessions.rename",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceName": {
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "workspaceName",
+                  "sessionId",
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/clearName": {
+      "post": {
+        "operationId": "sessions.clearName",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceName": {
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "workspaceName",
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/getRecent": {
+      "post": {
+        "operationId": "sessions.getRecent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "number",
+                    "default": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/recordAccess": {
+      "post": {
+        "operationId": "sessions.recordAccess",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceName": {
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "agentType": {
+                    "enum": [
+                      "claude-code",
+                      "opencode",
+                      "codex"
+                    ]
+                  }
+                },
+                "required": [
+                  "workspaceName",
+                  "sessionId",
+                  "agentType"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/delete": {
+      "post": {
+        "operationId": "sessions.delete",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceName": {
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "agentType": {
+                    "enum": [
+                      "claude-code",
+                      "opencode",
+                      "codex"
+                    ]
+                  }
+                },
+                "required": [
+                  "workspaceName",
+                  "sessionId",
+                  "agentType"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/search": {
+      "post": {
+        "operationId": "sessions.search",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceName": {
+                    "type": "string"
+                  },
+                  "query": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "workspaceName",
+                  "query"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live/list": {
+      "post": {
+        "operationId": "live.list",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live/get": {
+      "post": {
+        "operationId": "live.get",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live/getStatus": {
+      "post": {
+        "operationId": "live.getStatus",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live/start": {
+      "post": {
+        "operationId": "live.start",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceName": {
+                    "type": "string"
+                  },
+                  "agentType": {
+                    "enum": [
+                      "claude",
+                      "opencode",
+                      "codex"
+                    ]
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "agentSessionId": {
+                    "type": "string"
+                  },
+                  "model": {
+                    "type": "string"
+                  },
+                  "projectPath": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "workspaceName",
+                  "agentType"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live/sendMessage": {
+      "post": {
+        "operationId": "live.sendMessage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sessionId",
+                  "message"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live/interrupt": {
+      "post": {
+        "operationId": "live.interrupt",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live/dispose": {
+      "post": {
+        "operationId": "live.dispose",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live/getMessages": {
+      "post": {
+        "operationId": "live.getMessages",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "sinceId": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/models/list": {
+      "post": {
+        "operationId": "models.list",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "agentType": {
+                    "enum": [
+                      "claude-code",
+                      "opencode"
+                    ]
+                  },
+                  "workspaceName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "agentType"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/github/listRepos": {
+      "post": {
+        "operationId": "github.listRepos",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "search": {
+                    "type": "string"
+                  },
+                  "perPage": {
+                    "type": "number",
+                    "default": 30
+                  },
+                  "page": {
+                    "type": "number",
+                    "default": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "configured": {
+                      "type": "boolean"
+                    },
+                    "repos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "fullName": {
+                            "type": "string"
+                          },
+                          "cloneUrl": {
+                            "type": "string"
+                          },
+                          "sshUrl": {
+                            "type": "string"
+                          },
+                          "private": {
+                            "type": "boolean"
+                          },
+                          "description": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "fullName",
+                          "cloneUrl",
+                          "sshUrl",
+                          "private",
+                          "description",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "configured",
+                    "repos",
+                    "hasMore"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/host/info": {
+      "post": {
+        "operationId": "host.info",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/info": {
+      "post": {
+        "operationId": "info",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/credentials/get": {
+      "post": {
+        "operationId": "config.credentials.get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "env": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "files": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "env",
+                    "files"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/credentials/update": {
+      "post": {
+        "operationId": "config.credentials.update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "env": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "files": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "env",
+                  "files"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "env": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "files": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "env",
+                    "files"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/scripts/get": {
+      "post": {
+        "operationId": "config.scripts.get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "post_start": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "fail_on_error": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/scripts/update": {
+      "post": {
+        "operationId": "config.scripts.update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "post_start": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "fail_on_error": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "post_start": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "fail_on_error": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/agents/get": {
+      "post": {
+        "operationId": "config.agents.get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "opencode": {
+                      "type": "object",
+                      "properties": {
+                        "zen_token": {
+                          "type": "string"
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "server": {
+                          "type": "object",
+                          "properties": {
+                            "hostname": {
+                              "type": "string"
+                            },
+                            "username": {
+                              "type": "string"
+                            },
+                            "password": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "github": {
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "claude_code": {
+                      "type": "object",
+                      "properties": {
+                        "oauth_token": {
+                          "type": "string"
+                        },
+                        "model": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/agents/update": {
+      "post": {
+        "operationId": "config.agents.update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "opencode": {
+                    "type": "object",
+                    "properties": {
+                      "zen_token": {
+                        "type": "string"
+                      },
+                      "model": {
+                        "type": "string"
+                      },
+                      "server": {
+                        "type": "object",
+                        "properties": {
+                          "hostname": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "type": "string"
+                          },
+                          "password": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "github": {
+                    "type": "object",
+                    "properties": {
+                      "token": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "claude_code": {
+                    "type": "object",
+                    "properties": {
+                      "oauth_token": {
+                        "type": "string"
+                      },
+                      "model": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "opencode": {
+                      "type": "object",
+                      "properties": {
+                        "zen_token": {
+                          "type": "string"
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "server": {
+                          "type": "object",
+                          "properties": {
+                            "hostname": {
+                              "type": "string"
+                            },
+                            "username": {
+                              "type": "string"
+                            },
+                            "password": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "github": {
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "claude_code": {
+                      "type": "object",
+                      "properties": {
+                        "oauth_token": {
+                          "type": "string"
+                        },
+                        "model": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/skills/get": {
+      "post": {
+        "operationId": "config.skills.get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "appliesTo": {
+                        "anyOf": [
+                          {
+                            "const": "all"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "enum": [
+                                "claude-code",
+                                "opencode",
+                                "codex"
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      "skillMd": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "description",
+                      "enabled",
+                      "appliesTo",
+                      "skillMd"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/skills/update": {
+      "post": {
+        "operationId": "config.skills.update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "appliesTo": {
+                      "anyOf": [
+                        {
+                          "const": "all"
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "enum": [
+                              "claude-code",
+                              "opencode",
+                              "codex"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "skillMd": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "enabled",
+                    "appliesTo",
+                    "skillMd"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "appliesTo": {
+                        "anyOf": [
+                          {
+                            "const": "all"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "enum": [
+                                "claude-code",
+                                "opencode",
+                                "codex"
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      "skillMd": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "description",
+                      "enabled",
+                      "appliesTo",
+                      "skillMd"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/mcp/get": {
+      "post": {
+        "operationId": "config.mcp.get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "type": {
+                        "enum": [
+                          "local",
+                          "remote"
+                        ]
+                      },
+                      "command": {
+                        "type": "string"
+                      },
+                      "args": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "env": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "headers": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "oauth": {
+                        "anyOf": [
+                          {
+                            "const": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "clientId": {
+                                "type": "string"
+                              },
+                              "clientSecret": {
+                                "type": "string"
+                              },
+                              "scope": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "enabled",
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/mcp/update": {
+      "post": {
+        "operationId": "config.mcp.update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "type": {
+                      "enum": [
+                        "local",
+                        "remote"
+                      ]
+                    },
+                    "command": {
+                      "type": "string"
+                    },
+                    "args": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "env": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "headers": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "oauth": {
+                      "anyOf": [
+                        {
+                          "const": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "clientId": {
+                              "type": "string"
+                            },
+                            "clientSecret": {
+                              "type": "string"
+                            },
+                            "scope": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "enabled",
+                    "type"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "type": {
+                        "enum": [
+                          "local",
+                          "remote"
+                        ]
+                      },
+                      "command": {
+                        "type": "string"
+                      },
+                      "args": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "env": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "headers": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "oauth": {
+                        "anyOf": [
+                          {
+                            "const": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "clientId": {
+                                "type": "string"
+                              },
+                              "clientSecret": {
+                                "type": "string"
+                              },
+                              "scope": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "enabled",
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/ssh/get": {
+      "post": {
+        "operationId": "config.ssh.get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "autoAuthorizeHostKeys": {
+                      "type": "boolean"
+                    },
+                    "global": {
+                      "type": "object",
+                      "properties": {
+                        "copy": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "authorize": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "copy",
+                        "authorize"
+                      ]
+                    },
+                    "workspaces": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "copy": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "authorize": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "autoAuthorizeHostKeys",
+                    "global",
+                    "workspaces"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/ssh/update": {
+      "post": {
+        "operationId": "config.ssh.update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "autoAuthorizeHostKeys": {
+                    "type": "boolean"
+                  },
+                  "global": {
+                    "type": "object",
+                    "properties": {
+                      "copy": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "authorize": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "copy",
+                      "authorize"
+                    ]
+                  },
+                  "workspaces": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "copy": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "authorize": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "autoAuthorizeHostKeys",
+                  "global",
+                  "workspaces"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "autoAuthorizeHostKeys": {
+                      "type": "boolean"
+                    },
+                    "global": {
+                      "type": "object",
+                      "properties": {
+                        "copy": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "authorize": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "copy",
+                        "authorize"
+                      ]
+                    },
+                    "workspaces": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "copy": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "authorize": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "autoAuthorizeHostKeys",
+                    "global",
+                    "workspaces"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/ssh/listKeys": {
+      "post": {
+        "operationId": "config.ssh.listKeys",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "publicKeyPath": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "enum": [
+                          "ed25519",
+                          "rsa",
+                          "ecdsa",
+                          "dsa",
+                          "unknown"
+                        ]
+                      },
+                      "fingerprint": {
+                        "type": "string"
+                      },
+                      "hasPrivateKey": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "path",
+                      "publicKeyPath",
+                      "type",
+                      "fingerprint",
+                      "hasPrivateKey"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/terminal/get": {
+      "post": {
+        "operationId": "config.terminal.get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "preferredShell": {
+                      "type": "string"
+                    },
+                    "detectedShell": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/terminal/update": {
+      "post": {
+        "operationId": "config.terminal.update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "preferredShell": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "preferredShell": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/tailscale/get": {
+      "post": {
+        "operationId": "config.tailscale.get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "authKey": {
+                      "type": "string"
+                    },
+                    "hostnamePrefix": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "enabled"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/tailscale/update": {
+      "post": {
+        "operationId": "config.tailscale.update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "authKey": {
+                    "type": "string"
+                  },
+                  "hostnamePrefix": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "authKey": {
+                      "type": "string"
+                    },
+                    "hostnamePrefix": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "enabled"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

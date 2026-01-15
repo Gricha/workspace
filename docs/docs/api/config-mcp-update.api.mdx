@@ -1,0 +1,71 @@
+---
+id: config-mcp-update
+title: "config.mcp.update"
+description: "config.mcp.update"
+sidebar_label: "config.mcp.update"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVktv2zAM/isGz2qSbodhvmXDgAUb1mDpTkEOjMw4amVJleS0hpH/PlB2Hm29bIcd64stiqT4+D7KLVhHHqOyZlZADtKajSpHlXSj2hUYCQR4eqgpxE+2aCBv01J5KiCPvibBJpFM5C10TiuZvI3vgjUsC3JLFfJXbBxBDug9NiBARarCmdyu70hGEOA8xxQVpV1VnOmE6JUpYS/AYEWDG2RwrencaG2tJjS82UlaIFNXkC9BW4k6pVjZSLDaczpVhWb4UPRl+IdMDgYpmt2FFJsfWNGQpQAsCsV1RD1/Vo7XR9ReD3rYEhbkL1X4vxxvsY7b1HzT3GwgX7aMiBAh36AOtBd/a7DUikycDVe821yQ9BQHFYK0bggIf8yhi2rFCickLxlmPahOEOrxsrrsih/2FZw1oUvp3WTCr4KC9MqxIeRw8w3eyPJGljey7MULZgxdOhXFreUbydmQyoBcOBh3uuNKuvFRN5DfpeYt267BsI3R5eNxQuzWhph/eP/xGl6e+523szl532RYMi33KwHMxZ+nK+/LE1ZOU3LO9DoU7cCq0/pIpsO92HPjpNFRYnkQrA6QPwDzpHnC455jUmZjU99U5FCgi3k6n4EATr3L53o0GU1eZTmdz7KN9VmFBktlyj7hR+vvg0NJQWTTWZd/FiiwryAyNEXW1brufg9GvZ3zdqcKCpkKVmOkQmSB9OaKy0xFVtCOtHUVeyOzU94a/g4ZSsnO15oyuyOfLRZf0yG3qHSQqGnECOVuV5hmYV/eIXA8S/CI5khPcew0qjS9eqZ3uFn2bhhY0oGA3tVKAMfNCm27xkC/vN7vWfxQk28gX64E7NAr7iyvjqMi4eGeGsjhczfTr245DFbXdRp4L+c7s7uzmEpJLl7UXZ1RYH6zuAUB6/4HrLIF23h85GGMj5ADCLCpHGlIJFkLGk1ZY8m6nU9+fgMBi3H7
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"config.mcp.update"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/config/mcp/update"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+config.mcp.update
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"enabled":{"type":"boolean"},"type":{"enum":["local","remote"]},"command":{"type":"string"},"args":{"type":"array","items":{"type":"string"}},"env":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"string"}},"url":{"type":"string"},"headers":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"string"}},"oauth":{"anyOf":[{"const":false},{"type":"object","properties":{"clientId":{"type":"string"},"clientSecret":{"type":"string"},"scope":{"type":"string"}},"additionalProperties":false}]}},"required":["id","name","enabled","type"],"additionalProperties":false}}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"enabled":{"type":"boolean"},"type":{"enum":["local","remote"]},"command":{"type":"string"},"args":{"type":"array","items":{"type":"string"}},"env":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"string"}},"url":{"type":"string"},"headers":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"string"}},"oauth":{"anyOf":[{"const":false},{"type":"object","properties":{"clientId":{"type":"string"},"clientSecret":{"type":"string"},"scope":{"type":"string"}},"additionalProperties":false}]}},"required":["id","name","enabled","type"],"additionalProperties":false}}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

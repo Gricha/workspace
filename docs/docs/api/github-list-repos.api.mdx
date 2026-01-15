@@ -1,0 +1,71 @@
+---
+id: github-list-repos
+title: "github.listRepos"
+description: "github.listRepos"
+sidebar_label: "github.listRepos"
+hide_title: true
+hide_table_of_contents: true
+api: eJytVclu2zAQ/RVizoyX5lBUNzcoUKNLjCQ9GT6MpLHEhCIZknJiGPr3Yig7VhynuVQXy5z9zXvUDqwjj1FZMy8hg0rFus1HWoV4Q84GkODpsaUQv9pyC9ku/VWeSsiib0lCYU0kE9mEzmlVpGTj+2ANn4Wipgb5LW4dQQY2v6ciggTnuXRUFJIfoS/qgV+IXpkKOgmO/AIrGthM2+TkQUJJa2x1hOxywo4feU279PBMwVkT+tKfJhP+KSkUXjnuHjK4/gH/bbbCmrWq2gTai29urSY0kLphpI8m9B63IEFFasLH6Q02dBa4dav17/eMhbaG/nh91hhC/Z7JebXBSOcneYXhDtBsr9eQLd+mGSxJa+hWnYTWlRipnMUzZTs54N2yn3gw32Cal96Pnb5ua1hoxYlrDL+sPzvQSdnBHg9LO4av9tR6TaMzemoo1pa15mxIy8RYQwbj3nU8dA3kN+RDQrDlfUAdo8vGY20L1LUNMft8+WUKp1V/slksyPutwIoZ3K0kMG1vjmL+9oyN0zQU3wHvgeYuJwddTTsJyqxtAkpFjoS+xGwxBwncaV9+OpqMJm+ami3mYm29aNBgpUy17+/J+ofgsKAgxWzetysCBc4VpEBTigPuSX2jfZzzdqNKCkIFq3mfUgTS6wtGhUpR0oa0dQ1nI7NR3hp+DwKLgpPnmoTdkBe3t99TkTtUOhSoaZRYbkNs0BzlNdykOOznhO57+kR6jmOnUSVJtL2O+i0v92lAwnHPKwncNFt3uxwD87jr+PixJb+FbLmSsEGvMGfQlyyWmrAkn4jxQFvI4Kq/qi7uuAd21226Sk6vLZZeHzErCnLxn76rAVsX17d3ICHffwYaW3KMxyfWAj5BBiDBJizSrZTOdqDRVG3iD/Q5+fkL+lU7Bw==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"github.listRepos"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/github/listRepos"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+github.listRepos
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"search":{"type":"string"},"perPage":{"type":"number","default":30},"page":{"type":"number","default":1}}}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"configured":{"type":"boolean"},"repos":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"fullName":{"type":"string"},"cloneUrl":{"type":"string"},"sshUrl":{"type":"string"},"private":{"type":"boolean"},"description":{"anyOf":[{"type":"string"},{"type":"null"}]},"updatedAt":{"type":"string"}},"required":["name","fullName","cloneUrl","sshUrl","private","description","updatedAt"]}},"hasMore":{"type":"boolean"}},"required":["configured","repos","hasMore"]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

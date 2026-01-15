@@ -5,8 +5,8 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start --host 0.0.0.0",
-    "build": "npm run generate:all && docusaurus build",
-    "generate:all": "npm run generate:openapi && npm run gen-api-docs",
+    "build": "docusaurus build",
+    "generate:api-docs": "npm run generate:openapi && npm run gen-api-docs",
     "generate:openapi": "cd .. && bun run generate:openapi",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",

@@ -1,0 +1,71 @@
+---
+id: config-tailscale-update
+title: "config.tailscale.update"
+description: "config.tailscale.update"
+sidebar_label: "config.tailscale.update"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVE1v2zAM/SsCz2qcbodhvmXDgAUd0GDJTkEOjM3YamVJleR8wMh/Hyi7brJsvc8X2yL59PgepQ6sI49RWTMvIYfCmp2qJhGVDgVqmrSuxEggwdNLSyF+seUJ8i79Kk8l5NG3JLkwkokcQue0KhJm9hSs4bVQ1NQgf8WTI8jBbp+oiCDBeWYQFQWOksGtZtQxcWutJjRwloBtrB/odBEM0StTcay2IRpsaOFpp45/SUkPtxGcNaHf7cN0yq+SQuGVY8KQw+MD/A/tyAsL1uNGm6HN65b+7WpDsbZsvLMh0cdYQw5ZX5GNFdlYEcjvyQfI1x20XkMOdYwuzzJtC9TMO//08fM9/MnhB4fFgrw/CaxY2/NGAgv6822yvh2xcZqupOvnaxTrVYFbjS7kU2Znk2gqMhr0284Wc5DA7HtK95PpZHpDdLaYi531okGDlTLVwPlg/XNwWFCQYjbvWxCBAmMFKdCUohet7Y/TZKhz3u5VSUGoYDVGKqUIpHd3zJ5KUdKetHUNo5HZK28NfweBRcHgW03C7smL5fJ72mQ1msiNsm0NpplkKd71+qrNcaAiHWPmNKo0k8nRbhiD9QAGEkY4kDAAbnoHOK3rthjol9fnMy+/tORPkK83EvboFfvIfzzWhCX5NDvPycyv/Tm7WzEZTtctk7o5c2f5WjErCnLx3dzNxVwvHpcrkLAdrq3Gllzj8cBXGh4gB5BgkyjpxKa1DjSaqsWKc3tMfn4DTa/OXg==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"config.tailscale.update"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/config/tailscale/update"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+config.tailscale.update
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"enabled":{"type":"boolean"},"authKey":{"type":"string"},"hostnamePrefix":{"type":"string"}}}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"enabled":{"type":"boolean"},"authKey":{"type":"string"},"hostnamePrefix":{"type":"string"}},"required":["enabled"]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

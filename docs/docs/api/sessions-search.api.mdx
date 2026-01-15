@@ -1,0 +1,71 @@
+---
+id: sessions-search
+title: "sessions.search"
+description: "sessions.search"
+sidebar_label: "sessions.search"
+hide_title: true
+hide_table_of_contents: true
+api: eJyVVMFu2zAM/RWBZzVJNwzDfMuGAQtWLMHanYIcGJmx1cqSKslJA8P/PlB20qwZBswX2yL5+Pge7Q6cp4BJO7sooYBIMWpn4yQSBlWDhEDPLcX02ZVHKLr8qgOVUKTQkgTlbCKbOITeG60y1vQxOstnUdXUID+loycowG0fSSWQ4AN3TpoiRw8uPEWPin5gQxfpMQVtK+glPLcUjtcRCY22d2SrVENxK6HBl9Pbh9ms7+UF4/WbNifQTd8PidE7GwdC72YzvpUUVdCeZ4IClt/hPyZGe1zuoFh3vezAOq7o+9yrl2+Ar2VvKNWOHfEuZrmQR4LpKXN6zowU9hQiN4I2GCigTskX06lxCk3tYio+vv90C2973nFYrCiEo8CKJ+o3EniMn6+Wf33Bxhv6i0WvBozOXHil7c5lq3TiWhiazFcLkMBcBwK3k9lkdkVrvlqInQuiQYuVttXI8Nw9SjFfDITFSQwp0JZCObvTVTts82Ss88HtdUlR6OgMJiqliGR2N6wLlaKkPRnnG0Yju9fBWX6OApVi8K0h4fYUxP39t9zkAbWJCg1NeFA2p8Hsux1VuXLyj/HO65voJU29QW0ZJ/vWjSavzyDZ3QyzkcCMOdh1W4z0K5i+5+NR/fVGwh6Dxi0rvt70EmrCkkLeiydig74Mm3vzwBQ43bRM5WqLeV+HirlS5NM/czcXu7pa3j+AhO34r2hcyTUBD/wfwQMUABJcliJ/ZPmsA4O2arHi3AGTr9+6RJot
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"sessions.search"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/sessions/search"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+sessions.search
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"workspaceName":{"type":"string"},"query":{"type":"string","minLength":1,"maxLength":500}},"required":["workspaceName","query"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"anyOf":[{},{"not":{}}]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: workspaces-set-port-forwards
+title: "workspaces.setPortForwards"
+description: "workspaces.setPortForwards"
+sidebar_label: "workspaces.setPortForwards"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVk1v2zAM/SsGz2qSruiG+dYNG1ZsQIO1PRk5MDaTqLUllZLTBoH/+0ApWZw07brDTssltvihR75HyWuwjhiDtuayghweLd97hyX5gacwthy+Wn5ErjwoYHpoyYdPtlpBvo6vmqmCPHBLCkprApkgJnSu1mVMO7zz1siaLxfUoDyFlSPIwU7vqAygwLGACJq8WA021PPygbWZQ6dgtkWyMyIzrkCBDtT4P6deWB96XtoEmhODgkYb3bQN5KcKGnxKz+/Pz8/Ou1QXakP8t6Gd6vWoSLv30026Q5dYe69S8Ygu3lnjUxHvRiP5q8iXrJ20GHK4+g7/ngAfMLTRhYxUWQC3xohRbNY5qgQFE4a0SMxWyuwVLSo7kjoG0XEbk7NHDc5yeAPr3i96TqZtpsQSvgjBHTX8B0KTnggvNfpw619ofEBd+xJrekOPn0nDWEMJhKEyRGXMUNdUxX0F4os60+7oclLTc8thaQnK5IXZ2pj3JbkT4FZVcfI6dTBmrx6PDYWFlUPUpf47DAvIYbgLGj4P8sRLYg95sYaWa8ijLPPhsLYl1tKm/MPZx1M4RPJDzNmYmFcZzmXqu4kCGfWfu1P6yxM2LtGXmr3tWV/jxVauoz0FjjrhSZtZmj0dJA+kDS/Gl6BAcCcwp4PRYPQM4sX4MptZzho0ONdmvkG7a4fKLi4T+MyTl1xeZWiqrLRmpudtupcGmzjHdqkr8pn2thauVOapnp0IeKqyipZUW9dINjJLzdbIs8+wLCX5tKbMLomz6+tvcZObrboH6SzxoUHTa9U+15nwlvWI26v1tyYDPYWhq1EbSRoJXW+EUPQyRuL3pTBRGxoKWK+n6OmW666T5YeWeAV5MVGwRNY4FSaKOEWElXBVrOGeVpDD53QDnNwIGnGv23h6Hd4GndpGXJQlufCq76Qn7fHV9Q0omG4+ARpbSQzjo3we4CPkAAps7Eo8DeLaGmo08xbn4ptyyu8Xg7buqQ==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"workspaces.setPortForwards"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/workspaces/setPortForwards"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+workspaces.setPortForwards
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string"},"forwards":{"type":"array","items":{"type":"object","properties":{"host":{"type":"integer","minimum":1,"maximum":65535},"container":{"type":"integer","minimum":1,"maximum":65535}},"required":["host","container"]}}},"required":["name","forwards"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string"},"status":{"enum":["running","stopped","creating","error"]},"containerId":{"type":"string"},"created":{"type":"string"},"repo":{"type":"string"},"ports":{"type":"object","properties":{"ssh":{"type":"number"},"http":{"type":"number"},"forwards":{"type":"array","items":{"type":"object","properties":{"host":{"type":"integer","minimum":1,"maximum":65535},"container":{"type":"integer","minimum":1,"maximum":65535}},"required":["host","container"]}}},"required":["ssh"]},"lastUsed":{"type":"string"},"tailscale":{"type":"object","properties":{"status":{"enum":["none","connected","failed"]},"hostname":{"type":"string"},"ip":{"type":"string"},"error":{"type":"string"}},"required":["status"]}},"required":["name","status","containerId","created","ports"]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

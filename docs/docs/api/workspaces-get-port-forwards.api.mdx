@@ -1,0 +1,71 @@
+---
+id: workspaces-get-port-forwards
+title: "workspaces.getPortForwards"
+description: "workspaces.getPortForwards"
+sidebar_label: "workspaces.getPortForwards"
+hide_title: true
+hide_table_of_contents: true
+api: eJytVMFu2zAM/RWBZzVJV3TDfMuGDQs2oMHanQIfGJtx1MqSSslJA8P/PtBOGzcFNgyYL5Yp8vGRj3QLPhBjMt4tSshg7/khBiwoTipKS8/pq+c9chlBA9NjQzF98uUBsrb/NEwlZIkb0lB4l8glucIQrCl62Ol99E5ssdhSjXJKh0CQgV/fU5FAQ2AhkQxFuXVY08grJjaugq7To4SrwSvvusEeg3dxCH83m8mrpFiwCcIAMrj5Dv+N3+a5ISdPZMYDaDCJ6vh3hK2PaeRlXKKKGDTUxpm6qSG71FDj03B+f319dd0N9NE44n8NPetcn30Ml3fnLi8l9g3u9Fk3/zgkNaWtl1EKQ56AaQsZTE9B07dBkXhHHCFbtdCwhQy2KYVsOrW+QCuMsw9XHy/hnMkPuVZLYj4orETcLtcgiv48zeqXJ6yDpdNsvcyUBuM2vu+nSeIBA9R8uQANwmhIczmZTWZvks+XC7XxrGp0WBlXHXmcCtVqvhhoqUhRsKJW6EpVeLcxVTPs3eQYF9jvTElRmegtJiq1imQ3F1I9laqkHVkfakEjtzPsnZyjwqIQ8LUl5XfE6vb2W5/kDo2NBVqaSKGiRo1u1ITXKipRRI0keVXry8AlekrTYNE4Ae2lao8Sr0aIoOFc5Fwf534FbbvGSL/Ydp2YHxviA2SrXMMO2eBalFjlnYYtYSnzvmrhgQ6QwedhhS/uhI2426bfv/N17vRzxLwoKKQ/+uajoV3e3N6BhvXxF1f7UmIY9/L7wz1kABp835V+lXtbCxZd1WAlvgOmPL8BzPfeIw==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"workspaces.getPortForwards"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/workspaces/getPortForwards"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+workspaces.getPortForwards
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"forwards":{"type":"array","items":{"type":"object","properties":{"host":{"type":"integer","minimum":1,"maximum":65535},"container":{"type":"integer","minimum":1,"maximum":65535}},"required":["host","container"]}}},"required":["forwards"]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

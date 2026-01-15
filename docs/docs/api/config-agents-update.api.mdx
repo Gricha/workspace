@@ -1,0 +1,71 @@
+---
+id: config-agents-update
+title: "config.agents.update"
+description: "config.agents.update"
+sidebar_label: "config.agents.update"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVcFu2zAM/RWDZy1Ot8Mw37JhwIINaLB2pyAoGIux1cqSKslJM8P/PlBO66Zt1mHHYbrEIakn6b0nqgPryGNU1swlFFBas1HVBCsyMUxaJzESCPB021KIH63cQ9Glv8qThCL6lgTPimQip9A5rcoEmF8HazgWypoa5K+4dwQF2PU1lREEOM/LR0WBs9aRKa2k1yt/krmK9obMo9IQvTIV9AIaK0m/mAnkt+Rfx69tiAYbehGkDeRPJh2GsLNevpDkIaBSsW7Xr2/h1PEYo9TYSrr6M64strH+C7YOg8UPzpowoL2dTvlHUii9ciwzFHD+Ff6b4F82QS+eKH6iTzQUa8t9xNmQNoGxhgLyoTwfyvOH8kGJAMWyg9ZrKKCO0RV5rm2Jmvkv3r/7cAZPV//G6WxB3u+zhAn9SgA77fvYqD7fYeM0PfXUI9fcn/Lh+GNg9MjogjE7ij/GRs1H8o6EPl7zuYBHEp3cGoMqs7EJUkU+HwxEzBZzEMB8DiSdTaaT6TPqZot5trE+a9BgpUx1YHFn/U1wWFIQ2Ww+kJoFCowVRIZGZoOG7fBYTA7znLdbJSlkKliNkaTIAunNG2aNZCZpS9q6htHIbJW3hr9DhmXJ4GtNmd2Szy4uvqRFLlHpUKKmSbpHNsQGk2MPdJ/w3dEZH0wc6S7mTqMy6cb6ZPDBkssDEggYsFjVAW0lkuZc03VrDPTD677n8G1Lfg/FciVgi17hmtlfrnoBNaFkuyw7uKE9FPBpaIZvLnknXK5b3tGzxtiL+xmzsiQXf1u7enTBFucXlyBgfXiRm2Qi8Ljj1xp3UAAIsImR1ABSrAONpmqx4toBk8cvo//NxA==
+sidebar_class_name: "post api-method"
+info_path: docs/api/perry-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"config.agents.update"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/config/agents/update"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+config.agents.update
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"opencode":{"type":"object","properties":{"zen_token":{"type":"string"},"model":{"type":"string"},"server":{"type":"object","properties":{"hostname":{"type":"string"},"username":{"type":"string"},"password":{"type":"string"}}}}},"github":{"type":"object","properties":{"token":{"type":"string"}}},"claude_code":{"type":"object","properties":{"oauth_token":{"type":"string"},"model":{"type":"string"}}}}}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"opencode":{"type":"object","properties":{"zen_token":{"type":"string"},"model":{"type":"string"},"server":{"type":"object","properties":{"hostname":{"type":"string"},"username":{"type":"string"},"password":{"type":"string"}}}}},"github":{"type":"object","properties":{"token":{"type":"string"}}},"claude_code":{"type":"object","properties":{"oauth_token":{"type":"string"},"model":{"type":"string"}}}}}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
