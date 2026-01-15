@@ -6,7 +6,7 @@ import * as readline from 'readline';
 import pkg from '../package.json';
 import { startAgent } from './agent/run';
 import { installService, uninstallService, showStatus, getServiceStatus } from './agent/systemd';
-import { createApiClient, ApiClientError } from './client/api';
+import { createApiClient, ApiClientError, formatWorkerBaseUrl } from './client/api';
 import { loadClientConfig, getAgent, setAgent } from './client/config';
 import {
   openWSShell,
@@ -146,18 +146,25 @@ async function checkLocalAgent(): Promise<boolean> {
 
 async function checkAgentReachable(host: string): Promise<boolean> {
   try {
-    const url = host.includes('://') ? host : `http://${host}`;
-    const baseUrl = new URL(url);
-    if (!baseUrl.port) {
-      baseUrl.port = String(DEFAULT_AGENT_PORT);
-    }
-    const response = await fetch(`${baseUrl.origin}/health`, {
+    // Use formatWorkerBaseUrl which already handles IPv6 correctly
+    const baseUrl = formatWorkerBaseUrl(host);
+    const response = await fetch(`${baseUrl}/health`, {
       signal: AbortSignal.timeout(3000),
     });
     return response.ok;
   } catch {
     return false;
   }
+}
+
+/**
+ * Extract host:port from user input for storage in config.
+ * Uses URL parsing to handle IPv6 correctly.
+ */
+function extractHostPort(input: string): string {
+  const baseUrl = formatWorkerBaseUrl(input);
+  const url = new URL(baseUrl);
+  return url.host; // Returns host:port (with brackets for IPv6)
 }
 
 async function promptForAgent(): Promise<string> {
@@ -181,8 +188,7 @@ async function promptForAgent(): Promise<string> {
     throw new Error('No hostname provided');
   }
 
-  // Add default port if not specified
-  const agentHost = hostname.includes(':') ? hostname : `${hostname}:${DEFAULT_AGENT_PORT}`;
+  const agentHost = extractHostPort(hostname);
 
   console.log(`Checking connection to ${agentHost}...`);
   const reachable = await checkAgentReachable(agentHost);
@@ -671,8 +677,7 @@ configCmd
   .description('Get or set the agent hostname')
   .action(async (hostname) => {
     if (hostname) {
-      // Add default port if not specified
-      const agentHost = hostname.includes(':') ? hostname : `${hostname}:${DEFAULT_AGENT_PORT}`;
+      const agentHost = extractHostPort(hostname);
 
       console.log(`Checking connection to ${agentHost}...`);
       const reachable = await checkAgentReachable(agentHost);
@@ -703,7 +708,7 @@ configCmd
   .description('Alias for "agent" (deprecated)')
   .action(async (hostname) => {
     if (hostname) {
-      const agentHost = hostname.includes(':') ? hostname : `${hostname}:${DEFAULT_AGENT_PORT}`;
+      const agentHost = extractHostPort(hostname);
       await setAgent(agentHost);
       console.log(`Agent set to: ${agentHost}`);
       console.log('Note: "perry config worker" is deprecated, use "perry config agent" instead.');

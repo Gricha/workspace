@@ -147,7 +147,7 @@ describe('Client Config', () => {
   });
 
   it('can save and load config', async () => {
-    const testConfig = { worker: 'test-worker.local' };
+    const testConfig = { agent: 'test-worker.local' };
 
     await saveClientConfig(testConfig, tempDir);
     const loaded = await loadClientConfig(tempDir);
@@ -155,14 +155,14 @@ describe('Client Config', () => {
     expect(loaded).toEqual(testConfig);
   });
 
-  it('can get and set worker', async () => {
+  it('can get and set agent', async () => {
     await setWorker('my-worker.local', tempDir);
     const worker = await getWorker(tempDir);
 
     expect(worker).toBe('my-worker.local');
   });
 
-  it('getWorker returns null when not configured', async () => {
+  it('getAgent returns null when not configured', async () => {
     const worker = await getWorker(tempDir);
     expect(worker).toBeNull();
   });

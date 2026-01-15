@@ -220,7 +220,7 @@ export class ApiClient {
   }
 }
 
-function formatWorkerBaseUrl(worker: string, port?: number): string {
+export function formatWorkerBaseUrl(worker: string, port?: number): string {
   const trimmed = worker.trim();
   const effectivePort = port || DEFAULT_AGENT_PORT;
 
