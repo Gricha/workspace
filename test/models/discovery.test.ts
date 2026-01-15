@@ -79,13 +79,17 @@ opencode/claude-opus-4-5`;
 
 describe('shouldUseCachedOpencodeModels', () => {
   test('uses cached models for workspace-specific requests', () => {
-    const cached = [{ id: 'github-copilot/claude-opus-4.5', name: 'Claude Opus 4.5', provider: 'github-copilot' }];
+    const cached = [
+      { id: 'github-copilot/claude-opus-4.5', name: 'Claude Opus 4.5', provider: 'github-copilot' },
+    ];
 
     expect(shouldUseCachedOpencodeModels(cached, true, 'workspace-name')).toBe(true);
   });
 
   test('skips cache when preferring workspace models without opencode provider', () => {
-    const cached = [{ id: 'github-copilot/claude-opus-4.5', name: 'Claude Opus 4.5', provider: 'github-copilot' }];
+    const cached = [
+      { id: 'github-copilot/claude-opus-4.5', name: 'Claude Opus 4.5', provider: 'github-copilot' },
+    ];
 
     expect(shouldUseCachedOpencodeModels(cached, true)).toBe(false);
   });
@@ -100,7 +104,9 @@ describe('shouldUseCachedOpencodeModels', () => {
   });
 
   test('uses cache when workspace models not preferred', () => {
-    const cached = [{ id: 'github-copilot/claude-opus-4.5', name: 'Claude Opus 4.5', provider: 'github-copilot' }];
+    const cached = [
+      { id: 'github-copilot/claude-opus-4.5', name: 'Claude Opus 4.5', provider: 'github-copilot' },
+    ];
 
     expect(shouldUseCachedOpencodeModels(cached, false)).toBe(true);
   });

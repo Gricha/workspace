@@ -30,13 +30,15 @@ export function extractClaudeSessionName(content: string): string | null {
   return null;
 }
 
-export function extractContent(
-  content: string | Array<{ type: string; text?: string }> | undefined
-): string | null {
+export function extractContent(content: unknown): string | null {
   if (!content) return null;
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) {
     const textParts = content
+      .filter(
+        (part): part is { type: string; text?: string } =>
+          typeof part === 'object' && part !== null && 'type' in part
+      )
       .filter((part) => part.type === 'text' && part.text)
       .map((part) => part.text);
     return textParts.join('\n') || null;
