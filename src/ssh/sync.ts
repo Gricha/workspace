@@ -1,12 +1,27 @@
 import { readFile } from 'fs/promises';
 import type { SSHSettings, SSHKeyConfig } from '../shared/types';
-import { discoverSSHKeys, readPublicKey } from './discovery';
+import { discoverSSHKeys, readPublicKey, getSSHDir } from './discovery';
 import { expandPath } from '../shared/path-utils';
+import { join } from 'path';
 
 export interface SSHSyncResult {
   authorizedKeys: string[];
   copiedKeys: string[];
   errors: string[];
+}
+
+async function readHostAuthorizedKeys(): Promise<string[]> {
+  try {
+    const sshDir = await getSSHDir();
+    const authKeysPath = join(sshDir, 'authorized_keys');
+    const content = await readFile(authKeysPath, 'utf-8');
+    return content
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'));
+  } catch {
+    return [];
+  }
 }
 
 export function getEffectiveSSHConfig(settings: SSHSettings, workspaceName?: string): SSHKeyConfig {
@@ -44,6 +59,13 @@ export async function collectAuthorizedKeys(
         }
       } catch {
         continue;
+      }
+    }
+
+    const hostAuthorizedKeys = await readHostAuthorizedKeys();
+    for (const key of hostAuthorizedKeys) {
+      if (!keys.includes(key)) {
+        keys.push(key);
       }
     }
   }
