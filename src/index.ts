@@ -22,7 +22,7 @@ import {
   parsePortForward as parseDockerPortForward,
   formatPortForwards as formatDockerPortForwards,
 } from './client/docker-proxy';
-import { loadAgentConfig, saveAgentConfig, getConfigDir, ensureConfigDir } from './config/loader';
+import { loadAgentConfig, getConfigDir, ensureConfigDir } from './config/loader';
 import { buildImage } from './docker';
 import { DEFAULT_AGENT_PORT, WORKSPACE_IMAGE_LOCAL } from './shared/constants';
 import { checkForUpdates } from './update-checker';
@@ -792,72 +792,77 @@ sshCmd
   .command('show')
   .description('Show current SSH configuration')
   .action(async () => {
-    const configDir = getConfigDir();
-    await ensureConfigDir(configDir);
-    const config = await loadAgentConfig(configDir);
-    const ssh = config.ssh!;
+    try {
+      const client = await getClient();
+      const ssh = await client.getSSHSettings();
 
-    console.log('');
-    console.log('SSH Configuration:');
-    console.log(`  Auto-authorize host keys: ${ssh.autoAuthorizeHostKeys ? 'yes' : 'no'}`);
-    console.log('');
-
-    console.log('  Keys to copy (global):');
-    if (ssh.global.copy.length === 0) {
-      console.log('    (none)');
-    } else {
-      for (const key of ssh.global.copy) {
-        console.log(`    - ${key}`);
-      }
-    }
-    console.log('');
-
-    console.log('  Keys to authorize (global):');
-    if (ssh.global.authorize.length === 0) {
-      console.log('    (none)');
-    } else {
-      for (const key of ssh.global.authorize) {
-        console.log(`    - ${key}`);
-      }
-    }
-
-    if (Object.keys(ssh.workspaces).length > 0) {
       console.log('');
-      console.log('  Per-workspace overrides:');
-      for (const [ws, wsConfig] of Object.entries(ssh.workspaces)) {
-        console.log(`    ${ws}:`);
-        if (wsConfig.copy) {
-          console.log(`      copy: ${wsConfig.copy.join(', ')}`);
-        }
-        if (wsConfig.authorize) {
-          console.log(`      authorize: ${wsConfig.authorize.join(', ')}`);
+      console.log('SSH Configuration:');
+      console.log(`  Auto-authorize host keys: ${ssh.autoAuthorizeHostKeys ? 'yes' : 'no'}`);
+      console.log('');
+
+      console.log('  Keys to copy (global):');
+      if (ssh.global.copy.length === 0) {
+        console.log('    (none)');
+      } else {
+        for (const key of ssh.global.copy) {
+          console.log(`    - ${key}`);
         }
       }
+      console.log('');
+
+      console.log('  Keys to authorize (global):');
+      if (ssh.global.authorize.length === 0) {
+        console.log('    (none)');
+      } else {
+        for (const key of ssh.global.authorize) {
+          console.log(`    - ${key}`);
+        }
+      }
+
+      if (Object.keys(ssh.workspaces).length > 0) {
+        console.log('');
+        console.log('  Per-workspace overrides:');
+        for (const [ws, wsConfig] of Object.entries(ssh.workspaces)) {
+          console.log(`    ${ws}:`);
+          if (wsConfig.copy) {
+            console.log(`      copy: ${wsConfig.copy.join(', ')}`);
+          }
+          if (wsConfig.authorize) {
+            console.log(`      authorize: ${wsConfig.authorize.join(', ')}`);
+          }
+        }
+      }
+      console.log('');
+    } catch (err) {
+      handleError(err);
     }
-    console.log('');
   });
 
 sshCmd
   .command('auto-authorize [toggle]')
   .description('Toggle auto-authorization of host keys (on/off)')
   .action(async (toggle?: string) => {
-    const configDir = getConfigDir();
-    await ensureConfigDir(configDir);
-    const config = await loadAgentConfig(configDir);
+    try {
+      const client = await getClient();
+      const settings = await client.getSSHSettings();
 
-    if (!toggle) {
-      console.log(`Auto-authorize host keys: ${config.ssh!.autoAuthorizeHostKeys ? 'on' : 'off'}`);
-      return;
+      if (!toggle) {
+        console.log(`Auto-authorize host keys: ${settings.autoAuthorizeHostKeys ? 'on' : 'off'}`);
+        return;
+      }
+
+      if (toggle !== 'on' && toggle !== 'off') {
+        console.error('Usage: perry ssh auto-authorize [on|off]');
+        process.exit(1);
+      }
+
+      settings.autoAuthorizeHostKeys = toggle === 'on';
+      await client.updateSSHSettings(settings);
+      console.log(`Auto-authorize host keys: ${toggle}`);
+    } catch (err) {
+      handleError(err);
     }
-
-    if (toggle !== 'on' && toggle !== 'off') {
-      console.error('Usage: perry ssh auto-authorize [on|off]');
-      process.exit(1);
-    }
-
-    config.ssh!.autoAuthorizeHostKeys = toggle === 'on';
-    await saveAgentConfig(config, configDir);
-    console.log(`Auto-authorize host keys: ${toggle}`);
   });
 
 sshCmd
@@ -865,32 +870,35 @@ sshCmd
   .description('Add SSH key to copy list (for git, etc)')
   .option('-w, --workspace <name>', 'Apply to specific workspace only')
   .action(async (keyPath: string, options: { workspace?: string }) => {
-    const configDir = getConfigDir();
-    await ensureConfigDir(configDir);
-    const config = await loadAgentConfig(configDir);
+    try {
+      const client = await getClient();
+      const settings = await client.getSSHSettings();
 
-    const normalizedPath = keyPath.replace(/\.pub$/, '');
+      const normalizedPath = keyPath.replace(/\.pub$/, '');
 
-    if (options.workspace) {
-      if (!config.ssh!.workspaces[options.workspace]) {
-        config.ssh!.workspaces[options.workspace] = {};
+      if (options.workspace) {
+        if (!settings.workspaces[options.workspace]) {
+          settings.workspaces[options.workspace] = {};
+        }
+        const ws = settings.workspaces[options.workspace];
+        if (!ws.copy) {
+          ws.copy = [...settings.global.copy];
+        }
+        if (!ws.copy.includes(normalizedPath)) {
+          ws.copy.push(normalizedPath);
+        }
+        console.log(`Added ${normalizedPath} to copy list for workspace '${options.workspace}'`);
+      } else {
+        if (!settings.global.copy.includes(normalizedPath)) {
+          settings.global.copy.push(normalizedPath);
+        }
+        console.log(`Added ${normalizedPath} to global copy list`);
       }
-      const ws = config.ssh!.workspaces[options.workspace];
-      if (!ws.copy) {
-        ws.copy = [...config.ssh!.global.copy];
-      }
-      if (!ws.copy.includes(normalizedPath)) {
-        ws.copy.push(normalizedPath);
-      }
-      console.log(`Added ${normalizedPath} to copy list for workspace '${options.workspace}'`);
-    } else {
-      if (!config.ssh!.global.copy.includes(normalizedPath)) {
-        config.ssh!.global.copy.push(normalizedPath);
-      }
-      console.log(`Added ${normalizedPath} to global copy list`);
+
+      await client.updateSSHSettings(settings);
+    } catch (err) {
+      handleError(err);
     }
-
-    await saveAgentConfig(config, configDir);
   });
 
 sshCmd
@@ -898,30 +906,33 @@ sshCmd
   .description('Add SSH key to authorized_keys list')
   .option('-w, --workspace <name>', 'Apply to specific workspace only')
   .action(async (keyPath: string, options: { workspace?: string }) => {
-    const configDir = getConfigDir();
-    await ensureConfigDir(configDir);
-    const config = await loadAgentConfig(configDir);
+    try {
+      const client = await getClient();
+      const settings = await client.getSSHSettings();
 
-    if (options.workspace) {
-      if (!config.ssh!.workspaces[options.workspace]) {
-        config.ssh!.workspaces[options.workspace] = {};
+      if (options.workspace) {
+        if (!settings.workspaces[options.workspace]) {
+          settings.workspaces[options.workspace] = {};
+        }
+        const ws = settings.workspaces[options.workspace];
+        if (!ws.authorize) {
+          ws.authorize = [...settings.global.authorize];
+        }
+        if (!ws.authorize.includes(keyPath)) {
+          ws.authorize.push(keyPath);
+        }
+        console.log(`Added ${keyPath} to authorize list for workspace '${options.workspace}'`);
+      } else {
+        if (!settings.global.authorize.includes(keyPath)) {
+          settings.global.authorize.push(keyPath);
+        }
+        console.log(`Added ${keyPath} to global authorize list`);
       }
-      const ws = config.ssh!.workspaces[options.workspace];
-      if (!ws.authorize) {
-        ws.authorize = [...config.ssh!.global.authorize];
-      }
-      if (!ws.authorize.includes(keyPath)) {
-        ws.authorize.push(keyPath);
-      }
-      console.log(`Added ${keyPath} to authorize list for workspace '${options.workspace}'`);
-    } else {
-      if (!config.ssh!.global.authorize.includes(keyPath)) {
-        config.ssh!.global.authorize.push(keyPath);
-      }
-      console.log(`Added ${keyPath} to global authorize list`);
+
+      await client.updateSSHSettings(settings);
+    } catch (err) {
+      handleError(err);
     }
-
-    await saveAgentConfig(config, configDir);
   });
 
 sshCmd
@@ -935,40 +946,43 @@ sshCmd
       keyPath: string,
       options: { workspace?: string; copy?: boolean; authorize?: boolean }
     ) => {
-      const configDir = getConfigDir();
-      await ensureConfigDir(configDir);
-      const config = await loadAgentConfig(configDir);
+      try {
+        const client = await getClient();
+        const settings = await client.getSSHSettings();
 
-      const normalizedPath = keyPath.replace(/\.pub$/, '');
-      const removeFromCopy = options.copy || (!options.copy && !options.authorize);
-      const removeFromAuthorize = options.authorize || (!options.copy && !options.authorize);
+        const normalizedPath = keyPath.replace(/\.pub$/, '');
+        const removeFromCopy = options.copy || (!options.copy && !options.authorize);
+        const removeFromAuthorize = options.authorize || (!options.copy && !options.authorize);
 
-      if (options.workspace) {
-        const ws = config.ssh!.workspaces[options.workspace];
-        if (ws) {
-          if (removeFromCopy && ws.copy) {
-            ws.copy = ws.copy.filter((k) => k !== normalizedPath && k !== keyPath);
+        if (options.workspace) {
+          const ws = settings.workspaces[options.workspace];
+          if (ws) {
+            if (removeFromCopy && ws.copy) {
+              ws.copy = ws.copy.filter((k) => k !== normalizedPath && k !== keyPath);
+            }
+            if (removeFromAuthorize && ws.authorize) {
+              ws.authorize = ws.authorize.filter((k) => k !== normalizedPath && k !== keyPath);
+            }
           }
-          if (removeFromAuthorize && ws.authorize) {
-            ws.authorize = ws.authorize.filter((k) => k !== normalizedPath && k !== keyPath);
+          console.log(`Removed ${keyPath} from workspace '${options.workspace}'`);
+        } else {
+          if (removeFromCopy) {
+            settings.global.copy = settings.global.copy.filter(
+              (k) => k !== normalizedPath && k !== keyPath
+            );
           }
+          if (removeFromAuthorize) {
+            settings.global.authorize = settings.global.authorize.filter(
+              (k) => k !== normalizedPath && k !== keyPath
+            );
+          }
+          console.log(`Removed ${keyPath} from global config`);
         }
-        console.log(`Removed ${keyPath} from workspace '${options.workspace}'`);
-      } else {
-        if (removeFromCopy) {
-          config.ssh!.global.copy = config.ssh!.global.copy.filter(
-            (k) => k !== normalizedPath && k !== keyPath
-          );
-        }
-        if (removeFromAuthorize) {
-          config.ssh!.global.authorize = config.ssh!.global.authorize.filter(
-            (k) => k !== normalizedPath && k !== keyPath
-          );
-        }
-        console.log(`Removed ${keyPath} from global config`);
+
+        await client.updateSSHSettings(settings);
+      } catch (err) {
+        handleError(err);
       }
-
-      await saveAgentConfig(config, configDir);
     }
   );
 

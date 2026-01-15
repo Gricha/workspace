@@ -8,7 +8,9 @@ import type {
   CreateWorkspaceRequest,
   InfoResponse,
   PortMapping,
+  SSHSettings,
 } from '../shared/types';
+import type { SSHKeyInfo } from '../shared/client-types';
 import { DEFAULT_AGENT_PORT } from '../shared/constants';
 
 export interface ApiClientOptions {
@@ -189,6 +191,30 @@ export class ApiClient {
 
   get live() {
     return this.client.live;
+  }
+
+  async getSSHSettings(): Promise<SSHSettings> {
+    try {
+      return await this.client.config.ssh.get();
+    } catch (err) {
+      throw this.wrapError(err);
+    }
+  }
+
+  async updateSSHSettings(settings: SSHSettings): Promise<SSHSettings> {
+    try {
+      return await this.client.config.ssh.update(settings);
+    } catch (err) {
+      throw this.wrapError(err);
+    }
+  }
+
+  async listSSHKeys(): Promise<SSHKeyInfo[]> {
+    try {
+      return await this.client.config.ssh.listKeys();
+    } catch (err) {
+      throw this.wrapError(err);
+    }
   }
 
   private wrapError(err: unknown): ApiClientError {

@@ -267,6 +267,20 @@ See also: `perry agent config` and `perry agent show-config` in [Agent Commands]
 
 ## SSH Commands
 
+SSH key management allows you to control which keys can access workspaces and which keys are copied into workspaces for git operations.
+
+### Auto-Authorization
+
+When auto-authorize is enabled (default), Perry automatically authorizes:
+
+1. **Host SSH keypairs** - All public keys found in `~/.ssh/` (e.g., `id_ed25519.pub`, `id_rsa.pub`)
+2. **Host authorized_keys** - All keys from the host's `~/.ssh/authorized_keys` file
+
+This means any machine that can SSH to the host can also SSH directly to workspaces. This is useful when:
+- You SSH from your workstation to a dev server running Perry
+- You want your workstation's key to work for both the host AND its workspaces
+- You have multiple machines authorized to access the host
+
 ### `perry ssh list`
 
 List detected SSH keys on host.
@@ -292,6 +306,10 @@ perry ssh auto-authorize        # Show current setting
 perry ssh auto-authorize on     # Enable
 perry ssh auto-authorize off    # Disable
 ```
+
+When enabled, auto-authorize includes both:
+- Public keys from `~/.ssh/*.pub` (host's own keypairs)
+- Keys from `~/.ssh/authorized_keys` (keys authorized to access the host)
 
 ### `perry ssh copy <key-path>`
 
