@@ -315,8 +315,8 @@ jobs:
         run: |
           mkdir -p ~/.config/perry
           if [ -n "$OPENCODE_TOKEN" ]; then
-            echo '{"agents":{"opencode":{"zen_token":"'"$OPENCODE_TOKEN"'","model":"opencode/gpt-4.1-5-nano"}}}' > ~/.config/perry/config.json
-            echo "OpenCode configured with gpt-4.1-5-nano model"
+            echo '{"agents":{"opencode":{"zen_token":"'"$OPENCODE_TOKEN"'","model":"opencode/gpt-5-nano"}}}' > ~/.config/perry/config.json
+            echo "OpenCode configured with gpt-5-nano model"
           else
             echo '{}' > ~/.config/perry/config.json
             echo "No OPENCODE_TOKEN - OpenCode tests will be skipped"
