@@ -103,9 +103,12 @@ function ModelPicker({
 }) {
   const { colors } = useTheme();
   const selectedModelInfo = models.find((m) => m.id === selectedModel);
+  const selectedModelLabel = selectedModelInfo
+    ? (selectedModelInfo.provider ? `${selectedModelInfo.provider}/${selectedModelInfo.name}` : selectedModelInfo.name)
+    : undefined;
 
   const showPicker = () => {
-    const options = [...models.map((m) => m.name), 'Cancel'];
+    const options = [...models.map((m) => (m.provider ? `${m.provider}/${m.name}` : m.name)), 'Cancel'];
     ActionSheetIOS.showActionSheetWithOptions(
       {
         options,
@@ -124,7 +127,7 @@ function ModelPicker({
     <View style={styles.row}>
       <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
       <TouchableOpacity style={[styles.modelPicker, { backgroundColor: colors.surfaceSecondary }]} onPress={showPicker}>
-        <Text style={[styles.modelPickerText, { color: colors.text }]}>{selectedModelInfo?.name || 'Select Model'}</Text>
+        <Text style={[styles.modelPickerText, { color: colors.text }]}>{selectedModelLabel || 'Select Model'}</Text>
         <Text style={[styles.modelPickerChevron, { color: colors.textMuted }]}>›</Text>
       </TouchableOpacity>
     </View>

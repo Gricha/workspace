@@ -814,12 +814,15 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
       wsRef.current.send(JSON.stringify({ type: 'set_model', model: newModel }))
     }
 
+    const modelInfo = availableModels.find(m => m.id === newModel)
+    const displayName = modelInfo?.provider ? `${modelInfo.provider}/${modelInfo.name}` : (modelInfo?.name || newModel)
     setMessages(prev => [...prev, {
       type: 'system',
-      content: `Switching to model: ${availableModels.find(m => m.id === newModel)?.name || newModel}`,
+      content: `Switching to model: ${displayName}`,
       timestamp: new Date().toISOString(),
     }])
   }, [availableModels])
+
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -863,11 +866,12 @@ export function Chat({ workspaceName, sessionId: initialSessionId, projectPath, 
                   <SelectValue placeholder="Select model" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableModels.map((model) => (
-                    <SelectItem key={model.id} value={model.id} className="text-xs">
-                      {model.name}
-                    </SelectItem>
-                  ))}
+                    {availableModels.map((model) => (
+                     <SelectItem key={model.id} value={model.id} className="text-xs">
+                       {model.provider ? `${model.provider}/${model.name}` : model.name}
+                     </SelectItem>
+                   ))}
+
                 </SelectContent>
               </Select>
             )}

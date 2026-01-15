@@ -118,6 +118,17 @@ function parseOpencodeModels(output: string): ModelInfo[] {
   return models;
 }
 
+export function shouldUseCachedOpencodeModels(
+  cached: ModelInfo[] | null,
+  prefersWorkspaceModels: boolean,
+  workspaceName?: string
+): cached is ModelInfo[] {
+  if (!cached || cached.length === 0) return false;
+  if (workspaceName) return true;
+  if (!prefersWorkspaceModels) return true;
+  return cached.some((model) => model.provider === 'opencode' || model.id.startsWith('opencode/'));
+}
+
 export async function discoverHostOpencodeModels(): Promise<ModelInfo[]> {
   try {
     const output = await runCommand('opencode', ['models']);

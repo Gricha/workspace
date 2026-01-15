@@ -825,7 +825,7 @@ export function SessionChatScreen({ route, navigation }: any) {
     if (availableModels.length === 0) return
     if (isStreaming) return
 
-    const options = [...availableModels.map(m => m.name), 'Cancel']
+    const options = [...availableModels.map(m => (m.provider ? `${m.provider}/${m.name}` : m.name)), 'Cancel']
     ActionSheetIOS.showActionSheetWithOptions(
       {
         options,
@@ -840,9 +840,11 @@ export function SessionChatScreen({ route, navigation }: any) {
             if (wsRef.current?.readyState === WebSocket.OPEN) {
               wsRef.current.send(JSON.stringify({ type: 'set_model', model: newModel }))
             }
+            const selectedInfo = availableModels[buttonIndex]
+            const label = selectedInfo.provider ? `${selectedInfo.provider}/${selectedInfo.name}` : selectedInfo.name
             setMessages(prev => [...prev, {
               role: 'system',
-              content: `Switching to model: ${availableModels[buttonIndex].name}`,
+              content: `Switching to model: ${label}`,
               id: `msg-model-${Date.now()}`,
             }])
           }
@@ -851,7 +853,11 @@ export function SessionChatScreen({ route, navigation }: any) {
     )
   }
 
-  const selectedModelName = availableModels.find(m => m.id === selectedModel)?.name || 'Model'
+  const selectedModelName = (() => {
+    const info = availableModels.find(m => m.id === selectedModel)
+    if (!info) return 'Model'
+    return info.provider ? `${info.provider}/${info.name}` : info.name
+  })()
   const canChangeModel = !isStreaming
 
   const agentLabels: Record<AgentType, string> = {

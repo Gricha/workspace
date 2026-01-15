@@ -83,6 +83,7 @@ export interface ModelInfo {
   id: string;
   name: string;
   description?: string;
+  provider?: string;
 }
 
 export type AgentType = 'claude-code' | 'opencode' | 'codex';

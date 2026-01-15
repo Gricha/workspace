@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { parseOpencodeModels } from '../../src/models/discovery';
+import { parseOpencodeModels, shouldUseCachedOpencodeModels } from '../../src/models/discovery';
 
 describe('parseOpencodeModels', () => {
   test('parses model with provider prefix', () => {
@@ -74,5 +74,38 @@ opencode/claude-opus-4-5`;
 
     expect(models[0].name).toBe('Gpt 5.1 Codex Max');
     expect(models[0].provider).toBe('opencode');
+  });
+});
+
+describe('shouldUseCachedOpencodeModels', () => {
+  test('uses cached models for workspace-specific requests', () => {
+    const cached = [{ id: 'github-copilot/claude-opus-4.5', name: 'Claude Opus 4.5', provider: 'github-copilot' }];
+
+    expect(shouldUseCachedOpencodeModels(cached, true, 'workspace-name')).toBe(true);
+  });
+
+  test('skips cache when preferring workspace models without opencode provider', () => {
+    const cached = [{ id: 'github-copilot/claude-opus-4.5', name: 'Claude Opus 4.5', provider: 'github-copilot' }];
+
+    expect(shouldUseCachedOpencodeModels(cached, true)).toBe(false);
+  });
+
+  test('uses cache when opencode provider is present', () => {
+    const cached = [
+      { id: 'opencode/claude-sonnet-4', name: 'Claude Sonnet 4', provider: 'opencode' },
+      { id: 'github-copilot/claude-opus-4.5', name: 'Claude Opus 4.5', provider: 'github-copilot' },
+    ];
+
+    expect(shouldUseCachedOpencodeModels(cached, true)).toBe(true);
+  });
+
+  test('uses cache when workspace models not preferred', () => {
+    const cached = [{ id: 'github-copilot/claude-opus-4.5', name: 'Claude Opus 4.5', provider: 'github-copilot' }];
+
+    expect(shouldUseCachedOpencodeModels(cached, false)).toBe(true);
+  });
+
+  test('skips cache when cached models are empty', () => {
+    expect(shouldUseCachedOpencodeModels([], true)).toBe(false);
   });
 });

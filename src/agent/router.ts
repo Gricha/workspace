@@ -6,6 +6,7 @@ import path from 'path';
 import type { AgentConfig } from '../shared/types';
 import { HOST_WORKSPACE_NAME } from '../shared/client-types';
 import { AnyWorkspaceNameSchema, UserWorkspaceNameSchema } from '../shared/workspace-name';
+import type { ModelInfo } from '../models/cache';
 import { getDockerVersion, execInContainer, getContainerName, type ExecResult } from '../docker';
 import { createWorkerClient } from '../worker/client';
 import type { WorkspaceManager } from '../workspace/manager';
@@ -37,6 +38,7 @@ import {
   discoverClaudeCodeModels,
   discoverHostOpencodeModels,
   discoverContainerOpencodeModels,
+  shouldUseCachedOpencodeModels,
 } from '../models/discovery';
 import { deleteOpencodeSession } from '../sessions/agents/opencode-storage';
 import { SessionIndex } from '../worker/session-index';
@@ -540,6 +542,7 @@ export function createRouter(ctx: RouterContext) {
       const newConfig = { ...currentConfig, agents: input };
       ctx.config.set(newConfig);
       await saveAgentConfig(newConfig, ctx.configDir);
+      await ctx.modelCache.clearCache();
       ctx.triggerAutoSync();
       return input;
     });
@@ -1435,12 +1438,13 @@ export function createRouter(ctx: RouterContext) {
         return { models };
       }
 
+      const prefersWorkspaceModels = !!config.agents?.opencode?.zen_token;
       const cached = await ctx.modelCache.getOpencodeModels();
-      if (cached) {
+      if (shouldUseCachedOpencodeModels(cached, prefersWorkspaceModels, input.workspaceName)) {
         return { models: cached };
       }
 
-      let models;
+      let models: ModelInfo[] = [];
       if (input.workspaceName === HOST_WORKSPACE_NAME) {
         if (!config.allowHostAccess) {
           throw new ORPCError('PRECONDITION_FAILED', { message: 'Host access is disabled' });
@@ -1457,13 +1461,26 @@ export function createRouter(ctx: RouterContext) {
         const containerName = `workspace-${input.workspaceName}`;
         models = await discoverContainerOpencodeModels(containerName, execInContainer);
       } else {
-        models = await discoverHostOpencodeModels();
-        if (models.length === 0) {
+        const prefersWorkspaceModels = !!config.agents?.opencode?.zen_token;
+        if (prefersWorkspaceModels) {
           const allWorkspaces = await ctx.workspaces.list();
           const runningWorkspace = allWorkspaces.find((w) => w.status === 'running');
           if (runningWorkspace) {
             const containerName = `workspace-${runningWorkspace.name}`;
             models = await discoverContainerOpencodeModels(containerName, execInContainer);
+          }
+          if (models.length === 0) {
+            models = await discoverHostOpencodeModels();
+          }
+        } else {
+          models = await discoverHostOpencodeModels();
+          if (models.length === 0) {
+            const allWorkspaces = await ctx.workspaces.list();
+            const runningWorkspace = allWorkspaces.find((w) => w.status === 'running');
+            if (runningWorkspace) {
+              const containerName = `workspace-${runningWorkspace.name}`;
+              models = await discoverContainerOpencodeModels(containerName, execInContainer);
+            }
           }
         }
       }
