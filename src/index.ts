@@ -208,8 +208,18 @@ program
       console.log(`Starting workspace '${name}'...`);
 
       let workspace;
-      // Check if workspace exists first
-      const existingWorkspace = await client.getWorkspace(name).catch(() => null);
+      // Check if workspace exists first - only treat NOT_FOUND as "doesn't exist"
+      let existingWorkspace = null;
+      try {
+        existingWorkspace = await client.getWorkspace(name);
+      } catch (err) {
+        if (err instanceof ApiClientError && err.code === 'NOT_FOUND') {
+          // Workspace doesn't exist, which is fine - we'll create it
+        } else {
+          // Network errors, timeouts, etc. should be re-thrown
+          throw err;
+        }
+      }
 
       if (!existingWorkspace) {
         // Workspace doesn't exist - use createWorkspace (same as web UI)
