@@ -14,14 +14,12 @@ Run the most relevant tests for changes in this codebase.
 | `bun run test:unit` | Unit tests only | Nothing |
 | `bun run test` | Unit + integration tests | Docker daemon |
 | `bun run test:web` | Playwright e2e tests | Built web UI |
-| `bun run test:mobile` | Maestro mobile tests | iOS simulator |
 
 ## Test Locations
 
 - `test/unit/` - Unit tests (pure functions, validation)
 - `test/integration/` - Integration tests (agent + Docker)
 - `web/e2e/` - Playwright e2e for web UI
-- `mobile/.maestro/` - Maestro tests for mobile
 
 ## Steps
 
@@ -33,7 +31,6 @@ Run the most relevant tests for changes in this codebase.
 2. Run targeted tests based on changes:
    - `src/` changes → `bun run test`
    - `web/` changes → `bun run test:web`
-   - `mobile/` changes → `bun run test:mobile`
    - Unit-only changes → `bun run test:unit`
 
 3. Report summary:
