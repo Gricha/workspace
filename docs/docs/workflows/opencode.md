@@ -55,7 +55,7 @@ If Tailscale is enabled, `myproject` is the workspace hostname. Otherwise use th
 Open the OpenCode web UI directly. On a tailnet, you can reach it on the workspace hostname and port 4096:
 
 ```
-http://myproject:4096
+http://project1:4096
 ```
 
 If you set a server password, your client or browser will prompt for credentials.
