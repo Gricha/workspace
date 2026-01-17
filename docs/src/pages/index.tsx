@@ -31,11 +31,6 @@ function HomepageHeader() {
             to="https://github.com/gricha/perry">
             GitHub
           </Link>
-          <Link
-            className="button button--secondary button--lg"
-            to="https://discord.gg/s2KX8kTvGX">
-            Discord
-          </Link>
         </div>
         <div className={styles.terminalBlock}>
           <div className={styles.terminalLine}>
