@@ -6,7 +6,6 @@
 
 <p align="center">
   <a href="https://gricha.github.io/perry/"><img src="https://img.shields.io/badge/docs-docusaurus-blue" alt="Documentation"></a>
-  <a href="https://discord.gg/s2KX8kTvGX"><img src="https://img.shields.io/discord/1459251359164666064?color=5865F2&label=discord" alt="Discord"></a>
   <a href="https://github.com/gricha/perry/actions/workflows/test.yml"><img src="https://github.com/gricha/perry/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
   <a href="https://github.com/gricha/perry/releases"><img src="https://img.shields.io/github/v/release/gricha/perry" alt="Release"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
