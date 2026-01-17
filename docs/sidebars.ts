@@ -18,8 +18,26 @@ const sidebars: SidebarsConfig = {
         'configuration/tailscale',
       ],
     },
-    'cli',
-    'workflows',
+    {
+      type: 'category',
+      label: 'CLI Reference',
+      link: {
+        type: 'doc',
+        id: 'cli',
+      },
+      items: [],
+    },
+    {
+      type: 'category',
+      label: 'Common Workflows',
+      items: [
+        'workflows/cloning',
+        'workflows/dev-environment',
+        'workflows/port-forwarding',
+        'workflows/multi-workspace',
+        'workflows/ai-agents',
+      ],
+    },
     'web-ui',
     'troubleshooting',
     {
@@ -28,7 +46,7 @@ const sidebars: SidebarsConfig = {
       link: {
         type: 'generated-index',
         title: 'Perry API Reference',
-        description: 'REST API for programmatic access to Perry workspaces and sessions.',
+        description: 'Auto-generated reference for internal Perry APIs. These APIs are used by the CLI and Web UI and are not intended for direct use.',
         slug: '/api',
       },
       items: apiSidebar,
