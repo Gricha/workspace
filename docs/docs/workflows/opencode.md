@@ -6,6 +6,10 @@ sidebar_position: 1
 
 OpenCode runs as a server inside each workspace. This lets you connect from the CLI, web UI, or mobile without SSH.
 
+## Demo
+
+<video controls src="/video/opencode-perry.mov" width="100%"></video>
+
 ## 1) Configure OpenCode
 
 Set your token and server settings:
