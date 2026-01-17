@@ -80,9 +80,14 @@ Open `http://<hostname>:7391` to manage workspaces from your browser.
 
 Each workspace is registered on your tailnet, so you can connect directly using CLI, web UI, or SSH.
 
-<p align="center">
-  <img src="assets/demo.gif" alt="Web UI Demo" width="800">
-</p>
+### Agent Workflows
+
+- OpenCode: https://gricha.github.io/perry/docs/workflows/opencode
+- Claude Code + Codex: https://gricha.github.io/perry/docs/workflows/claude-code
+
+### Mobile
+
+Mobile apps are not yet in app stores. You can build them from source for quick workspace management and terminal access.
 
 ## Security
 
@@ -142,7 +147,7 @@ perry agent run [--port PORT]
 perry agent status
 
 # Workspaces
-perry create <name> [--clone URL]
+perry start <name> [--clone URL]
 perry start <name>
 perry stop <name>
 perry delete <name>
@@ -170,3 +175,7 @@ bun run test      # Tests only
 ## License
 
 MIT
+
+## Support
+
+Perry is not endorsing or associated with any crypto tokens or meme coins. If you'd like to support the project, the best way is to donate to your favorite charity, or to St. Jude: https://www.stjude.org/donate/donate-to-st-jude.html

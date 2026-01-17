@@ -169,7 +169,7 @@ Open interactive terminal to workspace.
 perry shell myproject
 ```
 
-Uses direct Docker exec for local agents, WebSocket for remote agents.
+If the workspace is connected to Tailscale, Perry uses SSH to connect. Otherwise, it uses direct Docker exec for local agents and WebSocket for remote agents.
 
 ### `perry clone <source> <clone-name>`
 
@@ -197,6 +197,12 @@ perry sync myproject
 
 Use after updating configuration to apply changes without restarting.
 
+Sync all running workspaces:
+
+```bash
+perry sync --all
+```
+
 ### `perry ports <name> [ports...]`
 
 Configure ports to forward for a workspace. Once configured, `perry proxy` will use these ports automatically.
@@ -222,6 +228,10 @@ perry proxy myproject 3000 5173      # Multiple ports
 
 If no ports are specified and none are configured, shows usage help.
 
+Notes:
+- For local agents, `perry proxy` connects directly to the container IP.
+- For remote agents, `perry proxy` uses SSH tunneling through the workspace SSH port.
+
 ## Build Commands
 
 ### `perry build`
@@ -236,6 +246,19 @@ perry build --no-cache
 | Option | Description |
 |--------|-------------|
 | `--no-cache` | Build without Docker cache |
+
+## Update Commands
+
+### `perry update`
+
+Update Perry to the latest version.
+
+```bash
+perry update
+perry update --force
+```
+
+If the agent is running, it will be restarted. Run `perry sync --all` after updating to refresh running workspaces.
 
 ## Configuration Commands
 
@@ -361,4 +384,5 @@ perry ssh remove ~/.ssh/id_ed25519 -w myproject # Specific workspace
 | `PERRY_CONFIG_DIR` | Override default config directory |
 | `PERRY_PORT` | Override default agent port (7391) |
 | `PERRY_NO_HOST_ACCESS` | Disable host access when set to `true` |
+| `PERRY_TAILSCALE_AUTH_KEY` | Override Tailscale auth key for workspace networking |
 | `WS_CONFIG_DIR` | Alternative config directory override |

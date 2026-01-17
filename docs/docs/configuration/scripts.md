@@ -210,5 +210,5 @@ perry logs myworkspace
 Or connect to the workspace and check manually:
 
 ```bash
-perry ssh myworkspace
+perry shell myworkspace
 ```

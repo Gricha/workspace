@@ -69,6 +69,14 @@ export async function loadAgentConfig(configDir?: string): Promise<AgentConfig> 
   try {
     const content = await fs.readFile(configPath, 'utf-8');
     const config = JSON.parse(content);
+    const envTailscaleAuthKey = process.env.PERRY_TAILSCALE_AUTH_KEY;
+    const tailscale = envTailscaleAuthKey
+      ? {
+          ...config.tailscale,
+          enabled: true,
+          authKey: envTailscaleAuthKey,
+        }
+      : config.tailscale;
     return {
       port: config.port || DEFAULT_AGENT_PORT,
       credentials: {
@@ -101,7 +109,7 @@ export async function loadAgentConfig(configDir?: string): Promise<AgentConfig> 
         },
         workspaces: config.ssh?.workspaces || {},
       },
-      tailscale: config.tailscale,
+      tailscale,
     };
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {

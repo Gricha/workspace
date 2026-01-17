@@ -1,0 +1,37 @@
+---
+sidebar_position: 3
+---
+
+# Agents
+
+Perry workspaces come with AI coding tools pre-installed and can sync credentials and configs from the host.
+
+## Run agents inside a workspace
+
+```bash
+perry shell myproject
+claude
+opencode
+codex
+```
+
+## What gets synced
+
+- Agent credentials and configs from the host
+- `~/.claude/`, `~/.codex/` if present
+- OpenCode config generated from your Perry settings
+
+Sync happens on workspace start and when you run `perry sync`.
+
+## Sessions in the Web UI
+
+The Sessions tab is a history and shortcut list. Opening a session drops you into a terminal in that workspace.
+
+## Workflows
+
+- [OpenCode Workflow](./workflows/opencode.md)
+- [Claude Code and Codex Workflow](./workflows/claude-code.md)
+
+## Configure agents
+
+Set tokens and defaults in the Web UI (Settings > Agents), use the setup wizard, or edit `config.json` directly. See [Configuration: Agents](./configuration/agents.md).

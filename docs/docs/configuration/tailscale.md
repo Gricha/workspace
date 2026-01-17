@@ -176,7 +176,7 @@ When you first open Perry's Web UI, you'll be guided through a setup wizard that
 Run the interactive setup wizard:
 
 ```bash
-perry config init
+perry agent config
 ```
 
 This walks you through configuring AI agents, GitHub, SSH keys, and Tailscale networking.

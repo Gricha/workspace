@@ -171,9 +171,9 @@ Or set environment variable:
 
 ### Sessions not showing
 
-1. Verify workspace is running
-2. Use AI agent inside workspace to create sessions
-3. Sessions appear after first conversation
+1. Verify the workspace is running
+2. Start an agent inside the workspace (`claude`, `opencode`, or `codex`)
+3. Refresh the Web UI; Sessions are a history/shortcut list and open terminals
 
 ## Terminal Issues
 

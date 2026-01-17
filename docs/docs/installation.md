@@ -47,4 +47,4 @@ bun link
 
 ## Next Steps
 
-[Get started with your first workspace](./getting-started.md)
+[Get started](./quickstart.md)

@@ -1,6 +1,6 @@
-# Workspace Documentation
+# Perry Documentation
 
-This directory contains the Docusaurus-based documentation website for Workspace.
+This directory contains the Docusaurus-based documentation website for Perry.
 
 ## Development
 
@@ -46,14 +46,14 @@ Serves the production build locally for testing.
 docs/
 ├── docs/                    # Documentation content (Markdown)
 │   ├── introduction.md
-│   ├── getting-started.md
-│   ├── quick-start.md
-│   ├── concepts/           # Core concepts
+│   ├── quickstart.md
+│   ├── workspaces.md
+│   ├── connect.md
+│   ├── agents.md
+│   ├── networking.md
+│   ├── sync-update.md
 │   ├── configuration/      # Configuration guides
-│   ├── agents/             # AI agent setup
-│   ├── guides/             # How-to guides
-│   ├── advanced/           # Advanced topics
-│   ├── api/                # API reference
+│   ├── api/                # API reference (generated)
 │   └── troubleshooting.md
 ├── src/
 │   ├── components/         # React components

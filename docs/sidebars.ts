@@ -4,18 +4,27 @@ import apiSidebar from './docs/api/sidebar';
 const sidebars: SidebarsConfig = {
   docsSidebar: [
     'introduction',
-    'installation',
-    'getting-started',
+    'quickstart',
+    {
+      type: 'category',
+      label: 'Core Tasks',
+      items: ['workspaces', 'connect', 'agents', 'networking', 'sync-update'],
+    },
+    {
+      type: 'category',
+      label: 'Agent Workflows',
+      items: ['workflows/opencode', 'workflows/claude-code'],
+    },
     {
       type: 'category',
       label: 'Configuration',
       items: [
         'configuration/overview',
-        'configuration/environment',
-        'configuration/files',
-        'configuration/github',
-        'configuration/ai-agents',
+        'configuration/credentials',
+        'configuration/agents',
+        'configuration/scripts',
         'configuration/tailscale',
+        'configuration/github',
       ],
     },
     {
@@ -27,18 +36,8 @@ const sidebars: SidebarsConfig = {
       },
       items: [],
     },
-    {
-      type: 'category',
-      label: 'Common Workflows',
-      items: [
-        'workflows/cloning',
-        'workflows/dev-environment',
-        'workflows/port-forwarding',
-        'workflows/multi-workspace',
-        'workflows/ai-agents',
-      ],
-    },
     'web-ui',
+    'mobile',
     'troubleshooting',
     {
       type: 'category',
