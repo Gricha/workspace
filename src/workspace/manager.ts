@@ -45,6 +45,11 @@ async function ensureWorkspaceImage(): Promise<string> {
     return WORKSPACE_IMAGE_LOCAL;
   }
 
+  const registryExists = await docker.imageExists(registryImage);
+  if (registryExists) {
+    return registryImage;
+  }
+
   console.log(`Pulling workspace image ${registryImage}...`);
   const pulled = await docker.tryPullImage(registryImage);
   if (pulled) {

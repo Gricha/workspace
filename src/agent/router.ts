@@ -217,7 +217,7 @@ export interface RouterContext {
 
 function mapErrorToORPC(err: unknown, defaultMessage: string): never {
   const message = err instanceof Error ? err.message : defaultMessage;
-  if (message.includes('not found')) {
+  if (message.match(/Workspace '.*' not found/)) {
     throw new ORPCError('NOT_FOUND', { message: 'Workspace not found' });
   }
   if (message.includes('already exists')) {
