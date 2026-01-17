@@ -19,7 +19,7 @@ import { useTheme } from '../contexts/ThemeContext'
 export function TerminalScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets()
   const { colors } = useTheme()
-  const { name } = route.params
+  const { name, initialCommand, runId: _runId } = route.params
   const webViewRef = useRef<WebView>(null)
   const [connected, setConnected] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -103,10 +103,11 @@ export function TerminalScreen({ route, navigation }: any) {
   }
 
   const wsUrl = getTerminalUrl(name)
+  const escapedCommand = initialCommand ? initialCommand.replace(/\\/g, '\\\\').replace(/'/g, "\\'") : ''
 
   const injectedJS = `
     if (window.initTerminal) {
-      window.initTerminal('${wsUrl}');
+      window.initTerminal('${wsUrl}', '${escapedCommand}');
     }
     true;
   `

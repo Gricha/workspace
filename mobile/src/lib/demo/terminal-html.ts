@@ -289,12 +289,15 @@ export const DEMO_TERMINAL_HTML = `<!DOCTYPE html>
       ctrlActive = !!active;
     };
 
-    window.initTerminal = () => {
+    window.initTerminal = (wsUrl, initialCommand) => {
       print('Perry demo terminal', 'dim');
       print('Type "help" for commands.', 'dim');
       renderPrompt();
       focusInput();
       post({ type: 'connected' });
+      if (initialCommand) {
+        setTimeout(() => runCommand(initialCommand), 500);
+      }
     };
 
     function handleIncomingMessage(data) {

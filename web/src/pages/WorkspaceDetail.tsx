@@ -66,6 +66,28 @@ const AGENT_LABELS: Record<AgentType | 'all', string> = {
 
 type DateGroup = 'Today' | 'Yesterday' | 'This Week' | 'Older'
 
+function getAgentResumeCommand(agentType: AgentType, sessionId: string): string {
+  switch (agentType) {
+    case 'claude-code':
+      return `claude --resume ${sessionId}`
+    case 'opencode':
+      return `opencode --session ${sessionId}`
+    case 'codex':
+      return `codex resume ${sessionId}`
+  }
+}
+
+function getAgentNewCommand(agentType: AgentType): string {
+  switch (agentType) {
+    case 'claude-code':
+      return 'claude'
+    case 'opencode':
+      return 'opencode'
+    case 'codex':
+      return 'codex'
+  }
+}
+
 function getDateGroup(dateString: string): DateGroup {
   const date = new Date(dateString)
   const now = new Date()
@@ -355,14 +377,11 @@ export function WorkspaceDetail() {
 
   const terminalMode: TerminalMode | null = useMemo(() => {
     if (!sessionParam && !agentParam) return null
-    if (agentParam === 'codex') {
-      return { type: 'terminal', command: sessionParam ? `codex resume ${sessionParam}` : 'codex', runId: runIdParam ?? undefined }
-    }
     if (agentParam && sessionParam) {
-      return { type: 'terminal', command: `${agentParam} resume ${sessionParam}` }
+      return { type: 'terminal', command: getAgentResumeCommand(agentParam as AgentType, sessionParam) }
     }
     if (agentParam) {
-      return { type: 'terminal', command: agentParam, runId: runIdParam ?? undefined }
+      return { type: 'terminal', command: getAgentNewCommand(agentParam as AgentType), runId: runIdParam ?? undefined }
     }
     return null
   }, [sessionParam, agentParam, runIdParam])
@@ -381,13 +400,25 @@ export function WorkspaceDetail() {
 
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
-      const resumeMatch = mode.command.match(/^(\S+)\s+resume\s+(\S+)/)
-      if (resumeMatch) {
-        next.set('agent', resumeMatch[1])
-        next.set('session', resumeMatch[2])
+      const claudeMatch = mode.command.match(/^claude\s+--resume\s+(\S+)/)
+      const opencodeMatch = mode.command.match(/^opencode\s+--session\s+(\S+)/)
+      const codexMatch = mode.command.match(/^codex\s+resume\s+(\S+)/)
+      if (claudeMatch) {
+        next.set('agent', 'claude-code')
+        next.set('session', claudeMatch[1])
+        next.delete('runId')
+      } else if (opencodeMatch) {
+        next.set('agent', 'opencode')
+        next.set('session', opencodeMatch[1])
+        next.delete('runId')
+      } else if (codexMatch) {
+        next.set('agent', 'codex')
+        next.set('session', codexMatch[1])
         next.delete('runId')
       } else {
-        next.set('agent', mode.command)
+        const agentMap: Record<string, AgentType> = { claude: 'claude-code', opencode: 'opencode', codex: 'codex' }
+        const agent = agentMap[mode.command] || mode.command
+        next.set('agent', agent)
         next.delete('session')
         if (mode.runId) {
           next.set('runId', mode.runId)
@@ -535,7 +566,7 @@ export function WorkspaceDetail() {
 
   const handleResume = (session: SessionInfo) => {
     const resumeId = session.agentSessionId || session.id
-    setTerminalMode({ type: 'terminal', command: `${session.agentType} resume ${resumeId}` })
+    setTerminalMode({ type: 'terminal', command: getAgentResumeCommand(session.agentType, resumeId) })
     if (name) {
       api.recordSessionAccess(name, session.id, session.agentType).catch(() => {})
       queryClient.invalidateQueries({ queryKey: ['sessions', name] })
@@ -544,7 +575,7 @@ export function WorkspaceDetail() {
 
   const handleNewSession = (agentType: AgentType = 'claude-code') => {
     const sessionId = `${agentType}-${Date.now()}`
-    setTerminalMode({ type: 'terminal', command: agentType, runId: sessionId })
+    setTerminalMode({ type: 'terminal', command: getAgentNewCommand(agentType), runId: sessionId })
   }
 
   if (isLoading) {

@@ -22,6 +22,28 @@ import { AgentIcon } from '../components/AgentIcon'
 
 type DateGroup = 'Today' | 'Yesterday' | 'This Week' | 'Older'
 
+function getAgentResumeCommand(agentType: AgentType, sessionId: string): string {
+  switch (agentType) {
+    case 'claude-code':
+      return `claude --resume ${sessionId}`
+    case 'opencode':
+      return `opencode --session ${sessionId}`
+    case 'codex':
+      return `codex resume ${sessionId}`
+  }
+}
+
+function getAgentNewCommand(agentType: AgentType): string {
+  switch (agentType) {
+    case 'claude-code':
+      return 'claude'
+    case 'opencode':
+      return 'opencode'
+    case 'codex':
+      return 'codex'
+  }
+}
+
 const DELETE_ACTION_WIDTH = 80
 
 function WorkspaceDetailDeleteAction({
@@ -284,7 +306,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
             disabled={!isRunning}
             testID="new-chat-button"
           >
-            <Text style={[styles.newChatBtnText, { color: colors.accentText }, !isRunning && styles.disabledText]}>New Chat ▼</Text>
+            <Text style={[styles.newChatBtnText, { color: colors.accentText }, !isRunning && styles.disabledText]}>New Session ▼</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -320,7 +342,12 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
                 style={styles.newChatPickerItem}
                 onPress={() => {
                   setShowNewChatPicker(false)
-                  navigation.navigate('SessionChat', { workspaceName: name, isNew: true, agentType: type })
+                  const runId = `${type}-${Date.now()}`
+                  navigation.navigate('Terminal', {
+                    name,
+                    initialCommand: getAgentNewCommand(type),
+                    runId,
+                  })
                 }}
                 testID={`new-chat-${type}`}
               >
@@ -426,13 +453,16 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
                  <SessionRow
                    session={item.session}
                    colors={colors}
-                   onPress={() => navigation.navigate('SessionChat', {
-                     workspaceName: name,
-                     sessionId: item.session.id,
-                     agentSessionId: item.session.agentSessionId || null,
-                     agentType: item.session.agentType,
-                     projectPath: item.session.projectPath,
-                   })}
+                   onPress={() => {
+                     const resumeId = item.session.agentSessionId || item.session.id
+                     const command = getAgentResumeCommand(item.session.agentType, resumeId)
+                     navigation.navigate('Terminal', {
+                       name,
+                       initialCommand: command,
+                       runId: `${item.session.agentType}-${item.session.id}`,
+                     })
+                     api.recordSessionAccess(name, item.session.id, item.session.agentType).catch(() => {})
+                   }}
                  />
                </ReanimatedSwipeable>
              )
