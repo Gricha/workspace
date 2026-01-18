@@ -68,7 +68,7 @@ If you are away from your main machine, the fastest options are:
 
 Claude Code is available directly in the workspace terminal:
 
-<img src="/img/claude-mobile.png" alt="Claude Code on mobile terminal" width="360" />
+![Claude Code on mobile terminal](/img/claude-mobile.png)
 
 ## Sessions
 
