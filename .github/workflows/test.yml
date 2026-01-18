@@ -173,46 +173,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check for Dockerfile changes
-        id: docker-changes
-        run: |
-          # For PRs, compare against base branch
-          # For pushes, compare against previous commit
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          else
-            BASE_SHA="${{ github.event.before }}"
-          fi
-
-          # Check if any files in perry/ directory changed
-          if git diff --name-only "$BASE_SHA" HEAD 2>/dev/null | grep -q "^perry/"; then
-            echo "Dockerfile or related files changed - will rebuild and update cache"
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "No Dockerfile changes detected - using cached layers"
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Check if PR is from fork
-        id: fork-check
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
-            echo "is_fork=true" >> $GITHUB_OUTPUT
-          else
-            echo "is_fork=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build base image (with cache)
+      - name: Build base image
         uses: docker/build-push-action@v6
         with:
           context: ./perry
           file: ./perry/Dockerfile.base
           load: true
           tags: perry-base:latest
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:buildcache-test
-          cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && steps.fork-check.outputs.is_fork == 'false' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.BASE_IMAGE_NAME) || '' }}
 
-      - name: Build full image (with cache)
+      - name: Build full image
         uses: docker/build-push-action@v6
         with:
           context: ./perry
@@ -220,8 +189,6 @@ jobs:
           tags: perry:latest
           build-args: |
             BASE_IMAGE=perry-base:latest
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-test
-          cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && steps.fork-check.outputs.is_fork == 'false' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.IMAGE_NAME) || '' }}
 
       - name: Run tests (shard ${{ matrix.shard }}/3)
         run: |
@@ -319,17 +286,15 @@ jobs:
             echo "is_fork=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build base image (with cache)
+      - name: Build base image
         uses: docker/build-push-action@v6
         with:
           context: ./perry
           file: ./perry/Dockerfile.base
           load: true
           tags: perry-base:latest
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:buildcache-test
-          cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && steps.fork-check.outputs.is_fork == 'false' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.BASE_IMAGE_NAME) || '' }}
 
-      - name: Build full image (with cache)
+      - name: Build full image
         uses: docker/build-push-action@v6
         with:
           context: ./perry
@@ -337,8 +302,6 @@ jobs:
           tags: perry:latest
           build-args: |
             BASE_IMAGE=perry-base:latest
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-test
-          cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && steps.fork-check.outputs.is_fork == 'false' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.IMAGE_NAME) || '' }}
 
       - name: Configure agent for e2e tests
         run: |
