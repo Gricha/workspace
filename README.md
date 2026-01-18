@@ -17,11 +17,11 @@
 
 ## Overview
 
-Perry is an agent (agent P) designed to run as a daemon on your machine. It auto-registers containerized workspaces on your Tailscale network so your CLI, web UI, or SSH clients can connect directly.
+Perry (agent P) runs as a daemon on your machine. It provisions containerized workspaces and auto-registers them on your Tailscale network so your CLI, web UI, or SSH clients can connect directly.
 
-It can be connected directly to your host, or it can create docker containers so that your work can be fully isolated.
+You can work directly on the host or keep everything isolated inside Docker containers.
 
-Continue your sessions from any device on your tailnet.
+Pick up AI coding sessions or workspace shells from any device on your tailnet.
 
 **[Get Started →](https://gricha.github.io/perry/docs/getting-started)**
 
