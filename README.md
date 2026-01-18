@@ -68,6 +68,10 @@ perry shell my-proj
 opencode attach http://my-proj:4096
 ```
 
+<p align="center">
+  <video controls src="docs/static/video/opencode-perry.mov" width="640"></video>
+</p>
+
 ### Web UI
 
 Open `http://<hostname>:7391` to manage workspaces from your browser.
