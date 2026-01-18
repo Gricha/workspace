@@ -12,11 +12,11 @@ This flow is terminal-first. You connect to the workspace, launch the agent, and
 
 ## Demo
 
-<video controls src="/video/claude-perry.mov" width="100%"></video>
+<video controls src={require('@site/static/video/claude-perry.mov').default} width="100%"></video>
 
 Claude Code is available directly in the workspace terminal (via Perry Web UI or SSH clients like Termius):
 
-<img src="/img/claude-mobile.png" alt="Claude Code on mobile terminal" width="360" />
+<img src={require('@site/static/img/claude-mobile.png').default} alt="Claude Code on mobile terminal" width="360" />
 
 ## 1) Configure credentials
 
