@@ -194,9 +194,6 @@ export class WorkspaceManager {
     if (this.config.agents?.github?.token) {
       env.GITHUB_TOKEN = this.config.agents.github.token;
     }
-    if (this.config.agents?.claude_code?.oauth_token) {
-      env.CLAUDE_CODE_OAUTH_TOKEN = this.config.agents.claude_code.oauth_token;
-    }
 
     if (Object.keys(env).length === 0) {
       return;
@@ -815,9 +812,6 @@ export class WorkspaceManager {
       if (this.config.agents?.github?.token) {
         containerEnv.GITHUB_TOKEN = this.config.agents.github.token;
       }
-      if (this.config.agents?.claude_code?.oauth_token) {
-        containerEnv.CLAUDE_CODE_OAUTH_TOKEN = this.config.agents.claude_code.oauth_token;
-      }
 
       if (clone) {
         containerEnv.WORKSPACE_REPO_URL = clone;
@@ -912,9 +906,6 @@ export class WorkspaceManager {
 
         if (this.config.agents?.github?.token) {
           containerEnv.GITHUB_TOKEN = this.config.agents.github.token;
-        }
-        if (this.config.agents?.claude_code?.oauth_token) {
-          containerEnv.CLAUDE_CODE_OAUTH_TOKEN = this.config.agents.claude_code.oauth_token;
         }
 
         if (workspace.repo) {
@@ -1164,9 +1155,6 @@ export class WorkspaceManager {
 
       if (this.config.agents?.github?.token) {
         containerEnv.GITHUB_TOKEN = this.config.agents.github.token;
-      }
-      if (this.config.agents?.claude_code?.oauth_token) {
-        containerEnv.CLAUDE_CODE_OAUTH_TOKEN = this.config.agents.claude_code.oauth_token;
       }
 
       if (workspace.repo) {

@@ -5,7 +5,6 @@ import type {
   SyncDirectory,
   GeneratedConfig,
 } from '../types';
-import { DEFAULT_OPENCODE_MODEL } from '../../shared/constants';
 import type { McpServerDefinition, SkillDefinition } from '../../shared/types';
 
 export const opencodeSync: AgentSyncProvider = {
@@ -14,7 +13,22 @@ export const opencodeSync: AgentSyncProvider = {
   },
 
   async getFilesToSync(_context: SyncContext): Promise<SyncFile[]> {
-    return [];
+    return [
+      {
+        source: '~/.local/share/opencode/auth.json',
+        dest: '/home/workspace/.local/share/opencode/auth.json',
+        category: 'credential',
+        permissions: '600',
+        optional: true,
+      },
+      {
+        source: '~/.local/share/opencode/mcp-auth.json',
+        dest: '/home/workspace/.local/share/opencode/mcp-auth.json',
+        category: 'credential',
+        permissions: '600',
+        optional: true,
+      },
+    ];
   },
 
   async getDirectoriesToSync(_context: SyncContext): Promise<SyncDirectory[]> {
@@ -22,15 +36,10 @@ export const opencodeSync: AgentSyncProvider = {
   },
 
   async getGeneratedConfigs(context: SyncContext): Promise<GeneratedConfig[]> {
-    const zenToken = context.agentConfig.agents?.opencode?.zen_token;
-    if (!zenToken) {
-      return [];
-    }
-
     const hostConfigContent = await context.readHostFile('~/.config/opencode/opencode.json');
 
+    let config: Record<string, unknown> | null = null;
     let mcpConfig: Record<string, unknown> = {};
-    let hostModel: string | undefined;
 
     const skills = context.agentConfig.skills || [];
     const enabledSkills = skills.filter(
@@ -47,27 +56,11 @@ export const opencodeSync: AgentSyncProvider = {
         if (parsed.mcp && typeof parsed.mcp === 'object') {
           mcpConfig = parsed.mcp;
         }
-        if (typeof parsed.model === 'string' && parsed.model.trim().length > 0) {
-          hostModel = parsed.model.trim();
-        }
+        config = parsed;
       } catch {
-        // Invalid JSON, ignore
+        config = null;
       }
     }
-
-    const configuredModel = context.agentConfig.agents?.opencode?.model?.trim();
-    const model = configuredModel || hostModel || DEFAULT_OPENCODE_MODEL;
-
-    const config: Record<string, unknown> = {
-      provider: {
-        opencode: {
-          options: {
-            apiKey: zenToken,
-          },
-        },
-      },
-      model,
-    };
 
     const perryMcp: Record<string, unknown> = {};
 
@@ -113,17 +106,21 @@ export const opencodeSync: AgentSyncProvider = {
     }));
 
     if (Object.keys(mcpConfig).length > 0) {
+      config = config || {};
       config.mcp = mcpConfig;
     }
 
-    return [
-      {
+    const generated: GeneratedConfig[] = [...skillConfigs];
+
+    if (config) {
+      generated.unshift({
         dest: '/home/workspace/.config/opencode/opencode.json',
         content: JSON.stringify(config, null, 2),
         permissions: '600',
         category: 'credential',
-      },
-      ...skillConfigs,
-    ];
+      });
+    }
+
+    return generated;
   },
 };

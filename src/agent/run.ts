@@ -8,7 +8,6 @@ import { WorkspaceManager } from '../workspace/manager';
 import { containerRunning, getContainerName } from '../docker';
 import { startEagerImagePull, stopEagerImagePull } from '../docker/eager-pull';
 import { TerminalHandler } from '../terminal/bun-handler';
-import { LiveChatHandler } from '../session-manager/bun-handler';
 import { sessionManager } from '../session-manager';
 import { createRouter } from './router';
 import { serveStaticBun } from './static';
@@ -33,7 +32,7 @@ interface TailscaleInfo {
 }
 
 interface WebSocketData {
-  type: 'terminal' | 'live-claude' | 'live-opencode';
+  type: 'terminal';
   workspaceName: string;
 }
 
@@ -86,18 +85,6 @@ function createAgentServer(
     getPreferredShell,
   });
 
-  const liveClaudeHandler = new LiveChatHandler({
-    isWorkspaceRunning,
-    isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
-    agentType: 'claude',
-  });
-
-  const liveOpencodeHandler = new LiveChatHandler({
-    isWorkspaceRunning,
-    isHostAccessAllowed: () => currentConfig.allowHostAccess === true,
-    agentType: 'opencode',
-  });
-
   const triggerAutoSync = () => {
     syncAllRunning().catch((err) => {
       console.error('[sync] Auto-sync failed:', err);
@@ -146,23 +133,10 @@ function createAgentServer(
       }
 
       const terminalMatch = pathname.match(/^\/rpc\/terminal\/([^/]+)$/);
-      const liveClaudeMatch = pathname.match(/^\/rpc\/live\/claude\/([^/]+)$/);
-      const liveOpencodeMatch = pathname.match(/^\/rpc\/live\/opencode\/([^/]+)$/);
 
-      if (terminalMatch || liveClaudeMatch || liveOpencodeMatch) {
-        let type: WebSocketData['type'];
-        let workspaceName: string;
-
-        if (terminalMatch) {
-          type = 'terminal';
-          workspaceName = decodeURIComponent(terminalMatch[1]);
-        } else if (liveClaudeMatch) {
-          type = 'live-claude';
-          workspaceName = decodeURIComponent(liveClaudeMatch[1]);
-        } else {
-          type = 'live-opencode';
-          workspaceName = decodeURIComponent(liveOpencodeMatch![1]);
-        }
+      if (terminalMatch) {
+        const type: WebSocketData['type'] = 'terminal';
+        const workspaceName = decodeURIComponent(terminalMatch[1]);
 
         const running = await isWorkspaceRunning(workspaceName);
         if (!running) {
@@ -216,10 +190,6 @@ function createAgentServer(
         const { type, workspaceName } = ws.data;
         if (type === 'terminal') {
           terminalHandler.handleOpen(ws, workspaceName);
-        } else if (type === 'live-claude') {
-          liveClaudeHandler.handleOpen(ws, workspaceName);
-        } else if (type === 'live-opencode') {
-          liveOpencodeHandler.handleOpen(ws, workspaceName);
         }
       },
 
@@ -228,14 +198,6 @@ function createAgentServer(
         const data = typeof message === 'string' ? message : message.toString();
         if (type === 'terminal') {
           terminalHandler.handleMessage(ws, data);
-        } else if (type === 'live-claude') {
-          liveClaudeHandler.handleMessage(ws, data).catch((err) => {
-            console.error('[ws] Error handling claude message:', err);
-          });
-        } else if (type === 'live-opencode') {
-          liveOpencodeHandler.handleMessage(ws, data).catch((err) => {
-            console.error('[ws] Error handling opencode message:', err);
-          });
         }
       },
 
@@ -243,10 +205,6 @@ function createAgentServer(
         const { type } = ws.data;
         if (type === 'terminal') {
           terminalHandler.handleClose(ws, code, reason);
-        } else if (type === 'live-claude') {
-          liveClaudeHandler.handleClose(ws, code, reason);
-        } else if (type === 'live-opencode') {
-          liveOpencodeHandler.handleClose(ws, code, reason);
         }
       },
     },
@@ -255,8 +213,6 @@ function createAgentServer(
   return {
     server,
     terminalHandler,
-    liveClaudeHandler,
-    liveOpencodeHandler,
     fileWatcher,
   };
 }
@@ -353,16 +309,12 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
   let server: Server<WebSocketData>;
   let fileWatcher: FileWatcher;
   let terminalHandler: TerminalHandler;
-  let liveClaudeHandler: LiveChatHandler;
-  let liveOpencodeHandler: LiveChatHandler;
 
   try {
     const result = createAgentServer(configDir, config, port, tailscaleInfo);
     server = result.server;
     fileWatcher = result.fileWatcher;
     terminalHandler = result.terminalHandler;
-    liveClaudeHandler = result.liveClaudeHandler;
-    liveOpencodeHandler = result.liveOpencodeHandler;
   } catch (err) {
     const error = err as Error & { code?: string };
     if (error.code === 'EADDRINUSE') {
@@ -387,8 +339,6 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
   }
   console.log(`[agent] oRPC endpoint: http://localhost:${port}/rpc`);
   console.log(`[agent] WebSocket terminal: ws://localhost:${port}/rpc/terminal/:name`);
-  console.log(`[agent] WebSocket chat (Claude): ws://localhost:${port}/rpc/live/claude/:name`);
-  console.log(`[agent] WebSocket chat (OpenCode): ws://localhost:${port}/rpc/live/opencode/:name`);
 
   startEagerImagePull().catch((err) => {
     console.error('[agent] Error during image pull:', err);
@@ -420,8 +370,6 @@ export async function startAgent(options: StartAgentOptions = {}): Promise<void>
         await stopTailscaleServe();
       }
 
-      liveClaudeHandler.close();
-      liveOpencodeHandler.close();
       terminalHandler.close();
 
       await server.stop();

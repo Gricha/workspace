@@ -68,7 +68,7 @@ perry agent logs -n 100      # Show last 100 lines
 
 ### `perry agent config`
 
-Launch the interactive configuration wizard. Use this on the machine running the agent to configure AI assistants, SSH keys, GitHub token, and Tailscale.
+Launch the interactive configuration wizard. Use this on the machine running the agent to configure agent settings, SSH keys, GitHub token, and Tailscale.
 
 ```bash
 perry agent config

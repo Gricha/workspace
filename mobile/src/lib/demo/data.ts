@@ -4,7 +4,6 @@ import type {
   GitHubRepo,
   HostInfo,
   InfoResponse,
-  ModelInfo,
   RecentSession,
   SessionDetail,
   SessionInfo,
@@ -48,34 +47,11 @@ export const demoWorkspaces: WorkspaceInfo[] = [
   },
 ]
 
-export const demoModelsByAgent: Record<'claude-code' | 'opencode', ModelInfo[]> = {
-  'claude-code': [
-    {
-      id: 'claude-sonnet-4-20250514',
-      name: 'Sonnet 4',
-      description: 'Fast and reliable',
-    },
-    {
-      id: 'claude-opus-4-20250514',
-      name: 'Opus 4',
-      description: 'Most capable',
-    },
-  ],
-  opencode: [
-    {
-      id: 'gpt-5',
-      name: 'GPT-5',
-      description: 'General purpose coding assistant',
-    },
-  ],
-}
-
 export const demoAgents: CodingAgents = {
   opencode: {
-    model: 'gpt-5',
-  },
-  claude_code: {
-    model: 'claude-sonnet-4-20250514',
+    server: {
+      hostname: '0.0.0.0',
+    },
   },
 }
 

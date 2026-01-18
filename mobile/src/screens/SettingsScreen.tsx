@@ -10,7 +10,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ActionSheetIOS,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -20,7 +19,6 @@ import {
   Credentials,
   Scripts,
   SyncResult,
-  ModelInfo,
   getBaseUrl,
   saveServerConfig,
   getDefaultPort,
@@ -84,55 +82,6 @@ function SettingRow({
   );
 }
 
-const FALLBACK_CLAUDE_MODELS: ModelInfo[] = [
-  { id: 'sonnet', name: 'Sonnet', description: 'Fast and cost-effective' },
-  { id: 'opus', name: 'Opus', description: 'Most capable' },
-  { id: 'haiku', name: 'Haiku', description: 'Fastest, lowest cost' },
-];
-
-function ModelPicker({
-  label,
-  models,
-  selectedModel,
-  onSelect,
-}: {
-  label: string;
-  models: ModelInfo[];
-  selectedModel: string;
-  onSelect: (model: string) => void;
-}) {
-  const { colors } = useTheme();
-  const selectedModelInfo = models.find((m) => m.id === selectedModel);
-  const selectedModelLabel = selectedModelInfo
-    ? (selectedModelInfo.provider ? `${selectedModelInfo.provider}/${selectedModelInfo.name}` : selectedModelInfo.name)
-    : undefined;
-
-  const showPicker = () => {
-    const options = [...models.map((m) => (m.provider ? `${m.provider}/${m.name}` : m.name)), 'Cancel'];
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options,
-        cancelButtonIndex: options.length - 1,
-        title: 'Select Model',
-      },
-      (buttonIndex) => {
-        if (buttonIndex < models.length) {
-          onSelect(models[buttonIndex].id);
-        }
-      }
-    );
-  };
-
-  return (
-    <View style={styles.row}>
-      <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
-      <TouchableOpacity style={[styles.modelPicker, { backgroundColor: colors.surfaceSecondary }]} onPress={showPicker}>
-        <Text style={[styles.modelPickerText, { color: colors.text }]}>{selectedModelLabel || 'Select Model'}</Text>
-        <Text style={[styles.modelPickerChevron, { color: colors.textMuted }]}>›</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
 
 function NavigationRow({
   title,
@@ -404,40 +353,17 @@ export function AgentsSettingsScreen({ navigation }: any) {
     queryFn: api.getAgents,
   });
 
-  const { data: claudeModelsData } = useQuery({
-    queryKey: ['models', 'claude-code'],
-    queryFn: () => api.listModels('claude-code'),
-  });
-
-  const { data: opencodeModelsData } = useQuery({
-    queryKey: ['models', 'opencode'],
-    queryFn: () => api.listModels('opencode'),
-  });
-
-  const claudeModels = claudeModelsData?.models?.length
-    ? claudeModelsData.models
-    : FALLBACK_CLAUDE_MODELS;
-  const opencodeModels = opencodeModelsData?.models || [];
-
-  const [opencodeZenToken, setOpencodeZenToken] = useState('');
-  const [opencodeModel, setOpencodeModel] = useState('');
   const [opencodeServerHostname, setOpencodeServerHostname] = useState('0.0.0.0');
   const [opencodeServerUsername, setOpencodeServerUsername] = useState('');
   const [opencodeServerPassword, setOpencodeServerPassword] = useState('');
-  const [claudeOAuthToken, setClaudeOAuthToken] = useState('');
-  const [claudeModel, setClaudeModel] = useState('sonnet');
   const [hasChanges, setHasChanges] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     if (agents && !initialized) {
-      setOpencodeZenToken(agents.opencode?.zen_token || '');
-      setOpencodeModel(agents.opencode?.model || '');
       setOpencodeServerHostname(agents.opencode?.server?.hostname || '0.0.0.0');
       setOpencodeServerUsername(agents.opencode?.server?.username || '');
       setOpencodeServerPassword(agents.opencode?.server?.password || '');
-      setClaudeOAuthToken(agents.claude_code?.oauth_token || '');
-      setClaudeModel(agents.claude_code?.model || 'sonnet');
       setInitialized(true);
     }
   }, [agents, initialized]);
@@ -456,18 +382,13 @@ export function AgentsSettingsScreen({ navigation }: any) {
 
   const handleSave = () => {
     mutation.mutate({
+      ...(agents ?? {}),
       opencode: {
-        zen_token: opencodeZenToken.trim() || undefined,
-        model: opencodeModel || undefined,
         server: {
           hostname: opencodeServerHostname.trim() || undefined,
           username: opencodeServerUsername.trim() || undefined,
           password: opencodeServerPassword || undefined,
         },
-      },
-      claude_code: {
-        oauth_token: claudeOAuthToken.trim() || undefined,
-        model: claudeModel,
       },
     });
   };
@@ -485,31 +406,17 @@ export function AgentsSettingsScreen({ navigation }: any) {
   return (
     <ScreenWrapper title="AI Agents" navigation={navigation}>
       <Card>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Credentials Sync</Text>
+        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
+          Perry syncs your agent credentials from the host machine. OpenCode and Claude Code just need to be logged in locally.
+        </Text>
+      </Card>
+
+      <Card>
         <Text style={[styles.cardTitle, { color: colors.text }]}>OpenCode</Text>
         <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
-          Zen token for OpenCode AI assistant
+          Configure the OpenCode server that runs inside workspaces
         </Text>
-        <SettingRow
-          label="Zen Token"
-          value={opencodeZenToken}
-          placeholder="zen_..."
-          onChangeText={(t) => {
-            setOpencodeZenToken(t);
-            setHasChanges(true);
-          }}
-          secureTextEntry
-        />
-        {opencodeModels.length > 0 && (
-          <ModelPicker
-            label="Model"
-            models={opencodeModels}
-            selectedModel={opencodeModel}
-            onSelect={(m) => {
-              setOpencodeModel(m);
-              setHasChanges(true);
-            }}
-          />
-        )}
         <SettingRow
           label="Server Hostname"
           value={opencodeServerHostname}
@@ -537,32 +444,6 @@ export function AgentsSettingsScreen({ navigation }: any) {
             setHasChanges(true);
           }}
           secureTextEntry
-        />
-      </Card>
-
-      <Card>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Claude Code</Text>
-        <Text style={[styles.cardDescription, { color: colors.textMuted }]}>
-          Run `claude setup-token` locally to generate
-        </Text>
-        <SettingRow
-          label="OAuth Token"
-          value={claudeOAuthToken}
-          placeholder="sk-ant-oat01-..."
-          onChangeText={(t) => {
-            setClaudeOAuthToken(t);
-            setHasChanges(true);
-          }}
-          secureTextEntry
-        />
-        <ModelPicker
-          label="Model"
-          models={claudeModels}
-          selectedModel={claudeModel}
-          onSelect={(m) => {
-            setClaudeModel(m);
-            setHasChanges(true);
-          }}
         />
       </Card>
 

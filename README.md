@@ -118,15 +118,16 @@ Configure credentials and agent settings via Web UI → Settings or edit `~/.con
     "github": {
       "token": "ghp_..."
     },
-    "claude_code": {
-      "oauth_token": "..."
-    },
     "opencode": {
-      "zen_token": "..."
+      "server": {
+        "hostname": "0.0.0.0"
+      }
     }
   }
 }
 ```
+
+Perry syncs agent credentials from the host machine (Claude Code and OpenCode configs) when present.
 
 Restart workspaces to apply changes.
 

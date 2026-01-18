@@ -16,13 +16,17 @@ OpenCode is directly accessible via the web on mobile:
 
 ## 1) Configure OpenCode
 
-Set your token and server settings:
+Sign in on the host and let Perry sync your OpenCode config into workspaces:
+
+- `~/.config/opencode/opencode.json`
+- `~/.local/share/opencode/auth.json`
+
+Then set the server settings:
 
 ```json
 {
   "agents": {
     "opencode": {
-      "zen_token": "zen_...",
       "server": {
         "hostname": "0.0.0.0",
         "username": "opencode",

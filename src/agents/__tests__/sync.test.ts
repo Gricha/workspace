@@ -289,6 +289,8 @@ describe('getCredentialFilePaths', () => {
 
     expect(paths).toContain('~/.claude/.credentials.json');
     expect(paths).toContain('~/.codex/auth.json');
+    expect(paths).toContain('~/.local/share/opencode/auth.json');
+    expect(paths).toContain('~/.local/share/opencode/mcp-auth.json');
   });
 
   it('does not include preference-only files', () => {
@@ -315,7 +317,7 @@ describe('createSyncContext', () => {
       port: 7777,
       credentials: { env: {}, files: {} },
       scripts: {},
-      agents: { opencode: { zen_token: 'test' } },
+      agents: { opencode: { server: { hostname: '0.0.0.0' } } },
     };
 
     const context = createSyncContext('my-container', config);

@@ -155,74 +155,9 @@ const sidebar: SidebarsConfig = {
       label: "Info",
       link: {
         type: "doc",
-        id: "api/info-tag",
+        id: "api/info",
       },
-      items: [
-        {
-          type: "doc",
-          id: "api/info",
-          label: "info",
-          className: "api-method post",
-        },
-      ],
-    },
-    {
-      type: "category",
-      label: "Live Sessions",
-      link: {
-        type: "doc",
-        id: "api/live-sessions",
-      },
-      items: [
-        {
-          type: "doc",
-          id: "api/live-list",
-          label: "live.list",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/live-get",
-          label: "live.get",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/live-get-status",
-          label: "live.getStatus",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/live-start",
-          label: "live.start",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/live-send-message",
-          label: "live.sendMessage",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/live-interrupt",
-          label: "live.interrupt",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/live-dispose",
-          label: "live.dispose",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/live-get-messages",
-          label: "live.getMessages",
-          className: "api-method post",
-        },
-      ],
+      items: [],
     },
     {
       type: "category",

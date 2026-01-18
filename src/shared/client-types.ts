@@ -58,8 +58,6 @@ export interface Scripts {
 
 export interface CodingAgents {
   opencode?: {
-    zen_token?: string;
-    model?: string;
     server?: {
       hostname?: string;
       username?: string;
@@ -68,10 +66,6 @@ export interface CodingAgents {
   };
   github?: {
     token?: string;
-  };
-  claude_code?: {
-    oauth_token?: string;
-    model?: string;
   };
 }
 

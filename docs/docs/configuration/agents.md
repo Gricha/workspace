@@ -4,28 +4,15 @@ sidebar_position: 3
 
 # Agents
 
-Configure tokens and defaults for Claude Code, OpenCode, Codex CLI, and GitHub.
+Configure agent sync behavior and OpenCode server defaults.
 
-## Claude Code
+## Credentials sync
 
-```json
-{
-  "agents": {
-    "claude_code": {
-      "oauth_token": "sk-ant-oat01-...",
-      "model": "sonnet"
-    }
-  }
-}
-```
+Perry copies host credentials into each workspace when they exist:
 
-Generate a token with:
-
-```bash
-claude setup-token
-```
-
-Perry also copies `~/.claude/.credentials.json` when present.
+- Claude Code: `~/.claude/.credentials.json`
+- OpenCode: `~/.config/opencode/opencode.json`, `~/.local/share/opencode/auth.json`
+- Codex CLI: `~/.codex/`
 
 ## OpenCode
 
@@ -33,8 +20,6 @@ Perry also copies `~/.claude/.credentials.json` when present.
 {
   "agents": {
     "opencode": {
-      "zen_token": "zen_...",
-      "model": "opencode/claude-sonnet-4",
       "server": {
         "hostname": "0.0.0.0",
         "username": "opencode",
@@ -45,11 +30,7 @@ Perry also copies `~/.claude/.credentials.json` when present.
 }
 ```
 
-Perry starts `opencode serve` inside workspaces on port 4096 when the `opencode` binary is available. Tokens enable API access and model selection.
-
-## Codex CLI
-
-Perry copies `~/.codex/` if it exists on the host.
+Perry starts `opencode serve` inside workspaces on port 4096 when the `opencode` binary is available.
 
 ## GitHub token
 

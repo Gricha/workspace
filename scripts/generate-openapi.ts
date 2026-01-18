@@ -33,7 +33,6 @@ function addTagsToSpec(spec: any): any {
   const tagMapping: Record<string, string> = {
     '/workspaces': 'Workspaces',
     '/sessions': 'Sessions',
-    '/live': 'Live Sessions',
     '/models': 'Models',
     '/github': 'GitHub',
     '/host': 'Host',

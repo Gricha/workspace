@@ -18,8 +18,8 @@ codex
 ## What gets synced
 
 - Agent credentials and configs from the host
-- `~/.claude/`, `~/.codex/` if present
-- OpenCode config generated from your Perry settings
+- `~/.claude/` and `~/.codex/` if present
+- OpenCode config plus `auth.json` and any MCP server settings
 
 Sync happens on workspace start and when you run `perry sync`.
 
@@ -34,4 +34,4 @@ The Sessions tab is a history and shortcut list. Opening a session drops you int
 
 ## Configure agents
 
-Set tokens and defaults in the Web UI (Settings > Agents), use the setup wizard, or edit `config.json` directly. See [Configuration: Agents](./configuration/agents.md).
+Set OpenCode server defaults in the Web UI (Settings > Agents), use the setup wizard, or edit `config.json` directly. See [Configuration: Agents](./configuration/agents.md).

@@ -133,30 +133,20 @@ For local usage, simply start the agent with `perry agent run` and Perry will au
 
 ## AI Agent Issues
 
-### Claude Code: Token invalid
+### Claude Code: Not authenticated
 
-```bash
-# Generate new token on host
-claude setup-token
+Verify the host credentials are available and re-sync:
 
-# Add to Perry via Web UI > Settings > Agents
-# Restart workspace
-perry stop <name>
-perry start <name>
-```
+- Ensure `~/.claude/.credentials.json` exists on the host.
+- Restart the workspace to re-sync.
 
 ### OpenCode: API key not found
 
-Add key to config:
-```json
-{
-  "agents": {
-    "opencode": {
-      "zen_token": "your-token"
-    }
-  }
-}
-```
+Confirm the host config is present and re-sync:
+
+- Ensure `~/.config/opencode/opencode.json` exists on the host.
+- Ensure `~/.local/share/opencode/auth.json` exists on the host.
+- Restart the workspace to re-sync.
 
 Or set environment variable:
 ```json

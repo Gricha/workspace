@@ -17,8 +17,6 @@ export interface WorkspaceScripts {
 
 export interface CodingAgents {
   opencode?: {
-    zen_token?: string;
-    model?: string;
     server?: {
       /** Hostname passed to `opencode serve --hostname` inside workspaces. */
       hostname?: string;
@@ -30,10 +28,6 @@ export interface CodingAgents {
   };
   github?: {
     token?: string;
-  };
-  claude_code?: {
-    oauth_token?: string;
-    model?: string;
   };
 }
 

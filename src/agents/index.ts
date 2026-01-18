@@ -174,7 +174,12 @@ export async function syncAllAgents(
 }
 
 export function getCredentialFilePaths(): string[] {
-  return ['~/.claude/.credentials.json', '~/.codex/auth.json'];
+  return [
+    '~/.claude/.credentials.json',
+    '~/.codex/auth.json',
+    '~/.local/share/opencode/auth.json',
+    '~/.local/share/opencode/mcp-auth.json',
+  ];
 }
 
 export type {

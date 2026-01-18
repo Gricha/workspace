@@ -36,11 +36,10 @@ Location: `~/.config/perry/config.json`
     "github": {
       "token": "ghp_..."
     },
-    "claude_code": {
-      "oauth_token": "..."
-    },
     "opencode": {
-      "zen_token": "..."
+      "server": {
+        "hostname": "0.0.0.0"
+      }
     }
   },
   "ssh": {
@@ -120,7 +119,7 @@ If you run any `perry` command without configuring an agent (and no local agent 
 ## Configuration Sections
 
 - [Credentials](./credentials.md) - Env vars, files, and SSH keys
-- [Agents](./agents.md) - Claude Code, OpenCode, Codex CLI, GitHub token
+- [Agents](./agents.md) - Agent sync, OpenCode server, GitHub token
 - [Scripts](./scripts.md) - Run scripts after workspace starts
 - [Tailscale](./tailscale.md) - Remote agent access and workspace networking
 - [GitHub](./github.md) - Token setup and cloning

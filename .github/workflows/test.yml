@@ -315,8 +315,12 @@ jobs:
         run: |
           mkdir -p ~/.config/perry
           if [ -n "$OPENCODE_TOKEN" ]; then
-            echo '{"agents":{"opencode":{"zen_token":"'"$OPENCODE_TOKEN"'","model":"opencode/gpt-5-nano"}}}' > ~/.config/perry/config.json
-            echo "OpenCode configured with gpt-5-nano model"
+            echo '{"agents":{"opencode":{"server":{"hostname":"0.0.0.0"}}}}' > ~/.config/perry/config.json
+            mkdir -p ~/.local/share/opencode
+            echo '{"opencode":{"type":"api","key":"'"$OPENCODE_TOKEN"'"}}' > ~/.local/share/opencode/auth.json
+            chmod 600 ~/.local/share/opencode/auth.json
+            echo "OPENCODE_TOKEN=$OPENCODE_TOKEN" >> $GITHUB_ENV
+            echo "OpenCode auth configured"
           else
             echo '{}' > ~/.config/perry/config.json
             echo "No OPENCODE_TOKEN - OpenCode tests will be skipped"

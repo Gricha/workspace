@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { opencodeSync } from '../sync/opencode';
-import { DEFAULT_OPENCODE_MODEL } from '../../shared/constants';
 import type { SyncContext } from '../types';
 
 function createMockContext(overrides: Partial<SyncContext> = {}): SyncContext {
@@ -28,11 +27,24 @@ describe('opencodeSync', () => {
   });
 
   describe('getFilesToSync', () => {
-    it('returns empty array (no files to copy)', async () => {
+    it('returns auth files to copy', async () => {
       const context = createMockContext();
       const files = await opencodeSync.getFilesToSync(context);
 
-      expect(files).toHaveLength(0);
+      expect(files).toEqual([
+        {
+          source: '~/.local/share/opencode/auth.json',
+          dest: '/home/workspace/.local/share/opencode/auth.json',
+          permissions: '600',
+          optional: true,
+        },
+        {
+          source: '~/.local/share/opencode/mcp-auth.json',
+          dest: '/home/workspace/.local/share/opencode/mcp-auth.json',
+          permissions: '600',
+          optional: true,
+        },
+      ]);
     });
   });
 
@@ -46,102 +58,28 @@ describe('opencodeSync', () => {
   });
 
   describe('getGeneratedConfigs', () => {
-    it('returns empty when no zen_token configured', async () => {
+    it('returns empty when no host config and no perry config', async () => {
       const context = createMockContext();
 
       const configs = await opencodeSync.getGeneratedConfigs(context);
       expect(configs).toHaveLength(0);
     });
 
-    it('generates config with provider when zen_token is set', async () => {
+    it('writes host config when present', async () => {
+      const hostConfig = { model: 'opencode/claude-opus-4-5', provider: { test: true } };
+
       const context = createMockContext({
-        agentConfig: {
-          port: 7777,
-          credentials: { env: {}, files: {} },
-          scripts: {},
-          agents: {
-            opencode: {
-              zen_token: 'test-token-123',
-            },
-          },
-        },
+        readHostFile: async (path) =>
+          path === '~/.config/opencode/opencode.json' ? JSON.stringify(hostConfig) : null,
       });
 
       const configs = await opencodeSync.getGeneratedConfigs(context);
-
       expect(configs).toHaveLength(1);
       expect(configs[0].dest).toBe('/home/workspace/.config/opencode/opencode.json');
-      expect(configs[0].category).toBe('credential');
-      expect(configs[0].permissions).toBe('600');
-
-      const parsed = JSON.parse(configs[0].content);
-      expect(parsed.provider.opencode.options.apiKey).toBe('test-token-123');
-      expect(parsed.model).toBe(DEFAULT_OPENCODE_MODEL);
+      expect(JSON.parse(configs[0].content)).toEqual(hostConfig);
     });
 
-    it('uses host model when configured model missing', async () => {
-      const hostConfig = { model: 'opencode/claude-opus-4-5' };
-
-      const context = createMockContext({
-        agentConfig: {
-          port: 7777,
-          credentials: { env: {}, files: {} },
-          scripts: {},
-          agents: { opencode: { zen_token: 'test-token' } },
-        },
-        readHostFile: async (path) =>
-          path === '~/.config/opencode/opencode.json' ? JSON.stringify(hostConfig) : null,
-      });
-
-      const configs = await opencodeSync.getGeneratedConfigs(context);
-      const parsed = JSON.parse(configs[0].content);
-
-      expect(parsed.model).toBe('opencode/claude-opus-4-5');
-    });
-
-    it('prefers configured model over host model', async () => {
-      const hostConfig = { model: 'opencode/claude-sonnet-4' };
-
-      const context = createMockContext({
-        agentConfig: {
-          port: 7777,
-          credentials: { env: {}, files: {} },
-          scripts: {},
-          agents: {
-            opencode: {
-              zen_token: 'test-token',
-              model: 'opencode/claude-opus-4-5',
-            },
-          },
-        },
-        readHostFile: async (path) =>
-          path === '~/.config/opencode/opencode.json' ? JSON.stringify(hostConfig) : null,
-      });
-
-      const configs = await opencodeSync.getGeneratedConfigs(context);
-      const parsed = JSON.parse(configs[0].content);
-
-      expect(parsed.model).toBe('opencode/claude-opus-4-5');
-    });
-
-    it('does not include mcp when host has none and perry has none', async () => {
-      const context = createMockContext({
-        agentConfig: {
-          port: 7777,
-          credentials: { env: {}, files: {} },
-          scripts: {},
-          agents: { opencode: { zen_token: 'test-token' } },
-          mcpServers: [],
-        },
-      });
-
-      const configs = await opencodeSync.getGeneratedConfigs(context);
-      const parsed = JSON.parse(configs[0].content);
-
-      expect(parsed.mcp).toBeUndefined();
-    });
-
-    it('merges mcp config from host', async () => {
+    it('merges mcp config from host and perry', async () => {
       const hostConfig = {
         mcp: {
           'my-mcp': { type: 'local', command: ['bun', 'run', 'server'] },
@@ -153,8 +91,17 @@ describe('opencodeSync', () => {
           port: 7777,
           credentials: { env: {}, files: {} },
           scripts: {},
-          agents: { opencode: { zen_token: 'test-token' } },
-          mcpServers: [],
+          mcpServers: [
+            {
+              id: 'remote-1',
+              name: 'remote_server',
+              enabled: true,
+              type: 'remote',
+              url: 'https://example.com/mcp',
+              headers: { Authorization: 'Bearer {env:API_KEY}' },
+              oauth: false,
+            },
+          ],
         },
         readHostFile: async (path) =>
           path === '~/.config/opencode/opencode.json' ? JSON.stringify(hostConfig) : null,
@@ -163,48 +110,26 @@ describe('opencodeSync', () => {
       const configs = await opencodeSync.getGeneratedConfigs(context);
       const parsed = JSON.parse(configs[0].content);
 
-      expect(parsed.mcp).toEqual(hostConfig.mcp);
+      expect(parsed.mcp).toMatchObject({
+        ...hostConfig.mcp,
+        remote_server: {
+          type: 'remote',
+          url: 'https://example.com/mcp',
+          enabled: true,
+          headers: { Authorization: 'Bearer {env:API_KEY}' },
+          oauth: false,
+        },
+      });
     });
 
-    it('handles invalid JSON in host config gracefully', async () => {
+    it('ignores invalid host config when no perry config', async () => {
       const context = createMockContext({
-        agentConfig: {
-          port: 7777,
-          credentials: { env: {}, files: {} },
-          scripts: {},
-          agents: { opencode: { zen_token: 'test-token' } },
-          mcpServers: [],
-        },
         readHostFile: async (path) =>
           path === '~/.config/opencode/opencode.json' ? 'not valid json' : null,
       });
 
       const configs = await opencodeSync.getGeneratedConfigs(context);
-      const parsed = JSON.parse(configs[0].content);
-
-      expect(parsed.provider.opencode.options.apiKey).toBe('test-token');
-      expect(parsed.mcp).toBeUndefined();
-    });
-
-    it('handles empty mcp object', async () => {
-      const hostConfig = { mcp: {} };
-
-      const context = createMockContext({
-        agentConfig: {
-          port: 7777,
-          credentials: { env: {}, files: {} },
-          scripts: {},
-          agents: { opencode: { zen_token: 'test-token' } },
-          mcpServers: [],
-        },
-        readHostFile: async (path) =>
-          path === '~/.config/opencode/opencode.json' ? JSON.stringify(hostConfig) : null,
-      });
-
-      const configs = await opencodeSync.getGeneratedConfigs(context);
-      const parsed = JSON.parse(configs[0].content);
-
-      expect(parsed.mcp).toBeUndefined();
+      expect(configs).toHaveLength(0);
     });
 
     it('renders local and remote MCP servers with auth', async () => {
@@ -213,7 +138,6 @@ describe('opencodeSync', () => {
           port: 7777,
           credentials: { env: {}, files: {} },
           scripts: {},
-          agents: { opencode: { zen_token: 'test-token' } },
           mcpServers: [
             {
               id: 'local-1',

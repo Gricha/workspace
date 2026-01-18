@@ -6,7 +6,6 @@ import type {
   GitHubRepo,
   HostInfo,
   InfoResponse,
-  ModelInfo,
   RecentSession,
   Scripts,
   SessionDetail,
@@ -20,7 +19,6 @@ import {
   demoGitHubRepos,
   demoHostInfo,
   demoInfo,
-  demoModelsByAgent,
   demoRecentSessions,
   demoSessionDetails,
   demoSessions,
@@ -48,8 +46,6 @@ type ListAllSessionsResponse = {
 }
 
 type GetSessionResponse = SessionDetail & { total: number; hasMore: boolean }
-
-type ListModelsResponse = { models: ModelInfo[] }
 
 type ListGitHubReposResponse = { configured: boolean; repos: GitHubRepo[]; hasMore: boolean }
 
@@ -281,10 +277,6 @@ export class DemoApiDriver {
   updateAgents = async (input: CodingAgents): Promise<CodingAgents> => {
     this.agents = clone(input)
     return this.agents
-  }
-
-  listModels = async (agentType: 'claude-code' | 'opencode', _workspaceName?: string): Promise<ListModelsResponse> => {
-    return { models: demoModelsByAgent[agentType] ?? [] }
   }
 
   listGitHubRepos = async (_search?: string, _perPage?: number, _page?: number): Promise<ListGitHubReposResponse> => {

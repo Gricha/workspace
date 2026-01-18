@@ -243,8 +243,6 @@ export const api = {
   getSSHSettings: () => client.config.ssh.get(),
   updateSSHSettings: (data: SSHSettings) => client.config.ssh.update(data),
   listSSHKeys: () => client.config.ssh.listKeys(),
-  listModels: (agentType: 'claude-code' | 'opencode', workspaceName?: string) =>
-    client.models.list({ agentType, workspaceName }),
   listGitHubRepos: (search?: string, perPage?: number, page?: number) =>
     client.github.listRepos({ search, perPage, page }),
   getTerminalSettings: () => client.config.terminal.get(),
@@ -262,10 +260,4 @@ export const api = {
 export function getTerminalUrl(name: string): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${window.location.host}/rpc/terminal/${encodeURIComponent(name)}`;
-}
-
-export function getChatUrl(name: string, agentType: AgentType = 'claude-code'): string {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const endpoint = agentType === 'opencode' ? 'live/opencode' : 'live/claude';
-  return `${protocol}//${window.location.host}/rpc/${endpoint}/${encodeURIComponent(name)}`;
 }

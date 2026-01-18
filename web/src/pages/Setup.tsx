@@ -11,36 +11,20 @@ import {
   ExternalLink,
   Rocket,
   ArrowRight,
-  Sparkles,
   Network,
 } from 'lucide-react';
-import { api, type CodingAgents, type SSHSettings, type ModelInfo } from '@/lib/api';
+import { api, type CodingAgents, type SSHSettings } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AgentIcon } from '@/components/AgentIcon';
-import { SearchableModelSelect } from '@/components/SearchableModelSelect';
+type Step = 'welcome' | 'git' | 'networking' | 'complete';
 
-const FALLBACK_CLAUDE_MODELS: ModelInfo[] = [
-  { id: 'sonnet', name: 'Sonnet', description: 'Fast and cost-effective', provider: 'anthropic' },
-  { id: 'opus', name: 'Opus', description: 'Most capable', provider: 'anthropic' },
-  { id: 'haiku', name: 'Haiku', description: 'Fastest, lowest cost', provider: 'anthropic' },
-];
-
-type Step = 'welcome' | 'agents' | 'git' | 'networking' | 'complete';
-
-const STEPS: Step[] = ['welcome', 'agents', 'git', 'networking', 'complete'];
+const STEPS: Step[] = ['welcome', 'git', 'networking', 'complete'];
 
 export function Setup() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState<Step>('welcome');
 
-  const [claudeEnabled, setClaudeEnabled] = useState(false);
-  const [claudeToken, setClaudeToken] = useState('');
-  const [claudeModel, setClaudeModel] = useState('sonnet');
-  const [opencodeEnabled, setOpencodeEnabled] = useState(false);
-  const [opencodeToken, setOpencodeToken] = useState('');
-  const [opencodeModel, setOpencodeModel] = useState('');
   const [githubToken, setGithubToken] = useState('');
   const [selectedSSHKeys, setSelectedSSHKeys] = useState<string[]>([]);
   const [tailscaleEnabled, setTailscaleEnabled] = useState(false);
@@ -61,36 +45,13 @@ export function Setup() {
     queryFn: api.listSSHKeys,
   });
 
-  const { data: claudeModelsData } = useQuery({
-    queryKey: ['models', 'claude-code'],
-    queryFn: () => api.listModels('claude-code'),
-  });
-
-  const { data: opencodeModelsData } = useQuery({
-    queryKey: ['models', 'opencode'],
-    queryFn: () => api.listModels('opencode'),
-  });
-
   const { data: tailscaleConfig } = useQuery({
     queryKey: ['tailscaleConfig'],
     queryFn: api.getTailscaleConfig,
   });
 
-  const claudeModels = claudeModelsData?.models?.length
-    ? claudeModelsData.models
-    : FALLBACK_CLAUDE_MODELS;
-  const opencodeModels = opencodeModelsData?.models || [];
-
   useEffect(() => {
     if (agents) {
-      const hasClaudeToken = !!agents.claude_code?.oauth_token;
-      const hasOpencodeToken = !!agents.opencode?.zen_token;
-      setClaudeEnabled(hasClaudeToken);
-      setClaudeToken(agents.claude_code?.oauth_token || '');
-      setClaudeModel(agents.claude_code?.model || 'sonnet');
-      setOpencodeEnabled(hasOpencodeToken);
-      setOpencodeToken(agents.opencode?.zen_token || '');
-      setOpencodeModel(agents.opencode?.model || '');
       setGithubToken(agents.github?.token || '');
     }
   }, [agents]);
@@ -126,15 +87,7 @@ export function Setup() {
 
   const handleSaveAgents = async () => {
     await agentsMutation.mutateAsync({
-      ...agents,
-      claude_code:
-        claudeEnabled && claudeToken
-          ? { oauth_token: claudeToken, model: claudeModel }
-          : agents?.claude_code,
-      opencode:
-        opencodeEnabled && opencodeToken
-          ? { zen_token: opencodeToken, model: opencodeModel || undefined }
-          : agents?.opencode,
+      ...(agents ?? {}),
       github: githubToken ? { token: githubToken } : agents?.github,
     });
   };
@@ -248,15 +201,6 @@ export function Setup() {
           <div className="pt-4 space-y-3 text-left max-w-md mx-auto">
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">AI Coding Assistants</p>
-                <p className="text-sm text-muted-foreground">Configure Claude Code and OpenCode</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Key className="h-3.5 w-3.5 text-primary" />
               </div>
               <div>
@@ -272,132 +216,6 @@ export function Setup() {
                 <p className="font-medium">Networking</p>
                 <p className="text-sm text-muted-foreground">Connect workspaces to your tailnet</p>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {currentStep === 'agents' && (
-        <div className="space-y-6">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">AI Coding Assistants</h1>
-            <p className="text-muted-foreground">
-              Select the AI assistants you want to use. You can set up both!
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <div
-              className={`border rounded-lg overflow-hidden transition-colors ${claudeEnabled ? 'border-primary' : ''}`}
-            >
-              <div
-                className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => setClaudeEnabled(!claudeEnabled)}
-              >
-                <div
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    claudeEnabled ? 'bg-primary border-primary' : 'border-muted-foreground/30'
-                  }`}
-                >
-                  {claudeEnabled && <Check className="h-3 w-3 text-primary-foreground" />}
-                </div>
-                <AgentIcon agentType="claude-code" size="md" className="!p-2" />
-                <div className="flex-1">
-                  <h3 className="font-semibold">Claude Code</h3>
-                  <p className="text-sm text-muted-foreground">Anthropic AI assistant</p>
-                </div>
-                <ChevronDown
-                  className={`h-5 w-5 text-muted-foreground transition-transform ${claudeEnabled ? 'rotate-180' : ''}`}
-                />
-              </div>
-              {claudeEnabled && (
-                <div className="px-4 pb-4 space-y-3 border-t bg-muted/30">
-                  <div className="pt-3">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Run{' '}
-                      <code className="text-xs bg-muted px-1 py-0.5 rounded">claude setup-token</code>{' '}
-                      to get your token
-                    </p>
-                    <Input
-                      type="password"
-                      value={claudeToken}
-                      onChange={(e) => setClaudeToken(e.target.value)}
-                      placeholder="sk-ant-oat01-... (OAuth token)"
-                      className="font-mono text-sm"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Preferred Model</p>
-                    <SearchableModelSelect
-                      models={claudeModels}
-                      value={claudeModel}
-                      onChange={setClaudeModel}
-                      showProvider
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div
-              className={`border rounded-lg overflow-hidden transition-colors ${opencodeEnabled ? 'border-emerald-500' : ''}`}
-            >
-              <div
-                className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => setOpencodeEnabled(!opencodeEnabled)}
-              >
-                <div
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    opencodeEnabled ? 'bg-emerald-500 border-emerald-500' : 'border-muted-foreground/30'
-                  }`}
-                >
-                  {opencodeEnabled && <Check className="h-3 w-3 text-white" />}
-                </div>
-                <AgentIcon agentType="opencode" size="md" className="!p-2" />
-                <div className="flex-1">
-                  <h3 className="font-semibold">OpenCode</h3>
-                  <p className="text-sm text-muted-foreground">Open source AI coding assistant</p>
-                </div>
-                <ChevronDown
-                  className={`h-5 w-5 text-muted-foreground transition-transform ${opencodeEnabled ? 'rotate-180' : ''}`}
-                />
-              </div>
-              {opencodeEnabled && (
-                <div className="px-4 pb-4 space-y-3 border-t bg-muted/30">
-                  <div className="pt-3">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Get your token from{' '}
-                      <a
-                        href="https://opencode.ai/auth"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline inline-flex items-center gap-1"
-                      >
-                        opencode.ai
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </p>
-                    <Input
-                      type="password"
-                      value={opencodeToken}
-                      onChange={(e) => setOpencodeToken(e.target.value)}
-                      placeholder="zen_... (Zen token)"
-                      className="font-mono text-sm"
-                    />
-                  </div>
-                  {opencodeModels.length > 0 && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">Preferred Model</p>
-                      <SearchableModelSelect
-                        models={opencodeModels}
-                        value={opencodeModel}
-                        onChange={setOpencodeModel}
-                        showProvider
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -598,17 +416,6 @@ export function Setup() {
             </p>
           </div>
           <div className="pt-4 space-y-3 text-left max-w-md mx-auto text-sm">
-            {(claudeToken || opencodeToken) && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Check className="h-4 w-4 text-green-500" />
-                <span>
-                  AI Assistants:{' '}
-                  {[claudeToken && 'Claude Code', opencodeToken && 'OpenCode']
-                    .filter(Boolean)
-                    .join(', ')}
-                </span>
-              </div>
-            )}
             {githubToken && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Check className="h-4 w-4 text-green-500" />
@@ -629,7 +436,7 @@ export function Setup() {
                 <span>Tailscale networking enabled</span>
               </div>
             )}
-            {!claudeToken && !opencodeToken && !githubToken && selectedSSHKeys.length === 0 && !tailscaleAuthKey && (
+            {!githubToken && selectedSSHKeys.length === 0 && !tailscaleAuthKey && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <span>No configuration added. You can always configure later in Settings.</span>
               </div>

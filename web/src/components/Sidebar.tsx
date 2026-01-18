@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Menu,
@@ -14,6 +15,7 @@ import {
   Plug,
   Github,
   Network,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api, type WorkspaceInfo } from '@/lib/api';
@@ -52,7 +54,26 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     { to: '/settings/agents', label: 'AI Agents', icon: Settings },
     { to: '/settings/github', label: 'GitHub', icon: Github },
     { to: '/settings/tailscale', label: 'Tailscale', icon: Network },
+    { to: '/skills', label: 'Skills', icon: Wand2 },
+    { to: '/mcp', label: 'MCP', icon: Plug },
   ];
+
+  const isWorkspaceActive = workspaceLinks.some((link) => location.pathname === link.to);
+  const isIntegrationActive = integrationLinks.some((link) => location.pathname === link.to);
+  const [workspaceOpen, setWorkspaceOpen] = useState(isWorkspaceActive);
+  const [integrationOpen, setIntegrationOpen] = useState(isIntegrationActive);
+
+  useEffect(() => {
+    if (isWorkspaceActive) {
+      setWorkspaceOpen(true);
+    }
+  }, [isWorkspaceActive]);
+
+  useEffect(() => {
+    if (isIntegrationActive) {
+      setIntegrationOpen(true);
+    }
+  }, [isIntegrationActive]);
 
   return (
     <>
@@ -150,71 +171,73 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
           {/* Settings Sections */}
           <div className="flex-shrink-0 border-t px-3 py-2 space-y-3">
             <div>
-              <div className="section-header">Workspace</div>
-              <div className="space-y-0">
-                {workspaceLinks.map((link) => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    className={cn(
-                      'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent',
-                      location.pathname === link.to && 'nav-active'
-                    )}
-                    onClick={() => isOpen && onToggle()}
-                  >
-                    <link.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{link.label}</span>
-                  </Link>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={() => setWorkspaceOpen((prev) => !prev)}
+                className="w-full flex items-center justify-between section-header hover:text-foreground transition-colors"
+              >
+                <span>Workspace</span>
+                <ChevronDown
+                  className={cn(
+                    'h-3.5 w-3.5 text-muted-foreground transition-transform',
+                    workspaceOpen && 'rotate-180'
+                  )}
+                />
+              </button>
+              {workspaceOpen && (
+                <div className="space-y-0">
+                  {workspaceLinks.map((link) => (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      className={cn(
+                        'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent',
+                        location.pathname === link.to && 'nav-active'
+                      )}
+                      onClick={() => isOpen && onToggle()}
+                    >
+                      <link.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{link.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
-              <div className="section-header">Integrations</div>
-              <div className="space-y-0">
-                {integrationLinks.map((link) => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    className={cn(
-                      'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent',
-                      location.pathname === link.to && 'nav-active'
-                    )}
-                    onClick={() => isOpen && onToggle()}
-                  >
-                    <link.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{link.label}</span>
-                  </Link>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={() => setIntegrationOpen((prev) => !prev)}
+                className="w-full flex items-center justify-between section-header hover:text-foreground transition-colors"
+              >
+                <span>Integrations</span>
+                <ChevronDown
+                  className={cn(
+                    'h-3.5 w-3.5 text-muted-foreground transition-transform',
+                    integrationOpen && 'rotate-180'
+                  )}
+                />
+              </button>
+              {integrationOpen && (
+                <div className="space-y-0">
+                  {integrationLinks.map((link) => (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      className={cn(
+                        'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent',
+                        location.pathname === link.to && 'nav-active'
+                      )}
+                      onClick={() => isOpen && onToggle()}
+                    >
+                      <link.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{link.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div>
-              <div className="space-y-0">
-                <Link
-                  to="/skills"
-                  className={cn(
-                    'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent',
-                    location.pathname === '/skills' && 'nav-active'
-                  )}
-                  onClick={() => isOpen && onToggle()}
-                >
-                  <Wand2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Skills</span>
-                </Link>
-                <Link
-                  to="/mcp"
-                  className={cn(
-                    'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent',
-                    location.pathname === '/mcp' && 'nav-active'
-                  )}
-                  onClick={() => isOpen && onToggle()}
-                >
-                  <Plug className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>MCP</span>
-                </Link>
-              </div>
-            </div>
           </div>
         </div>
 

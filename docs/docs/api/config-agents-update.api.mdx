@@ -5,7 +5,7 @@ description: "config.agents.update"
 sidebar_label: "config.agents.update"
 hide_title: true
 hide_table_of_contents: true
-api: eJztVU1v2zAM/SsGz1qSbodhvmXDgAUb0GDtTkFQMBJjq5UlVZLTZoH/+0A5rZO2WYcdh+ngD5F6Ih+fqB04TwGTdnamoATp7FpXI6zIpjhqvcJEICBhFaFcwKdsbvsFsBQQ6LalmD46tYVyl391IAVlCi0JhktkE5vQe6NlXji+js7yXJQ1NchfaesJSnCra5IJBPjAcSVNka3Ok5VO0eueP8leJXdD9sA1pqBtBZ2AxikyL1oihQ2F1/FrF5PFhl4EaSOFk0aPMd65oF4w8hBQ6VS3q9dDOJUeY0iDraKrP+PKYZvqv2BrP7j40Tsbe7S3kwm/FEUZtM/6KOH8K/wXwb8sgk48qfiJBtJQqh03GO9iDgJTDSWMe/dx7z5+dO8rwS1nB20wUEKdki/HY+MkGua/fP/uwxk83f0bm4s5hbAtMiZ0SwGstO9Do/p8j4039FRTB6p5yPIx/WFi0MiggsE6FH+YG2o+kHdU6OM9nxfwqEQnQ2NQbdcuQ+rE+UFPxHQ+AwHMZ0/S2WgymjyjbjqfFWsXigYtVtpWexbvXLiJHiVFUUxnPalFpMhYURRoVSEPL4XRfp0PbqMVxUJHZzCREkUks37DrJEqFG3ION8wGtmNDs7ydyxQSgZfGSrchkJxcfElb3KJ2kSJhkb5HLmYGsyK3dN9QndHOT6KONF9GnuD2uYTG7LAe0ku9kggoMfiqvZoS5Frzj673Qoj/Qim63j6tqWwhXKxFLDBoHHF7C+WnYCaULFcFju4oS2UfINyM3xzyZGwu2k5omeNsRMPK6ZSkk+/9V0eHLD5+cUlCFjtb+QmiwgC3oHIzxJAgMuM5AaQ53Zg0FYtVuzbY/L4Bbfs1nE=
+api: eJztVE1v2zAM/SsGz2qcbodhvmXDgAUb0GDtTkEOjMzYamVJFeW0gZH/PlBOl7Rd1sOu88GWxacn8vFjAB8oYjLezWuoQHu3Mc0EG3KJJ32oMREoSNgwVEv4nM39eABWCiLd98Tpk693UA3510SqoUqxJyV0iVwSE4Zgjc4Hy1v2TvZYt9ShrNIuEFTg17ekEygIUfxKhlisPpDTvqa3kUxxS/FtXOs5OexOGTlF4xrYK+iZ4lljQOYHH+s/GOVR0JjU9uu3XUj+jtwZlkwUiYN3PKLfTafyqYl1NCHLX8HVN/iv8T9ovFcvBD1T/h2l1kt7BM/5EkwtVFCO8HKEl7/ho0DSMAP00UIFbUqhKkvrNVqRpfrw/uMlvLz9u5iLBcW4KzIn7FcKJJE/jm325RG7YOllyo5JOcr+FO6p2se9o8hHWZ4pO2p3ajRu47PJJPEARldnizkokIjHMC4n08n0VXCzxbzY+Fh06LAxrjnE+eDjHQfUxKqYzcewCyYWLlYFurrQp0NncjgXot+amrgw7C0mqlXBZDcXEj3VRU1bsj50wkZua6J3suYCtRbytaXCbykW19df8yU3aCxrtDTJBeg5dZgr5yDbmcp4FuPvMkv0mMpg0bhc6lICw6FolgcmUDBySXZGtpXKuRPMMKyR6We0+71s3/cUd1AtVwq2GA2uRf3laq+gJawl7csB7mgHlUxomQYXN+KJwG0vHr2aDHv1dGKmNYX0V+zqpAUWV9c3oGB9mPhdrj+I+AAqvysABT4rklsw7w1g0TU9NoIdOeX5BWbGRVc=
 sidebar_class_name: "post api-method"
 info_path: docs/api/perry-api
 custom_edit_url: null
@@ -55,7 +55,7 @@ config.agents.update
 
 <RequestSchema
   title={"Body"}
-  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"opencode":{"type":"object","properties":{"zen_token":{"type":"string"},"model":{"type":"string"},"server":{"type":"object","properties":{"hostname":{"type":"string"},"username":{"type":"string"},"password":{"type":"string"}}}}},"github":{"type":"object","properties":{"token":{"type":"string"}}},"claude_code":{"type":"object","properties":{"oauth_token":{"type":"string"},"model":{"type":"string"}}}}}}}}}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"opencode":{"type":"object","properties":{"server":{"type":"object","properties":{"hostname":{"type":"string"},"username":{"type":"string"},"password":{"type":"string"}}}}},"github":{"type":"object","properties":{"token":{"type":"string"}}}}}}}}}
 >
   
 </RequestSchema>
@@ -63,7 +63,7 @@ config.agents.update
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"opencode":{"type":"object","properties":{"zen_token":{"type":"string"},"model":{"type":"string"},"server":{"type":"object","properties":{"hostname":{"type":"string"},"username":{"type":"string"},"password":{"type":"string"}}}}},"github":{"type":"object","properties":{"token":{"type":"string"}}},"claude_code":{"type":"object","properties":{"oauth_token":{"type":"string"},"model":{"type":"string"}}}}}}}}}}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"opencode":{"type":"object","properties":{"server":{"type":"object","properties":{"hostname":{"type":"string"},"username":{"type":"string"},"password":{"type":"string"}}}}},"github":{"type":"object","properties":{"token":{"type":"string"}}}}}}}}}}
 >
   
 </StatusCodes>

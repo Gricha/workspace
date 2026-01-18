@@ -3,7 +3,6 @@ import { RPCLink } from '@orpc/client/fetch';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setUserContext } from './sentry';
 
-import { createDemoChatWebSocket } from './demo/chat';
 import { demoDriver } from './demo/driver';
 import { DEMO_TERMINAL_HTML } from './demo/terminal-html';
 import { TERMINAL_HTML } from './terminal-html';
@@ -62,8 +61,6 @@ export interface Scripts {
 
 export interface CodingAgents {
   opencode?: {
-    zen_token?: string;
-    model?: string;
     server?: {
       hostname?: string;
       username?: string;
@@ -73,17 +70,6 @@ export interface CodingAgents {
   github?: {
     token?: string;
   };
-  claude_code?: {
-    oauth_token?: string;
-    model?: string;
-  };
-}
-
-export interface ModelInfo {
-  id: string;
-  name: string;
-  description?: string;
-  provider?: string;
 }
 
 export type AgentType = 'claude-code' | 'opencode' | 'codex';
@@ -286,12 +272,6 @@ function createClient() {
         update: (input: CodingAgents) => Promise<CodingAgents>;
       };
     };
-    models: {
-      list: (input: {
-        agentType: 'claude-code' | 'opencode';
-        workspaceName?: string;
-      }) => Promise<{ models: ModelInfo[] }>;
-    };
     github: {
       listRepos: (input: { search?: string; perPage?: number; page?: number }) => Promise<{
         configured: boolean;
@@ -321,20 +301,6 @@ export interface SessionInfoWithWorkspace extends SessionInfo {
 export function getTerminalUrl(workspaceName: string): string {
   const wsUrl = baseUrl.replace(/^http/, 'ws');
   return `${wsUrl}/rpc/terminal/${encodeURIComponent(workspaceName)}`;
-}
-
-export function getChatUrl(workspaceName: string, agentType: AgentType = 'claude-code'): string {
-  const wsUrl = baseUrl.replace(/^http/, 'ws');
-  const endpoint = agentType === 'opencode' ? 'live/opencode' : 'live/claude';
-  return `${wsUrl}/rpc/${endpoint}/${encodeURIComponent(workspaceName)}`;
-}
-
-export function createChatWebSocket(workspaceName: string, agentType: AgentType): WebSocket {
-  if (isDemoMode()) {
-    return createDemoChatWebSocket({ workspaceName, agentType }) as unknown as WebSocket;
-  }
-
-  return new WebSocket(getChatUrl(workspaceName, agentType));
 }
 
 export function getTerminalHtml(): string {
@@ -405,11 +371,6 @@ type ApiDriver = {
   updateSkills: (data: any[]) => Promise<any[]>;
   getMcpServers: () => Promise<any[]>;
   updateMcpServers: (data: any[]) => Promise<any[]>;
-
-  listModels: (
-    agentType: 'claude-code' | 'opencode',
-    workspaceName?: string
-  ) => Promise<{ models: ModelInfo[] }>;
   listGitHubRepos: (
     search?: string,
     perPage?: number,
@@ -462,9 +423,6 @@ const realDriver: ApiDriver = {
   updateSkills: (data: any[]) => (client.config as any).skills.update(data),
   getMcpServers: () => (client.config as any).mcp.get(),
   updateMcpServers: (data: any[]) => (client.config as any).mcp.update(data),
-
-  listModels: (agentType: 'claude-code' | 'opencode', workspaceName?: string) =>
-    client.models.list({ agentType, workspaceName }),
   listGitHubRepos: (search?: string, perPage?: number, page?: number) =>
     client.github.listRepos({ search, perPage, page }),
 };
@@ -515,8 +473,6 @@ const demoModeDriver: ApiDriver = {
   getMcpServers: () => (demoDriver as any).getMcpServers?.() ?? Promise.resolve([]),
   updateMcpServers: (data: any[]) =>
     (demoDriver as any).updateMcpServers?.(data) ?? Promise.resolve(data),
-  listModels: (agentType: 'claude-code' | 'opencode', workspaceName?: string) =>
-    demoDriver.listModels(agentType, workspaceName),
   listGitHubRepos: (search?: string, perPage?: number, page?: number) =>
     demoDriver.listGitHubRepos(search, perPage, page),
 };
@@ -573,7 +529,6 @@ export const api = {
   updateMcpServers: (...args: Parameters<ApiDriver['updateMcpServers']>) =>
     driver.updateMcpServers(...args),
 
-  listModels: (...args: Parameters<ApiDriver['listModels']>) => driver.listModels(...args),
   listGitHubRepos: (...args: Parameters<ApiDriver['listGitHubRepos']>) =>
     driver.listGitHubRepos(...args),
 };

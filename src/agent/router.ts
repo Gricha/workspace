@@ -42,7 +42,6 @@ import {
 } from '../models/discovery';
 import { deleteOpencodeSession } from '../sessions/agents/opencode-storage';
 import { SessionIndex } from '../worker/session-index';
-import { sessionManager } from '../session-manager';
 import type { AgentType } from '../session-manager/types';
 
 const WorkspaceStatusSchema = z.enum(['running', 'stopped', 'creating', 'error']);
@@ -89,8 +88,6 @@ const ScriptsSchema = z.object({
 const CodingAgentsSchema = z.object({
   opencode: z
     .object({
-      zen_token: z.string().optional(),
-      model: z.string().optional(),
       server: z
         .object({
           hostname: z.string().optional(),
@@ -103,12 +100,6 @@ const CodingAgentsSchema = z.object({
   github: z
     .object({
       token: z.string().optional(),
-    })
-    .optional(),
-  claude_code: z
-    .object({
-      oauth_token: z.string().optional(),
-      model: z.string().optional(),
     })
     .optional(),
 });
@@ -1438,7 +1429,7 @@ export function createRouter(ctx: RouterContext) {
         return { models };
       }
 
-      const prefersWorkspaceModels = !!config.agents?.opencode?.zen_token;
+      const prefersWorkspaceModels = !config.allowHostAccess;
       const cached = await ctx.modelCache.getOpencodeModels();
       if (shouldUseCachedOpencodeModels(cached, prefersWorkspaceModels, input.workspaceName)) {
         return { models: cached };
@@ -1461,7 +1452,6 @@ export function createRouter(ctx: RouterContext) {
         const containerName = `workspace-${input.workspaceName}`;
         models = await discoverContainerOpencodeModels(containerName, execInContainer);
       } else {
-        const prefersWorkspaceModels = !!config.agents?.opencode?.zen_token;
         if (prefersWorkspaceModels) {
           const allWorkspaces = await ctx.workspaces.list();
           const runningWorkspace = allWorkspaces.find((w) => w.status === 'running');
@@ -1491,150 +1481,6 @@ export function createRouter(ctx: RouterContext) {
       return { models };
     });
 
-  const LiveAgentTypeSchema = z.enum(['claude', 'opencode', 'codex']);
-
-  const listLiveSessions = os
-    .input(
-      z.object({
-        workspaceName: AnyWorkspaceNameSchema.optional(),
-      })
-    )
-    .handler(async ({ input }) => {
-      const sessions = sessionManager.listActiveSessions(input.workspaceName);
-      return sessions.map((s) => ({
-        ...s,
-        startedAt: s.startedAt.toISOString(),
-        lastActivity: s.lastActivity.toISOString(),
-      }));
-    });
-
-  const getLiveSession = os
-    .input(
-      z.object({
-        sessionId: z.string(),
-      })
-    )
-    .handler(async ({ input }) => {
-      const session = sessionManager.getSession(input.sessionId);
-      if (!session) {
-        throw new ORPCError('NOT_FOUND', { message: 'Live session not found' });
-      }
-      return {
-        ...session,
-        startedAt: session.startedAt.toISOString(),
-        lastActivity: session.lastActivity.toISOString(),
-      };
-    });
-
-  const getLiveSessionStatus = os
-    .input(
-      z.object({
-        sessionId: z.string(),
-      })
-    )
-    .handler(async ({ input }) => {
-      const status = sessionManager.getSessionStatus(input.sessionId);
-      if (!status) {
-        throw new ORPCError('NOT_FOUND', { message: 'Live session not found' });
-      }
-      return { status };
-    });
-
-  const startLiveSession = os
-    .input(
-      z.object({
-        workspaceName: AnyWorkspaceNameSchema,
-        agentType: LiveAgentTypeSchema,
-        sessionId: z.string().optional(),
-        agentSessionId: z.string().optional(),
-        model: z.string().optional(),
-        projectPath: z.string().optional(),
-      })
-    )
-    .handler(async ({ input }) => {
-      if (input.workspaceName !== HOST_WORKSPACE_NAME) {
-        const workspace = await ctx.workspaces.get(input.workspaceName);
-        if (!workspace) {
-          throw new ORPCError('NOT_FOUND', { message: 'Workspace not found' });
-        }
-        if (workspace.status !== 'running') {
-          throw new ORPCError('PRECONDITION_FAILED', { message: 'Workspace is not running' });
-        }
-      } else {
-        const config = ctx.config.get();
-        if (!config.allowHostAccess) {
-          throw new ORPCError('PRECONDITION_FAILED', { message: 'Host access is disabled' });
-        }
-      }
-
-      const sessionId = await sessionManager.startSession({
-        workspaceName: input.workspaceName,
-        agentType: input.agentType as AgentType,
-        sessionId: input.sessionId,
-        agentSessionId: input.agentSessionId,
-        model: input.model,
-        projectPath: input.projectPath,
-      });
-
-      return { sessionId };
-    });
-
-  const sendLiveMessage = os
-    .input(
-      z.object({
-        sessionId: z.string(),
-        message: z.string(),
-      })
-    )
-    .handler(async ({ input }) => {
-      const session = sessionManager.getSession(input.sessionId);
-      if (!session) {
-        throw new ORPCError('NOT_FOUND', { message: 'Live session not found' });
-      }
-
-      await sessionManager.sendMessage(input.sessionId, input.message);
-      return { success: true };
-    });
-
-  const interruptLiveSession = os
-    .input(
-      z.object({
-        sessionId: z.string(),
-      })
-    )
-    .handler(async ({ input }) => {
-      const session = sessionManager.getSession(input.sessionId);
-      if (!session) {
-        throw new ORPCError('NOT_FOUND', { message: 'Live session not found' });
-      }
-
-      await sessionManager.interrupt(input.sessionId);
-      return { success: true };
-    });
-
-  const disposeLiveSession = os
-    .input(
-      z.object({
-        sessionId: z.string(),
-      })
-    )
-    .handler(async ({ input }) => {
-      await sessionManager.disposeSession(input.sessionId);
-      return { success: true };
-    });
-
-  const getLiveSessionMessages = os
-    .input(
-      z.object({
-        sessionId: z.string(),
-        sinceId: z.number().optional(),
-      })
-    )
-    .handler(async ({ input }) => {
-      const messages = sessionManager.getBufferedMessages(input.sessionId, input.sinceId);
-      return { messages };
-    });
-
   return {
     workspaces: {
       list: listWorkspaces,
@@ -1662,16 +1508,6 @@ export function createRouter(ctx: RouterContext) {
       recordAccess: recordSessionAccess,
       delete: deleteSession,
       search: searchSessions,
-    },
-    live: {
-      list: listLiveSessions,
-      get: getLiveSession,
-      getStatus: getLiveSessionStatus,
-      start: startLiveSession,
-      sendMessage: sendLiveMessage,
-      interrupt: interruptLiveSession,
-      dispose: disposeLiveSession,
-      getMessages: getLiveSessionMessages,
     },
     models: {
       list: listModels,

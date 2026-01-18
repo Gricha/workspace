@@ -33,7 +33,7 @@ function getAgentResumeCommand(agentType: AgentType, sessionId: string): string 
   }
 }
 
-function getAgentNewCommand(agentType: AgentType): string {
+function getAgentStartCommand(agentType: AgentType): string {
   switch (agentType) {
     case 'claude-code':
       return 'claude'
@@ -152,7 +152,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
   const { name } = route.params
   const [agentFilter, setAgentFilter] = useState<AgentType | undefined>(undefined)
   const [showAgentPicker, setShowAgentPicker] = useState(false)
-  const [showNewChatPicker, setShowNewChatPicker] = useState(false)
+  const [showNewSessionPicker, setShowNewSessionPicker] = useState(false)
   const [showWorkspacePicker, setShowWorkspacePicker] = useState(false)
   const [isManualRefresh, setIsManualRefresh] = useState(false)
 
@@ -302,9 +302,9 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.newChatBtn, { backgroundColor: colors.accent }]}
-            onPress={() => setShowNewChatPicker(!showNewChatPicker)}
+            onPress={() => setShowNewSessionPicker(!showNewSessionPicker)}
             disabled={!isRunning}
-            testID="new-chat-button"
+            testID="new-session-button"
           >
             <Text style={[styles.newChatBtnText, { color: colors.accentText }, !isRunning && styles.disabledText]}>New Session ▼</Text>
           </TouchableOpacity>
@@ -331,25 +331,25 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
         </View>
       )}
 
-      {showNewChatPicker && (
+      {showNewSessionPicker && (
         <View style={styles.newChatPickerOverlay}>
-          <TouchableOpacity style={styles.newChatPickerBackdrop} onPress={() => setShowNewChatPicker(false)} />
+          <TouchableOpacity style={styles.newChatPickerBackdrop} onPress={() => setShowNewSessionPicker(false)} />
           <View style={[styles.newChatPicker, { backgroundColor: colors.surfaceSecondary }]}>
-            <Text style={[styles.newChatPickerTitle, { color: colors.textMuted }]}>Start chat with</Text>
+            <Text style={[styles.newChatPickerTitle, { color: colors.textMuted }]}>Start session with</Text>
             {(['claude-code', 'opencode', 'codex'] as const).map((type) => (
               <TouchableOpacity
                 key={type}
                 style={styles.newChatPickerItem}
                 onPress={() => {
-                  setShowNewChatPicker(false)
+                  setShowNewSessionPicker(false)
                   const runId = `${type}-${Date.now()}`
                   navigation.navigate('Terminal', {
                     name,
-                    initialCommand: getAgentNewCommand(type),
+                    initialCommand: getAgentStartCommand(type),
                     runId,
                   })
                 }}
-                testID={`new-chat-${type}`}
+                testID={`new-session-${type}`}
               >
                 <AgentIcon agentType={type} size="md" />
                 <Text style={[styles.newChatPickerItemText, { color: colors.text }]}>{agentLabels[type]}</Text>
@@ -428,7 +428,7 @@ export function WorkspaceDetailScreen({ route, navigation }: any) {
       ) : flatData.length === 0 ? (
         <View style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.textMuted }]}>No sessions yet</Text>
-          <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>Start a new chat to create one</Text>
+          <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>Start a new session to create one</Text>
         </View>
       ) : (
         <FlatList

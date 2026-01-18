@@ -2,66 +2,16 @@ import { spawn } from 'child_process';
 import type { ModelInfo } from './cache';
 import type { AgentConfig } from '../shared/types';
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/models';
-const ANTHROPIC_API_VERSION = '2023-06-01';
-
 const FALLBACK_CLAUDE_MODELS: ModelInfo[] = [
   { id: 'sonnet', name: 'Sonnet', description: 'Fast and capable', provider: 'anthropic' },
   { id: 'opus', name: 'Opus', description: 'Most capable', provider: 'anthropic' },
   { id: 'haiku', name: 'Haiku', description: 'Fastest', provider: 'anthropic' },
 ];
 
-interface AnthropicModel {
-  id: string;
-  display_name: string;
-  created_at?: string;
-  type: string;
-}
-
-interface AnthropicModelsResponse {
-  data: AnthropicModel[];
-  has_more: boolean;
-}
 
 export async function discoverClaudeCodeModels(config: AgentConfig): Promise<ModelInfo[]> {
-  const oauthToken = config.agents?.claude_code?.oauth_token;
-
-  if (!oauthToken) {
-    return FALLBACK_CLAUDE_MODELS;
-  }
-
-  try {
-    const response = await fetch(ANTHROPIC_API_URL, {
-      method: 'GET',
-      headers: {
-        'x-api-key': oauthToken,
-        'anthropic-version': ANTHROPIC_API_VERSION,
-      },
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (!response.ok) {
-      return FALLBACK_CLAUDE_MODELS;
-    }
-
-    const data = (await response.json()) as AnthropicModelsResponse;
-
-    const models: ModelInfo[] = data.data
-      .filter((m) => m.type === 'model')
-      .map((m) => ({
-        id: m.id,
-        name: m.display_name || m.id,
-        provider: 'anthropic',
-      }));
-
-    if (models.length === 0) {
-      return FALLBACK_CLAUDE_MODELS;
-    }
-
-    return models;
-  } catch {
-    return FALLBACK_CLAUDE_MODELS;
-  }
+  void config;
+  return FALLBACK_CLAUDE_MODELS;
 }
 
 async function runCommand(command: string, args: string[]): Promise<string> {

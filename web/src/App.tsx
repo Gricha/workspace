@@ -54,27 +54,14 @@ function SetupGuard({ children }: { children: React.ReactNode }) {
     queryFn: api.listWorkspaces,
   });
 
-  const {
-    data: agents,
-    isLoading: agentsLoading,
-    isError: agentsError,
-  } = useQuery({
-    queryKey: ['agents'],
-    queryFn: api.getAgents,
-  });
-
-  const isLoading = workspacesLoading || agentsLoading;
-  const hasError = workspacesError || agentsError;
+  const isLoading = workspacesLoading;
+  const hasError = workspacesError;
 
   useEffect(() => {
     if (isLoading || checked || hasError) return;
 
     const hasWorkspaces = workspaces && workspaces.length > 0;
-    const hasClaudeCode = !!agents?.claude_code?.oauth_token;
-    const hasOpencode = !!agents?.opencode?.zen_token;
-    const hasAgents = hasClaudeCode || hasOpencode;
-
-    const isUnconfigured = !hasWorkspaces && !hasAgents;
+    const isUnconfigured = !hasWorkspaces;
     const isOnSetupPage = location.pathname === '/setup';
 
     if (isUnconfigured && !isOnSetupPage) {
@@ -82,7 +69,7 @@ function SetupGuard({ children }: { children: React.ReactNode }) {
     }
 
     setChecked(true);
-  }, [workspaces, agents, isLoading, checked, hasError, navigate, location.pathname]);
+  }, [workspaces, isLoading, checked, hasError, navigate, location.pathname]);
 
   if (!checked && isLoading) {
     return null;

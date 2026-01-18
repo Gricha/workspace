@@ -1669,374 +1669,6 @@
         }
       }
     },
-    "/live/list": {
-      "post": {
-        "operationId": "live.list",
-        "tags": [
-          "Live Sessions"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "workspaceName": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {},
-                    {
-                      "not": {}
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/live/get": {
-      "post": {
-        "operationId": "live.get",
-        "tags": [
-          "Live Sessions"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "sessionId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "sessionId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {},
-                    {
-                      "not": {}
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/live/getStatus": {
-      "post": {
-        "operationId": "live.getStatus",
-        "tags": [
-          "Live Sessions"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "sessionId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "sessionId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {},
-                    {
-                      "not": {}
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/live/start": {
-      "post": {
-        "operationId": "live.start",
-        "tags": [
-          "Live Sessions"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "workspaceName": {
-                    "type": "string"
-                  },
-                  "agentType": {
-                    "enum": [
-                      "claude",
-                      "opencode",
-                      "codex"
-                    ]
-                  },
-                  "sessionId": {
-                    "type": "string"
-                  },
-                  "agentSessionId": {
-                    "type": "string"
-                  },
-                  "model": {
-                    "type": "string"
-                  },
-                  "projectPath": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "workspaceName",
-                  "agentType"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {},
-                    {
-                      "not": {}
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/live/sendMessage": {
-      "post": {
-        "operationId": "live.sendMessage",
-        "tags": [
-          "Live Sessions"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "sessionId": {
-                    "type": "string"
-                  },
-                  "message": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "sessionId",
-                  "message"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {},
-                    {
-                      "not": {}
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/live/interrupt": {
-      "post": {
-        "operationId": "live.interrupt",
-        "tags": [
-          "Live Sessions"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "sessionId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "sessionId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {},
-                    {
-                      "not": {}
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/live/dispose": {
-      "post": {
-        "operationId": "live.dispose",
-        "tags": [
-          "Live Sessions"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "sessionId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "sessionId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {},
-                    {
-                      "not": {}
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/live/getMessages": {
-      "post": {
-        "operationId": "live.getMessages",
-        "tags": [
-          "Live Sessions"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "sessionId": {
-                    "type": "string"
-                  },
-                  "sinceId": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "sessionId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {},
-                    {
-                      "not": {}
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/models/list": {
       "post": {
         "operationId": "models.list",
@@ -2459,12 +2091,6 @@
                     "opencode": {
                       "type": "object",
                       "properties": {
-                        "zen_token": {
-                          "type": "string"
-                        },
-                        "model": {
-                          "type": "string"
-                        },
                         "server": {
                           "type": "object",
                           "properties": {
@@ -2485,17 +2111,6 @@
                       "type": "object",
                       "properties": {
                         "token": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "claude_code": {
-                      "type": "object",
-                      "properties": {
-                        "oauth_token": {
-                          "type": "string"
-                        },
-                        "model": {
                           "type": "string"
                         }
                       }
@@ -2524,12 +2139,6 @@
                   "opencode": {
                     "type": "object",
                     "properties": {
-                      "zen_token": {
-                        "type": "string"
-                      },
-                      "model": {
-                        "type": "string"
-                      },
                       "server": {
                         "type": "object",
                         "properties": {
@@ -2553,17 +2162,6 @@
                         "type": "string"
                       }
                     }
-                  },
-                  "claude_code": {
-                    "type": "object",
-                    "properties": {
-                      "oauth_token": {
-                        "type": "string"
-                      },
-                      "model": {
-                        "type": "string"
-                      }
-                    }
                   }
                 }
               }
@@ -2581,12 +2179,6 @@
                     "opencode": {
                       "type": "object",
                       "properties": {
-                        "zen_token": {
-                          "type": "string"
-                        },
-                        "model": {
-                          "type": "string"
-                        },
                         "server": {
                           "type": "object",
                           "properties": {
@@ -2607,17 +2199,6 @@
                       "type": "object",
                       "properties": {
                         "token": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "claude_code": {
-                      "type": "object",
-                      "properties": {
-                        "oauth_token": {
-                          "type": "string"
-                        },
-                        "model": {
                           "type": "string"
                         }
                       }
@@ -3544,9 +3125,6 @@
     },
     {
       "name": "Info"
-    },
-    {
-      "name": "Live Sessions"
     },
     {
       "name": "Models"

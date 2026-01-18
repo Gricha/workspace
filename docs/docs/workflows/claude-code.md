@@ -22,26 +22,11 @@ Claude Code is available directly in the workspace terminal (via Perry Web UI or
 
 Claude Code:
 
-```bash
-claude setup-token
-```
-
-Then set the token in Perry config:
-
-```json
-{
-  "agents": {
-    "claude_code": {
-      "oauth_token": "sk-ant-oat01-...",
-      "model": "sonnet"
-    }
-  }
-}
-```
+- Sign in on the host and keep `~/.claude/.credentials.json` available.
 
 Codex:
 
-Perry copies `~/.codex/` from the host if it exists.
+- Perry copies `~/.codex/` from the host if it exists.
 
 ## 2) Start a workspace
 

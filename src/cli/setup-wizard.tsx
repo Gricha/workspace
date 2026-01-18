@@ -7,20 +7,13 @@ import type { SSHKeyInfo } from '../shared/client-types';
 
 type Step =
   | 'welcome'
-  | 'agents'
-  | 'claude'
-  | 'opencode'
   | 'github'
   | 'ssh'
   | 'tailscale'
   | 'complete';
-type AgentId = 'claude' | 'opencode';
 
 const STEPS: Step[] = [
   'welcome',
-  'agents',
-  'claude',
-  'opencode',
   'github',
   'ssh',
   'tailscale',
@@ -28,39 +21,9 @@ const STEPS: Step[] = [
 ];
 
 interface WizardState {
-  selectedAgents: AgentId[];
-  claudeToken: string;
-  claudeModel: string;
-  opencodeToken: string;
-  opencodeModel: string;
-  opencodeServerHostname: string;
-  opencodeServerUsername: string;
-  opencodeServerPassword: string;
   githubToken: string;
   selectedSSHKeys: string[];
   tailscaleAuthKey: string;
-}
-
-function SelectableItem({
-  selected,
-  highlighted,
-  label,
-  description,
-}: {
-  selected: boolean;
-  highlighted: boolean;
-  label: string;
-  description?: string;
-}) {
-  return (
-    <Box>
-      <Text color={highlighted ? 'cyan' : undefined}>
-        <Text color={selected ? 'green' : 'gray'}>{selected ? '[x]' : '[ ]'}</Text>
-        <Text> {label}</Text>
-        {description && <Text color="gray"> - {description}</Text>}
-      </Text>
-    </Box>
-  );
 }
 
 function WelcomeStep({ onNext }: { onNext: () => void }) {
@@ -79,7 +42,6 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
       </Box>
       <Text>This wizard will help you configure:</Text>
       <Box marginLeft={2} flexDirection="column">
-        <Text>• AI coding assistants (Claude Code, OpenCode)</Text>
         <Text>• Git access (GitHub token)</Text>
         <Text>• SSH keys for workspaces</Text>
         <Text>• Tailscale networking</Text>
@@ -91,51 +53,6 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
   );
 }
 
-function AgentSelectStep({
-  selected,
-  onToggle,
-  onNext,
-}: {
-  selected: AgentId[];
-  onToggle: (agent: AgentId) => void;
-  onNext: () => void;
-}) {
-  const [highlighted, setHighlighted] = useState(0);
-  const agents: { id: AgentId; name: string; description: string }[] = [
-    { id: 'claude', name: 'Claude Code', description: 'Anthropic AI assistant' },
-    { id: 'opencode', name: 'OpenCode', description: 'Open source AI coding assistant' },
-  ];
-
-  useInput((input, key) => {
-    if (key.upArrow) {
-      setHighlighted((h: number) => Math.max(0, h - 1));
-    } else if (key.downArrow) {
-      setHighlighted((h: number) => Math.min(agents.length - 1, h + 1));
-    } else if (input === ' ') {
-      onToggle(agents[highlighted].id);
-    } else if (key.return) {
-      onNext();
-    }
-  });
-
-  return (
-    <Box flexDirection="column" gap={1}>
-      <Text bold>Which AI assistants do you want to use?</Text>
-      <Text color="gray">Space to toggle, Enter to continue</Text>
-      <Box flexDirection="column" marginTop={1}>
-        {agents.map((agent, index) => (
-          <SelectableItem
-            key={agent.id}
-            selected={selected.includes(agent.id)}
-            highlighted={highlighted === index}
-            label={agent.name}
-            description={agent.description}
-          />
-        ))}
-      </Box>
-    </Box>
-  );
-}
 
 function TokenInputStep({
   title,
@@ -270,8 +187,6 @@ function CompleteStep({ state, onFinish }: { state: WizardState; onFinish: () =>
   });
 
   const configured: string[] = [];
-  if (state.claudeToken) configured.push('Claude Code');
-  if (state.opencodeToken) configured.push('OpenCode');
   if (state.githubToken) configured.push('GitHub');
   if (state.selectedSSHKeys.length > 0)
     configured.push(`${state.selectedSSHKeys.length} SSH key(s)`);
@@ -314,14 +229,6 @@ function SetupWizard() {
   const [step, setStep] = useState<Step>('welcome');
   const [sshKeys, setSSHKeys] = useState<SSHKeyInfo[]>([]);
   const [state, setState] = useState<WizardState>({
-    selectedAgents: [],
-    claudeToken: '',
-    claudeModel: 'sonnet',
-    opencodeToken: '',
-    opencodeModel: '',
-    opencodeServerHostname: '0.0.0.0',
-    opencodeServerUsername: '',
-    opencodeServerPassword: '',
     githubToken: '',
     selectedSSHKeys: [],
     tailscaleAuthKey: '',
@@ -341,13 +248,6 @@ function SetupWizard() {
       const config = await loadAgentConfig(configDir);
       setState((s: WizardState) => ({
         ...s,
-        claudeToken: config.agents?.claude_code?.oauth_token || '',
-        claudeModel: config.agents?.claude_code?.model || 'sonnet',
-        opencodeToken: config.agents?.opencode?.zen_token || '',
-        opencodeModel: config.agents?.opencode?.model || '',
-        opencodeServerHostname: config.agents?.opencode?.server?.hostname || '0.0.0.0',
-        opencodeServerUsername: config.agents?.opencode?.server?.username || '',
-        opencodeServerPassword: config.agents?.opencode?.server?.password || '',
         githubToken: config.agents?.github?.token || '',
         selectedSSHKeys: config.ssh?.global.copy || [],
         tailscaleAuthKey: config.tailscale?.authKey || '',
@@ -359,38 +259,15 @@ function SetupWizard() {
   const nextStep = () => {
     const currentIndex = STEPS.indexOf(step);
     if (currentIndex < STEPS.length - 1) {
-      let nextIndex = currentIndex + 1;
-      if (STEPS[nextIndex] === 'claude' && !state.selectedAgents.includes('claude')) {
-        nextIndex++;
-      }
-      if (STEPS[nextIndex] === 'opencode' && !state.selectedAgents.includes('opencode')) {
-        nextIndex++;
-      }
-      setStep(STEPS[nextIndex]);
+      setStep(STEPS[currentIndex + 1]);
     }
   };
 
   const prevStep = () => {
     const currentIndex = STEPS.indexOf(step);
     if (currentIndex > 0) {
-      let prevIndex = currentIndex - 1;
-      if (STEPS[prevIndex] === 'opencode' && !state.selectedAgents.includes('opencode')) {
-        prevIndex--;
-      }
-      if (STEPS[prevIndex] === 'claude' && !state.selectedAgents.includes('claude')) {
-        prevIndex--;
-      }
-      setStep(STEPS[prevIndex]);
+      setStep(STEPS[currentIndex - 1]);
     }
-  };
-
-  const toggleAgent = (agent: AgentId) => {
-    setState((s: WizardState) => ({
-      ...s,
-      selectedAgents: s.selectedAgents.includes(agent)
-        ? s.selectedAgents.filter((a: AgentId) => a !== agent)
-        : [...s.selectedAgents, agent],
-    }));
   };
 
   const toggleSSHKey = (path: string) => {
@@ -409,24 +286,10 @@ function SetupWizard() {
       await ensureConfigDir(configDir);
       const config = await loadAgentConfig(configDir);
 
-      if (state.claudeToken || state.opencodeToken || state.githubToken) {
+      if (state.githubToken) {
         config.agents = {
           ...config.agents,
-          claude_code: state.claudeToken
-            ? { oauth_token: state.claudeToken, model: state.claudeModel }
-            : config.agents?.claude_code,
-          opencode: state.opencodeToken
-            ? {
-                zen_token: state.opencodeToken,
-                model: state.opencodeModel || undefined,
-                server: {
-                  hostname: state.opencodeServerHostname.trim() || undefined,
-                  username: state.opencodeServerUsername.trim() || undefined,
-                  password: state.opencodeServerPassword || undefined,
-                },
-              }
-            : config.agents?.opencode,
-          github: state.githubToken ? { token: state.githubToken } : config.agents?.github,
+          github: { token: state.githubToken },
         };
       }
 
@@ -474,80 +337,6 @@ function SetupWizard() {
       ) : (
         <>
           {step === 'welcome' && <WelcomeStep onNext={nextStep} />}
-          {step === 'agents' && (
-            <AgentSelectStep
-              selected={state.selectedAgents}
-              onToggle={toggleAgent}
-              onNext={nextStep}
-            />
-          )}
-          {step === 'claude' && (
-            <TokenInputStep
-              title="Claude Code Token"
-              placeholder="sk-ant-oat01-..."
-              helpText="Run 'claude setup-token' locally to generate this token"
-              value={state.claudeToken}
-              onChange={(v: string) => setState((s: WizardState) => ({ ...s, claudeToken: v }))}
-              onNext={nextStep}
-              onBack={prevStep}
-            />
-          )}
-          {step === 'opencode' && (
-            <Box flexDirection="column" gap={1}>
-              <TokenInputStep
-                title="OpenCode Token"
-                placeholder="zen_..."
-                helpText="Get your token from https://opencode.ai/auth"
-                value={state.opencodeToken}
-                onChange={(v: string) => setState((s: WizardState) => ({ ...s, opencodeToken: v }))}
-                onNext={nextStep}
-                onBack={prevStep}
-              />
-              <Box flexDirection="column" marginTop={1}>
-                <Text bold>OpenCode Server (optional)</Text>
-                <Text color="gray">
-                  Hostname for 'opencode serve'. Use 0.0.0.0 to allow remote attach over Tailscale,
-                  or 127.0.0.1 for local-only.
-                </Text>
-                <Box marginTop={1}>
-                  <Text>Hostname: </Text>
-                  <TextInput
-                    value={state.opencodeServerHostname}
-                    onChange={(v: string) =>
-                      setState((s: WizardState) => ({ ...s, opencodeServerHostname: v }))
-                    }
-                    placeholder="0.0.0.0"
-                  />
-                </Box>
-                <Box marginTop={1}>
-                  <Text color="gray">
-                    Optional basic auth for remote access (recommended if binding 0.0.0.0)
-                  </Text>
-                </Box>
-                <Box marginTop={1}>
-                  <Text>Username: </Text>
-                  <TextInput
-                    value={state.opencodeServerUsername}
-                    onChange={(v: string) =>
-                      setState((s: WizardState) => ({ ...s, opencodeServerUsername: v }))
-                    }
-                    placeholder="opencode"
-                  />
-                </Box>
-                <Box marginTop={1}>
-                  <Text>Password: </Text>
-                  <TextInput
-                    value={state.opencodeServerPassword}
-                    onChange={(v: string) =>
-                      setState((s: WizardState) => ({ ...s, opencodeServerPassword: v }))
-                    }
-                    placeholder="(optional)"
-                    mask="*"
-                  />
-                </Box>
-              </Box>
-            </Box>
-          )}
           {step === 'github' && (
             <TokenInputStep
               title="GitHub Personal Access Token"

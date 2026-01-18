@@ -1,7 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '../screens/HomeScreen';
 import { WorkspaceDetailScreen } from '../screens/WorkspaceDetailScreen';
-import { SessionChatScreen } from '../screens/SessionChatScreen';
 import { TerminalScreen } from '../screens/TerminalScreen';
 import {
   SettingsScreen,
@@ -44,7 +43,6 @@ export function TabNavigator() {
       <Stack.Screen name="Mcp" component={McpServersScreen} />
       <Stack.Screen name="WorkspaceDetail" component={WorkspaceDetailScreen} />
       <Stack.Screen name="WorkspaceSettings" component={WorkspaceSettingsScreen} />
-      <Stack.Screen name="SessionChat" component={SessionChatScreen} />
       <Stack.Screen name="Terminal" component={TerminalScreen} />
     </Stack.Navigator>
   );

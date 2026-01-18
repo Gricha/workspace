@@ -8,9 +8,14 @@ describe('Agent Sync Integration', () => {
   let agent: TestAgent;
   let workspaceName: string;
   let tempHomeDir: string;
+  let originalHome: string | undefined;
+  let opencodeToken: string;
 
   beforeAll(async () => {
     tempHomeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'agent-sync-test-'));
+    originalHome = process.env.HOME;
+    process.env.HOME = tempHomeDir;
+    opencodeToken = process.env.OPENCODE_TOKEN || 'test-opencode-token';
 
     await fs.mkdir(path.join(tempHomeDir, '.claude'), { recursive: true });
     await fs.writeFile(
@@ -44,13 +49,18 @@ describe('Agent Sync Integration', () => {
       })
     );
 
-    agent = await startTestAgent({
-      config: {
-        agents: {
-          opencode: { zen_token: 'test-zen-token' },
+    await fs.mkdir(path.join(tempHomeDir, '.local', 'share', 'opencode'), { recursive: true });
+    await fs.writeFile(
+      path.join(tempHomeDir, '.local', 'share', 'opencode', 'auth.json'),
+      JSON.stringify({
+        opencode: {
+          type: 'api',
+          key: opencodeToken,
         },
-      },
-    });
+      })
+    );
+
+    agent = await startTestAgent();
 
     workspaceName = generateTestWorkspaceName();
     const createResult = await agent.api.createWorkspace({ name: workspaceName });
@@ -68,6 +78,7 @@ describe('Agent Sync Integration', () => {
       }
       await agent.cleanup();
     }
+    process.env.HOME = originalHome;
     if (tempHomeDir) {
       await fs.rm(tempHomeDir, { recursive: true, force: true });
     }
@@ -90,7 +101,7 @@ describe('Agent Sync Integration', () => {
     expect(result.stdout).toContain('exists');
   });
 
-  it('creates opencode config when zen_token is set', async () => {
+  it('copies host opencode config into workspace', async () => {
     const result = await agent.exec(
       workspaceName,
       'cat /home/workspace/.config/opencode/opencode.json'
@@ -98,8 +109,25 @@ describe('Agent Sync Integration', () => {
     expect(result.code).toBe(0);
 
     const config = JSON.parse(result.stdout);
-    expect(config.provider.opencode.options.apiKey).toBe('test-zen-token');
-    expect(config.model).toBe('opencode/claude-sonnet-4');
+    expect(config.mcp).toEqual({
+      'opencode-mcp': { type: 'local', command: ['bun', 'run', 'server'] },
+    });
+  });
+
+  it('copies host opencode auth into workspace', async () => {
+    const result = await agent.exec(
+      workspaceName,
+      'cat /home/workspace/.local/share/opencode/auth.json'
+    );
+    expect(result.code).toBe(0);
+
+    const config = JSON.parse(result.stdout);
+    expect(config).toEqual({
+      opencode: {
+        type: 'api',
+        key: opencodeToken,
+      },
+    });
   });
 
   it('creates .codex directory', async () => {
