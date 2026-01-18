@@ -9,6 +9,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  BASE_IMAGE_NAME: ${{ github.repository }}-base
 
 jobs:
   lint:
@@ -199,12 +200,24 @@ jobs:
             echo "is_fork=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build workspace image (with cache)
+      - name: Build base image (with cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./perry
+          file: ./perry/Dockerfile.base
+          load: true
+          tags: perry-base:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:buildcache-test
+          cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && steps.fork-check.outputs.is_fork == 'false' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.BASE_IMAGE_NAME) || '' }}
+
+      - name: Build full image (with cache)
         uses: docker/build-push-action@v6
         with:
           context: ./perry
           load: true
           tags: perry:latest
+          build-args: |
+            BASE_IMAGE=perry-base:latest
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-test
           cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && steps.fork-check.outputs.is_fork == 'false' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.IMAGE_NAME) || '' }}
 
@@ -302,12 +315,24 @@ jobs:
             echo "is_fork=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build workspace image (with cache)
+      - name: Build base image (with cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./perry
+          file: ./perry/Dockerfile.base
+          load: true
+          tags: perry-base:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:buildcache-test
+          cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && steps.fork-check.outputs.is_fork == 'false' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.BASE_IMAGE_NAME) || '' }}
+
+      - name: Build full image (with cache)
         uses: docker/build-push-action@v6
         with:
           context: ./perry
           load: true
           tags: perry:latest
+          build-args: |
+            BASE_IMAGE=perry-base:latest
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-test
           cache-to: ${{ steps.docker-changes.outputs.changed == 'true' && steps.fork-check.outputs.is_fork == 'false' && format('type=registry,ref={0}/{1}:buildcache-test,mode=max', env.REGISTRY, env.IMAGE_NAME) || '' }}
 
