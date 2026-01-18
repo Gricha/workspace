@@ -8,7 +8,6 @@ const FALLBACK_CLAUDE_MODELS: ModelInfo[] = [
   { id: 'haiku', name: 'Haiku', description: 'Fastest', provider: 'anthropic' },
 ];
 
-
 export async function discoverClaudeCodeModels(config: AgentConfig): Promise<ModelInfo[]> {
   void config;
   return FALLBACK_CLAUDE_MODELS;

@@ -5,20 +5,9 @@ import { loadAgentConfig, saveAgentConfig, getConfigDir, ensureConfigDir } from 
 import { discoverSSHKeys } from '../ssh';
 import type { SSHKeyInfo } from '../shared/client-types';
 
-type Step =
-  | 'welcome'
-  | 'github'
-  | 'ssh'
-  | 'tailscale'
-  | 'complete';
+type Step = 'welcome' | 'github' | 'ssh' | 'tailscale' | 'complete';
 
-const STEPS: Step[] = [
-  'welcome',
-  'github',
-  'ssh',
-  'tailscale',
-  'complete',
-];
+const STEPS: Step[] = ['welcome', 'github', 'ssh', 'tailscale', 'complete'];
 
 interface WizardState {
   githubToken: string;
@@ -52,7 +41,6 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
     </Box>
   );
 }
-
 
 function TokenInputStep({
   title,
