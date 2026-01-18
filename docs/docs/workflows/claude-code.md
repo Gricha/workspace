@@ -14,7 +14,7 @@ This flow is terminal-first. You connect to the workspace, launch the agent, and
 
 <video controls src="/video/claude-perry.mov" width="100%"></video>
 
-![Claude Code on mobile terminal](/img/claude-mobile.png)
+<img src="/img/claude-mobile.png" alt="Claude Code on mobile terminal" width="360" />
 
 ## 1) Configure credentials
 
