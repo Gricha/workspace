@@ -10,6 +10,7 @@ test.describe('Web UI - MCP', () => {
     try {
       await page.goto(`http://127.0.0.1:${agent.port}/`);
 
+      await page.getByRole('button', { name: 'Integrations' }).click();
       await page.getByRole('link', { name: 'MCP' }).click();
       await expect(page.getByRole('heading', { name: 'MCP Servers' })).toBeVisible();
 

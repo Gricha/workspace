@@ -35,12 +35,14 @@ describe('opencodeSync', () => {
         {
           source: '~/.local/share/opencode/auth.json',
           dest: '/home/workspace/.local/share/opencode/auth.json',
+          category: 'credential',
           permissions: '600',
           optional: true,
         },
         {
           source: '~/.local/share/opencode/mcp-auth.json',
           dest: '/home/workspace/.local/share/opencode/mcp-auth.json',
+          category: 'credential',
           permissions: '600',
           optional: true,
         },

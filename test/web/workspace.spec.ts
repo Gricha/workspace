@@ -23,7 +23,9 @@ test.describe('Web UI', () => {
     await agent.api.deleteWorkspace(workspaceName);
 
     await page.goto(`http://127.0.0.1:${agent.port}/workspaces`);
-    await expect(page.getByText('No workspaces yet')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Welcome to Perry' })).toBeVisible({
+      timeout: 15000,
+    });
   }, 120000);
 
   test('can navigate to settings', async ({ agent, page }) => {
