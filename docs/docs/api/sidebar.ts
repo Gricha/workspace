@@ -155,9 +155,16 @@ const sidebar: SidebarsConfig = {
       label: "Info",
       link: {
         type: "doc",
-        id: "api/info",
+        id: "api/info-tag",
       },
-      items: [],
+      items: [
+        {
+          type: "doc",
+          id: "api/info",
+          label: "info",
+          className: "api-method post",
+        },
+      ],
     },
     {
       type: "category",
