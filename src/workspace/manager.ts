@@ -377,20 +377,18 @@ export class WorkspaceManager {
     const updates = [
       {
         name: 'claude',
-        command: 'command -v claude >/dev/null 2>&1 || exit 0; curl -fsSL https://claude.ai/install.sh | bash',
+        command: 'curl -fsSL https://claude.ai/install.sh | bash',
       },
       {
         name: 'opencode',
-        command: 'command -v opencode >/dev/null 2>&1 || exit 0; curl -fsSL https://opencode.ai/install | bash',
+        command: 'curl -fsSL https://opencode.ai/install | bash',
       },
     ];
 
     for (const update of updates) {
-      const result = await docker.execInContainer(
-        containerName,
-        ['sh', '-c', update.command],
-        { user: 'workspace' }
-      );
+      const result = await docker.execInContainer(containerName, ['sh', '-c', update.command], {
+        user: 'workspace',
+      });
       if (result.exitCode !== 0) {
         const details = result.stderr || result.stdout || 'unknown error';
         console.warn(`[agents] ${update.name} update failed: ${details}`);

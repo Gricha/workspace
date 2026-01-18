@@ -177,7 +177,7 @@ USER workspace
 
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
-RUN curl -fsSL https://opencode.ai/install | bash
+RUN curl -fsSL https://opencode.ai/install | bash || echo "OpenCode install failed; will retry on workspace start"
 
 RUN bunx playwright install chromium --with-deps
 
