@@ -338,12 +338,19 @@
   text-align: center;
 }
 
-.demoWeb img {
+.demoWeb img,
+.demoWeb video {
   max-width: 800px;
   width: 100%;
   border-radius: 12px;
   border: 1px solid var(--perry-border);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.demoVideo {
+  display: block;
+  margin: 0 auto;
+  background: #000;
 }
 
 .demoWeb p {

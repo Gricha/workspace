@@ -73,7 +73,12 @@ opencode attach http://my-proj:4096
 Open `http://<hostname>:7391` to manage workspaces from your browser.
 
 <p align="center">
-  <img src="assets/demo.gif" alt="Web UI Demo" width="800">
+  <video controls src="docs/static/video/opencode-perry.mov" width="800"></video>
+</p>
+
+<p align="center">
+  <img src="docs/static/img/opencode-mobile.png" alt="OpenCode mobile client" width="320">
+  <img src="docs/static/img/claude-mobile.png" alt="Claude Code on mobile terminal" width="320">
 </p>
 
 ### Remote Access

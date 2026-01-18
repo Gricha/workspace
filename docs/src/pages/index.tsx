@@ -110,7 +110,9 @@ function HomepageFeatures(): ReactNode {
 }
 
 function RemoteAccess(): ReactNode {
-  const demoImg = useBaseUrl('/img/demo.gif');
+  const demoVideo = useBaseUrl('/video/opencode-perry.mov');
+  const opencodeMobile = useBaseUrl('/img/opencode-mobile.png');
+  const claudeMobile = useBaseUrl('/img/claude-mobile.png');
 
   return (
     <section className={styles.remoteAccess}>
@@ -122,8 +124,18 @@ function RemoteAccess(): ReactNode {
           Workspaces auto-register on your tailnet for direct access from any device.
         </p>
         <div className={styles.demoWeb}>
-          <img src={demoImg} alt="Web UI demo" />
-          <p>Web UI, CLI, and SSH stay in sync</p>
+          <video controls src={demoVideo} className={styles.demoVideo} />
+          <p>OpenCode over Tailnet, directly in the browser</p>
+        </div>
+        <div className={styles.demoGrid}>
+          <div className={styles.demoItem}>
+            <img src={opencodeMobile} alt="OpenCode on mobile" />
+            <p>OpenCode on mobile via the workspace web UI</p>
+          </div>
+          <div className={styles.demoItem}>
+            <img src={claudeMobile} alt="Claude Code on mobile terminal" />
+            <p>Claude Code via Perry terminal or Termius</p>
+          </div>
         </div>
       </div>
     </section>
