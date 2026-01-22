@@ -26,19 +26,20 @@ export function generateServiceFile(options: InstallOptions = {}): string {
   const port = options.port || DEFAULT_AGENT_PORT;
   const configDir = options.configDir || DEFAULT_CONFIG_DIR;
 
-  const nodePath = process.execPath;
-  const agentPath = path.resolve(__dirname, 'index.js');
+  const perryPath = process.execPath;
 
-  const envLines = [
-    `Environment=PERRY_PORT=${port}`,
-    `Environment=PERRY_CONFIG_DIR=${configDir}`,
-    `Environment=NODE_ENV=production`,
-    `Environment=SHELL=/bin/bash`,
-  ];
-
-  if (options.noHostAccess) {
-    envLines.push(`Environment=PERRY_NO_HOST_ACCESS=true`);
+  const execArgs = ['agent', 'run'];
+  if (port !== DEFAULT_AGENT_PORT) {
+    execArgs.push('--port', String(port));
   }
+  if (configDir !== DEFAULT_CONFIG_DIR) {
+    execArgs.push('--config-dir', configDir);
+  }
+  if (options.noHostAccess) {
+    execArgs.push('--no-host-access');
+  }
+
+  const envLines = [`Environment=NODE_ENV=production`, `Environment=SHELL=/bin/bash`];
 
   return `[Unit]
 Description=${SERVICE_DESCRIPTION}
@@ -47,7 +48,7 @@ Wants=docker.service
 
 [Service]
 Type=simple
-ExecStart=${nodePath} ${agentPath}
+ExecStart=${perryPath} ${execArgs.join(' ')}
 Restart=on-failure
 RestartSec=5
 ${envLines.join('\n')}
