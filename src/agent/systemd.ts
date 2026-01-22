@@ -128,7 +128,7 @@ export async function installService(options: InstallOptions = {}): Promise<void
   }
 
   try {
-    await runSystemctl(['start', SERVICE_NAME]);
+    await runSystemctl(['restart', SERVICE_NAME]);
     console.log(`Service ${SERVICE_NAME} started`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
