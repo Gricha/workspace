@@ -33,6 +33,7 @@ export function generateServiceFile(options: InstallOptions = {}): string {
     `Environment=PERRY_PORT=${port}`,
     `Environment=PERRY_CONFIG_DIR=${configDir}`,
     `Environment=NODE_ENV=production`,
+    `Environment=SHELL=/bin/bash`,
   ];
 
   if (options.noHostAccess) {
@@ -126,9 +127,27 @@ export async function installService(options: InstallOptions = {}): Promise<void
     throw new Error('Installation failed: systemd configuration could not be completed');
   }
 
+  try {
+    await runSystemctl(['restart', SERVICE_NAME]);
+    console.log(`Service ${SERVICE_NAME} started`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Warning: Could not start service. ${msg}`);
+    console.log('');
+    console.log('Installation complete, but service failed to start.');
+    console.log('Try starting manually:');
+    console.log(`  systemctl --user start ${SERVICE_NAME}`);
+    console.log('');
+    console.log('To check status:');
+    console.log(`  systemctl --user status ${SERVICE_NAME}`);
+    console.log('');
+    console.log('To view logs:');
+    console.log(`  journalctl --user -u ${SERVICE_NAME} -f`);
+    return;
+  }
+
   console.log('');
-  console.log('Installation complete! To start the agent:');
-  console.log(`  systemctl --user start ${SERVICE_NAME}`);
+  console.log('Installation complete! Agent is now running.');
   console.log('');
   console.log('To check status:');
   console.log(`  systemctl --user status ${SERVICE_NAME}`);

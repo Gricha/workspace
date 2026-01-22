@@ -75,7 +75,7 @@ function createAgentServer(
   };
 
   const getPreferredShell = () => {
-    return currentConfig.terminal?.preferredShell || process.env.SHELL;
+    return currentConfig.terminal?.preferredShell || process.env.SHELL || '/bin/bash';
   };
 
   const terminalHandler = new TerminalHandler({
