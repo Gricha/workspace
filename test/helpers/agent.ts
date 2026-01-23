@@ -90,6 +90,7 @@ export async function createTempConfig(config: Partial<AgentConfig> = {}): Promi
     },
     scripts: config.scripts || {},
     agents: config.agents,
+    auth: config.auth,
   };
 
   await fs.writeFile(path.join(tempDir, 'config.json'), JSON.stringify(agentConfig, null, 2));
