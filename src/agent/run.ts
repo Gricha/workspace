@@ -137,6 +137,11 @@ function createAgentServer(
         return new Response(null, { status: 204, headers: corsHeaders });
       }
 
+      const staticResponse = await serveStaticBun(pathname);
+      if (staticResponse) {
+        return staticResponse;
+      }
+
       const authResult = checkAuth(req, currentConfig);
       if (!authResult.ok) {
         return unauthorizedResponse();
@@ -185,11 +190,6 @@ function createAgentServer(
             headers: newHeaders,
           });
         }
-      }
-
-      const staticResponse = await serveStaticBun(pathname);
-      if (staticResponse) {
-        return staticResponse;
       }
 
       return Response.json({ error: 'Not found' }, { status: 404, headers: corsHeaders });
