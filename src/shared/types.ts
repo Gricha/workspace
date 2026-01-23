@@ -46,6 +46,10 @@ export interface TerminalSettings {
   preferredShell?: string;
 }
 
+export interface AuthConfig {
+  token?: string;
+}
+
 export type TailscaleStatus = 'none' | 'connected' | 'failed';
 
 export interface TailscaleConfig {
@@ -113,6 +117,7 @@ export interface AgentConfig {
   ssh?: SSHSettings;
   terminal?: TerminalSettings;
   tailscale?: TailscaleConfig;
+  auth?: AuthConfig;
 }
 
 export interface ClientConfig {

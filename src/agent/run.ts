@@ -1,7 +1,11 @@
 import type { Server, ServerWebSocket } from 'bun';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import { RPCHandler } from '@orpc/server/fetch';
-import { loadAgentConfig, getConfigDir, ensureConfigDir } from '../config/loader';
+import { loadAgentConfig, saveAgentConfig, getConfigDir, ensureConfigDir } from '../config/loader';
 import type { AgentConfig } from '../shared/types';
+import { CONFIG_FILE } from '../shared/types';
 import { HOST_WORKSPACE_NAME } from '../shared/client-types';
 import { DEFAULT_AGENT_PORT } from '../shared/constants';
 import { WorkspaceManager } from '../workspace/manager';
@@ -14,6 +18,7 @@ import { serveStaticBun } from './static';
 import { SessionsCacheManager } from '../sessions/cache';
 import { ModelCacheManager } from '../models/cache';
 import { FileWatcher } from './file-watcher';
+import { checkAuth, unauthorizedResponse } from './auth';
 import {
   getTailscaleStatus,
   getTailscaleIdentity,
@@ -125,11 +130,16 @@ function createAgentServer(
       const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       };
 
       if (method === 'OPTIONS') {
         return new Response(null, { status: 204, headers: corsHeaders });
+      }
+
+      const authResult = checkAuth(req, currentConfig);
+      if (!authResult.ok) {
+        return unauthorizedResponse();
       }
 
       const terminalMatch = pathname.match(/^\/rpc\/terminal\/([^/]+)$/);
@@ -252,12 +262,31 @@ const BANNER = `
  |_|   |_____|_| \\_\\_| \\_\\|_|
 `;
 
+async function ensureAuthForNewInstalls(configDir: string): Promise<AgentConfig> {
+  const configPath = path.join(configDir, CONFIG_FILE);
+  const configExists = fs.existsSync(configPath);
+
+  const config = await loadAgentConfig(configDir);
+
+  if (!configExists && !config.auth?.token) {
+    const token = `perry-${crypto.randomBytes(16).toString('hex')}`;
+    config.auth = { ...config.auth, token };
+    await saveAgentConfig(config, configDir);
+
+    console.log(`[agent] New install detected - auth enabled by default`);
+    console.log(`[agent] Auth token generated: ${token}`);
+    console.log(`[agent] Configure clients with: perry config token ${token}`);
+  }
+
+  return config;
+}
+
 export async function startAgent(options: StartAgentOptions = {}): Promise<void> {
   const configDir = options.configDir || getConfigDir();
 
   await ensureConfigDir(configDir);
 
-  const config = await loadAgentConfig(configDir);
+  const config = await ensureAuthForNewInstalls(configDir);
 
   if (options.noHostAccess || process.env.PERRY_NO_HOST_ACCESS === 'true') {
     config.allowHostAccess = false;
