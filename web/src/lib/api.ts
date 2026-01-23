@@ -212,7 +212,7 @@ type ClientType = {
   };
 };
 
-let link: RPCLink;
+let link: RPCLink<Record<string, unknown>>;
 let client: ClientType;
 
 function initClient() {
