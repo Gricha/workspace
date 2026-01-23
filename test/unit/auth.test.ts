@@ -2,10 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { checkAuth, unauthorizedResponse } from '../../src/agent/auth';
 import type { AgentConfig } from '../../src/shared/types';
 
-function createRequest(
-  url: string,
-  headers: Record<string, string> = {}
-): Request {
+function createRequest(url: string, headers: Record<string, string> = {}): Request {
   return new Request(url, { headers });
 }
 

@@ -8,10 +8,19 @@ export interface AuthResult {
 
 const PUBLIC_PATHS = ['/health'];
 
+const WEB_UI_PATTERNS = [/^\/$/, /^\/index\.html$/, /^\/assets\//, /^\/favicon\.ico$/];
+
+function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_PATHS.includes(pathname)) {
+    return true;
+  }
+  return WEB_UI_PATTERNS.some((pattern) => pattern.test(pathname));
+}
+
 export function checkAuth(req: Request, config: AgentConfig): AuthResult {
   const url = new URL(req.url);
 
-  if (PUBLIC_PATHS.includes(url.pathname)) {
+  if (isPublicPath(url.pathname)) {
     return { ok: true };
   }
 
