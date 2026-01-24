@@ -16,6 +16,7 @@ import {
   Github,
   Network,
   ChevronDown,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api, type WorkspaceInfo } from '@/lib/api';
@@ -48,6 +49,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     { to: '/settings/ssh', label: 'SSH Keys', icon: KeyRound },
     { to: '/settings/scripts', label: 'Scripts', icon: Terminal },
     { to: '/settings/terminal', label: 'Terminal', icon: SquareTerminal },
+    { to: '/settings/security', label: 'Security', icon: Shield },
   ];
 
   const integrationLinks = [

@@ -19,6 +19,7 @@ import { SSHSettings } from './pages/settings/SSH';
 import { TerminalSettings } from './pages/settings/Terminal';
 import { GitHubSettings } from './pages/settings/GitHub';
 import { TailscaleSettings } from './pages/settings/Tailscale';
+import { SecuritySettings } from './pages/settings/Security';
 import { Setup } from './pages/Setup';
 import { Skills } from './pages/Skills';
 import { McpServers } from './pages/McpServers';
@@ -124,6 +125,7 @@ function App() {
                 <Route path="settings/terminal" element={<TerminalSettings />} />
                 <Route path="settings/github" element={<GitHubSettings />} />
                 <Route path="settings/tailscale" element={<TailscaleSettings />} />
+                <Route path="settings/security" element={<SecuritySettings />} />
                 <Route path="skills" element={<Skills />} />
                 <Route path="mcp" element={<McpServers />} />
               </Route>

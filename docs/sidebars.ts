@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
         'configuration/scripts',
         'configuration/tailscale',
         'configuration/github',
+        'configuration/authentication',
       ],
     },
     {
