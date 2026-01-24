@@ -40,17 +40,33 @@ That's it. No "Test Plan", no "Screenshots", no checklists unless truly needed.
 
 ## Steps
 
-1. Check current state:
+1. **Check changed files**:
    ```bash
    git diff --name-only main...HEAD
-   git log --oneline main...HEAD
    ```
 
-2. Create PR:
+2. **Run validation + reviews in parallel** (REQUIRED before creating PR):
+
+   Run these concurrently:
+   - `bun run validate` (background)
+   - Review agents based on changed files:
+
+   | Changed files | Agent to spawn |
+   |---------------|----------------|
+   | `src/agent/`, auth, user input, data handling | `security-review` |
+   | Loops, data fetching, DB queries, heavy computation | `perf-review` |
+   | `web/` or `mobile/` (.tsx/.jsx files) | `react-review` |
+   | Any code changes | `code-simplifier` (if available) |
+
+   Spawn all applicable agents in parallel using the Task tool.
+
+3. **Fix any issues** found by validation or review agents before proceeding
+
+4. **Create PR** (only after validation passes and reviews are addressed):
    ```bash
    gh pr create --title "<type>: <description>" --body "$(cat <<'EOF'
    ## Summary
-   
+
    - <what>
    - <why>
    EOF
