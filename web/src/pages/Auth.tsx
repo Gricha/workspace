@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import Key from 'lucide-react/dist/esm/icons/key';
-import Shield from 'lucide-react/dist/esm/icons/shield';
-import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
+import { Key, Shield, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { setToken, clearToken } from '@/lib/api';
