@@ -1,5 +1,11 @@
+import { timingSafeEqual } from 'crypto';
 import type { AgentConfig } from '../shared/types';
 import { getTailscaleIdentity } from '../tailscale';
+
+function secureCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 export interface AuthResult {
   ok: boolean;
@@ -36,7 +42,7 @@ export function checkAuth(req: Request, config: AgentConfig): AuthResult {
   const authHeader = req.headers.get('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
-    if (token === config.auth.token) {
+    if (secureCompare(token, config.auth.token)) {
       return { ok: true, identity: { type: 'token' } };
     }
   }

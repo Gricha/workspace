@@ -22,6 +22,7 @@ import { TailscaleSettings } from './pages/settings/Tailscale';
 import { Setup } from './pages/Setup';
 import { Skills } from './pages/Skills';
 import { McpServers } from './pages/McpServers';
+import { Auth } from './pages/Auth';
 import { Layout } from './components/Layout';
 import { SyncProvider } from './contexts/SyncContext';
 import { api } from './lib/api';
@@ -44,32 +45,55 @@ function SetupGuard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [checked, setChecked] = useState(false);
+  const [needsAuth, setNeedsAuth] = useState(false);
+  const [authKey, setAuthKey] = useState(0);
 
   const {
     data: workspaces,
     isLoading: workspacesLoading,
     isError: workspacesError,
+    error,
   } = useQuery({
-    queryKey: ['workspaces'],
+    queryKey: ['workspaces', authKey],
     queryFn: api.listWorkspaces,
+    retry: false,
   });
 
   const isLoading = workspacesLoading;
-  const hasError = workspacesError;
 
   useEffect(() => {
-    if (isLoading || checked || hasError) return;
+    if (isLoading) return;
+
+    if (workspacesError && error) {
+      const status = (error as { status?: number }).status;
+      if (status === 401) {
+        setNeedsAuth(true);
+        return;
+      }
+    }
+
+    if (checked) return;
 
     const hasWorkspaces = workspaces && workspaces.length > 0;
     const isUnconfigured = !hasWorkspaces;
     const isOnSetupPage = location.pathname === '/setup';
 
-    if (isUnconfigured && !isOnSetupPage) {
+    if (isUnconfigured && !isOnSetupPage && !workspacesError) {
       navigate('/setup', { replace: true });
     }
 
     setChecked(true);
-  }, [workspaces, isLoading, checked, hasError, navigate, location.pathname]);
+  }, [workspaces, isLoading, checked, workspacesError, error, navigate, location.pathname]);
+
+  const handleAuthenticated = () => {
+    setNeedsAuth(false);
+    setChecked(false);
+    setAuthKey((k) => k + 1);
+  };
+
+  if (needsAuth) {
+    return <Auth onAuthenticated={handleAuthenticated} />;
+  }
 
   if (!checked && isLoading) {
     return null;

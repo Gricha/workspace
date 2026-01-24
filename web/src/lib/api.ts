@@ -209,6 +209,10 @@ type ClientType = {
         hostnamePrefix?: string;
       }) => Promise<{ enabled: boolean; authKey?: string; hostnamePrefix?: string }>;
     };
+    auth: {
+      get: () => Promise<{ hasToken: boolean; tokenPreview?: string }>;
+      generate: () => Promise<{ token: string }>;
+    };
   };
 };
 
@@ -292,6 +296,8 @@ export const api = {
   updateSkills: (data: Skill[]) => client.config.skills.update(data),
   getMcpServers: () => client.config.mcp.get(),
   updateMcpServers: (data: McpServer[]) => client.config.mcp.update(data),
+  getAuthConfig: () => client.config.auth.get(),
+  generateAuthToken: () => client.config.auth.generate(),
 };
 
 export function getTerminalUrl(name: string): string {

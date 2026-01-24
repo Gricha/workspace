@@ -3,6 +3,7 @@ import * as z from 'zod';
 import os_module from 'os';
 import { promises as fs } from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import type { AgentConfig } from '../shared/types';
 import { HOST_WORKSPACE_NAME } from '../shared/client-types';
 import { AnyWorkspaceNameSchema, UserWorkspaceNameSchema } from '../shared/workspace-name';
@@ -184,6 +185,11 @@ const TailscaleConfigSchema = z.object({
   enabled: z.boolean(),
   authKey: z.string(),
   hostnamePrefix: z.string().optional(),
+});
+
+const AuthConfigSchema = z.object({
+  hasToken: z.boolean(),
+  tokenPreview: z.string().optional(),
 });
 
 export interface TailscaleInfo {
@@ -655,6 +661,24 @@ export function createRouter(ctx: RouterContext) {
         hostnamePrefix: newTailscale.hostnamePrefix,
       };
     });
+
+  const getAuthConfig = os.output(AuthConfigSchema).handler(async () => {
+    const config = ctx.config.get();
+    const token = config.auth?.token;
+    return {
+      hasToken: !!token,
+      tokenPreview: token ? `${token.slice(0, 10)}...${token.slice(-4)}` : undefined,
+    };
+  });
+
+  const generateAuthToken = os.output(z.object({ token: z.string() })).handler(async () => {
+    const currentConfig = ctx.config.get();
+    const token = `perry-${crypto.randomBytes(16).toString('hex')}`;
+    const newConfig = { ...currentConfig, auth: { ...currentConfig.auth, token } };
+    ctx.config.set(newConfig);
+    await saveAgentConfig(newConfig, ctx.configDir);
+    return { token };
+  });
 
   const GitHubRepoSchema = z.object({
     name: z.string(),
@@ -1552,6 +1576,10 @@ export function createRouter(ctx: RouterContext) {
       tailscale: {
         get: getTailscaleConfig,
         update: updateTailscaleConfig,
+      },
+      auth: {
+        get: getAuthConfig,
+        generate: generateAuthToken,
       },
     },
   };

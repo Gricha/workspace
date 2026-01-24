@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { render, Box, Text, useInput, useApp } from 'ink';
 import TextInput from 'ink-text-input';
+import crypto from 'crypto';
 import { loadAgentConfig, saveAgentConfig, getConfigDir, ensureConfigDir } from '../config/loader';
 import { discoverSSHKeys } from '../ssh';
 import type { SSHKeyInfo } from '../shared/client-types';
 
-type Step = 'welcome' | 'github' | 'ssh' | 'tailscale' | 'complete';
+type Step = 'welcome' | 'auth' | 'github' | 'ssh' | 'tailscale' | 'complete';
 
-const STEPS: Step[] = ['welcome', 'github', 'ssh', 'tailscale', 'complete'];
+const STEPS: Step[] = ['welcome', 'auth', 'github', 'ssh', 'tailscale', 'complete'];
 
 interface WizardState {
+  authToken: string;
+  authTokenGenerated: boolean;
   githubToken: string;
   selectedSSHKeys: string[];
   tailscaleAuthKey: string;
@@ -31,6 +34,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
       </Box>
       <Text>This wizard will help you configure:</Text>
       <Box marginLeft={2} flexDirection="column">
+        <Text>• API security (auth token)</Text>
         <Text>• Git access (GitHub token)</Text>
         <Text>• SSH keys for workspaces</Text>
         <Text>• Tailscale networking</Text>
@@ -69,7 +73,7 @@ function TokenInputStep({
     } else if (key.escape) {
       onBack();
     } else if (input === 'v' && key.ctrl) {
-      setShowValue((s: boolean) => !s);
+      setShowValue((s) => !s);
     } else if (input === 's' && optional) {
       onNext();
     }
@@ -100,6 +104,81 @@ function TokenInputStep({
   );
 }
 
+function AuthStep({
+  token,
+  isNew,
+  onGenerate,
+  onNext,
+  onBack,
+}: {
+  token: string;
+  isNew: boolean;
+  onGenerate: () => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const [showToken, setShowToken] = useState(false);
+
+  useInput((input, key) => {
+    if (key.return) {
+      onNext();
+    } else if (key.escape) {
+      onBack();
+    } else if (input === 'g' && !token) {
+      onGenerate();
+    } else if (input === 'v' && key.ctrl) {
+      setShowToken((s) => !s);
+    }
+  });
+
+  const maskedToken = token ? `${token.slice(0, 10)}...${token.slice(-4)}` : '';
+
+  return (
+    <Box flexDirection="column" gap={1}>
+      <Text bold>API Security</Text>
+      <Text color="gray">
+        Secure your Perry agent with token authentication. Clients will need this token to connect.
+      </Text>
+
+      <Box marginTop={1} flexDirection="column">
+        {token ? (
+          <>
+            <Box>
+              <Text color="green">✓ </Text>
+              <Text>Auth token {isNew ? 'generated' : 'configured'}</Text>
+            </Box>
+            <Box marginTop={1}>
+              <Text>Token: </Text>
+              <Text color="cyan">{showToken ? token : maskedToken}</Text>
+            </Box>
+            <Box marginTop={1} flexDirection="column">
+              <Text color="yellow">Save this token! You'll need it to configure clients:</Text>
+              <Box marginLeft={2}>
+                <Text color="gray">CLI: perry config token {showToken ? token : '<token>'}</Text>
+              </Box>
+              <Box marginLeft={2}>
+                <Text color="gray">Web: Enter when prompted on first visit</Text>
+              </Box>
+            </Box>
+          </>
+        ) : (
+          <>
+            <Text color="yellow">No auth token configured.</Text>
+            <Text>Without a token, anyone with network access can control your agent.</Text>
+          </>
+        )}
+      </Box>
+
+      <Box marginTop={1}>
+        <Text color="gray">
+          {token ? 'Ctrl+V to show/hide token, ' : 'G to generate token, '}
+          Enter to continue, Esc to go back
+        </Text>
+      </Box>
+    </Box>
+  );
+}
+
 function SSHKeySelectStep({
   keys,
   selected,
@@ -118,9 +197,9 @@ function SSHKeySelectStep({
 
   useInput((input, key) => {
     if (key.upArrow) {
-      setHighlighted((h: number) => Math.max(0, h - 1));
+      setHighlighted((h) => Math.max(0, h - 1));
     } else if (key.downArrow) {
-      setHighlighted((h: number) => Math.min(privateKeys.length - 1, h + 1));
+      setHighlighted((h) => Math.min(privateKeys.length - 1, h + 1));
     } else if (input === ' ' && privateKeys.length > 0) {
       onToggle(privateKeys[highlighted].path);
     } else if (key.return) {
@@ -175,6 +254,7 @@ function CompleteStep({ state, onFinish }: { state: WizardState; onFinish: () =>
   });
 
   const configured: string[] = [];
+  if (state.authToken) configured.push('Auth token');
   if (state.githubToken) configured.push('GitHub');
   if (state.selectedSSHKeys.length > 0)
     configured.push(`${state.selectedSSHKeys.length} SSH key(s)`);
@@ -197,6 +277,14 @@ function CompleteStep({ state, onFinish }: { state: WizardState; onFinish: () =>
       ) : (
         <Text color="yellow">No configuration added. You can always configure later.</Text>
       )}
+      {state.authToken && (
+        <Box marginTop={1} flexDirection="column">
+          <Text color="yellow">Remember to configure your clients with the auth token:</Text>
+          <Box marginLeft={2}>
+            <Text color="gray">perry config token {'<token>'}</Text>
+          </Box>
+        </Box>
+      )}
       <Box marginTop={1}>
         <Text>Start the agent with: </Text>
         <Text color="cyan">perry agent run</Text>
@@ -217,6 +305,8 @@ function SetupWizard() {
   const [step, setStep] = useState<Step>('welcome');
   const [sshKeys, setSSHKeys] = useState<SSHKeyInfo[]>([]);
   const [state, setState] = useState<WizardState>({
+    authToken: '',
+    authTokenGenerated: false,
     githubToken: '',
     selectedSSHKeys: [],
     tailscaleAuthKey: '',
@@ -234,8 +324,10 @@ function SetupWizard() {
       const configDir = getConfigDir();
       await ensureConfigDir(configDir);
       const config = await loadAgentConfig(configDir);
-      setState((s: WizardState) => ({
+      setState((s) => ({
         ...s,
+        authToken: config.auth?.token || '',
+        authTokenGenerated: false,
         githubToken: config.agents?.github?.token || '',
         selectedSSHKeys: config.ssh?.global.copy || [],
         tailscaleAuthKey: config.tailscale?.authKey || '',
@@ -259,11 +351,20 @@ function SetupWizard() {
   };
 
   const toggleSSHKey = (path: string) => {
-    setState((s: WizardState) => ({
+    setState((s) => ({
       ...s,
       selectedSSHKeys: s.selectedSSHKeys.includes(path)
-        ? s.selectedSSHKeys.filter((k: string) => k !== path)
+        ? s.selectedSSHKeys.filter((k) => k !== path)
         : [...s.selectedSSHKeys, path],
+    }));
+  };
+
+  const generateAuthToken = () => {
+    const token = `perry-${crypto.randomBytes(16).toString('hex')}`;
+    setState((s) => ({
+      ...s,
+      authToken: token,
+      authTokenGenerated: true,
     }));
   };
 
@@ -273,6 +374,10 @@ function SetupWizard() {
       const configDir = getConfigDir();
       await ensureConfigDir(configDir);
       const config = await loadAgentConfig(configDir);
+
+      if (state.authTokenGenerated && state.authToken) {
+        config.auth = { ...config.auth, token: state.authToken };
+      }
 
       if (state.githubToken) {
         config.agents = {
@@ -325,13 +430,22 @@ function SetupWizard() {
       ) : (
         <>
           {step === 'welcome' && <WelcomeStep onNext={nextStep} />}
+          {step === 'auth' && (
+            <AuthStep
+              token={state.authToken}
+              isNew={state.authTokenGenerated}
+              onGenerate={generateAuthToken}
+              onNext={nextStep}
+              onBack={prevStep}
+            />
+          )}
           {step === 'github' && (
             <TokenInputStep
               title="GitHub Personal Access Token"
               placeholder="ghp_... or github_pat_..."
               helpText="Create at https://github.com/settings/personal-access-tokens/new"
               value={state.githubToken}
-              onChange={(v: string) => setState((s: WizardState) => ({ ...s, githubToken: v }))}
+              onChange={(v) => setState((s) => ({ ...s, githubToken: v }))}
               onNext={nextStep}
               onBack={prevStep}
               optional
@@ -352,9 +466,7 @@ function SetupWizard() {
               placeholder="tskey-auth-..."
               helpText="Generate at https://login.tailscale.com/admin/settings/keys (Reusable: Yes, Ephemeral: No)"
               value={state.tailscaleAuthKey}
-              onChange={(v: string) =>
-                setState((s: WizardState) => ({ ...s, tailscaleAuthKey: v }))
-              }
+              onChange={(v) => setState((s) => ({ ...s, tailscaleAuthKey: v }))}
               onNext={nextStep}
               onBack={prevStep}
               optional

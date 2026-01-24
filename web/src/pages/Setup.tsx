@@ -12,13 +12,16 @@ import {
   Rocket,
   ArrowRight,
   Network,
+  Shield,
+  Copy,
+  RefreshCw,
 } from 'lucide-react';
 import { api, type CodingAgents, type SSHSettings } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-type Step = 'welcome' | 'git' | 'networking' | 'complete';
+type Step = 'welcome' | 'security' | 'git' | 'networking' | 'complete';
 
-const STEPS: Step[] = ['welcome', 'git', 'networking', 'complete'];
+const STEPS: Step[] = ['welcome', 'security', 'git', 'networking', 'complete'];
 
 export function Setup() {
   const navigate = useNavigate();
@@ -49,6 +52,34 @@ export function Setup() {
     queryKey: ['tailscaleConfig'],
     queryFn: api.getTailscaleConfig,
   });
+
+  const { data: authConfig, refetch: refetchAuth } = useQuery({
+    queryKey: ['authConfig'],
+    queryFn: api.getAuthConfig,
+  });
+
+  const [generatedToken, setGeneratedToken] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
+
+  const handleGenerateToken = async () => {
+    setIsGenerating(true);
+    try {
+      const result = await api.generateAuthToken();
+      setGeneratedToken(result.token);
+      await refetchAuth();
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopyToken = async () => {
+    if (generatedToken) {
+      await navigator.clipboard.writeText(generatedToken);
+      setTokenCopied(true);
+      setTimeout(() => setTokenCopied(false), 2000);
+    }
+  };
 
   useEffect(() => {
     if (agents) {
@@ -116,8 +147,7 @@ export function Setup() {
   const handleNext = async () => {
     const currentIndex = STEPS.indexOf(currentStep);
     if (currentStep === 'git') {
-      await handleSaveAgents();
-      await handleSaveSSH();
+      await Promise.all([handleSaveAgents(), handleSaveSSH()]);
     }
     if (currentStep === 'networking') {
       await handleSaveTailscale();
@@ -143,11 +173,9 @@ export function Setup() {
   };
 
   const toggleSSHKey = (keyPath: string) => {
-    if (selectedSSHKeys.includes(keyPath)) {
-      setSelectedSSHKeys(selectedSSHKeys.filter((k) => k !== keyPath));
-    } else {
-      setSelectedSSHKeys([...selectedSSHKeys, keyPath]);
-    }
+    setSelectedSSHKeys((current) =>
+      current.includes(keyPath) ? current.filter((k) => k !== keyPath) : [...current, keyPath]
+    );
   };
 
   const currentStepIndex = STEPS.indexOf(currentStep);
@@ -201,6 +229,15 @@ export function Setup() {
           <div className="pt-4 space-y-3 text-left max-w-md mx-auto">
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Shield className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">Security</p>
+                <p className="text-sm text-muted-foreground">Configure API authentication</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Key className="h-3.5 w-3.5 text-primary" />
               </div>
               <div>
@@ -216,6 +253,92 @@ export function Setup() {
                 <p className="font-medium">Networking</p>
                 <p className="text-sm text-muted-foreground">Connect workspaces to your tailnet</p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {currentStep === 'security' && (
+        <div className="space-y-6">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold mb-2">API Security</h1>
+            <p className="text-muted-foreground">
+              Manage authentication for CLI and other clients
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="border rounded-lg p-4 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <Shield className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold">Auth Token</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {authConfig?.hasToken
+                      ? 'Token configured - clients need this to connect'
+                      : 'No token configured - API is open'}
+                  </p>
+                </div>
+              </div>
+
+              {authConfig?.hasToken && !generatedToken && (
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Current token: <code className="bg-muted px-1 rounded">{authConfig.tokenPreview}</code>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Run <code className="bg-muted px-1 rounded">perry agent config</code> on the agent to view the full token.
+                  </p>
+                </div>
+              )}
+
+              {generatedToken && (
+                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
+                    New token generated!
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-muted px-2 py-1 rounded text-sm font-mono break-all">
+                      {generatedToken}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyToken}
+                      className="flex-shrink-0"
+                    >
+                      {tokenCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Save this token! Configure CLI clients with: <code className="bg-muted px-1 rounded">perry config token {'<token>'}</code>
+                  </p>
+                </div>
+              )}
+
+              {!generatedToken && (
+                <Button
+                  variant="outline"
+                  onClick={handleGenerateToken}
+                  disabled={isGenerating}
+                  className="w-full"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
+                  {authConfig?.hasToken ? 'Generate New Token' : 'Generate Token'}
+                </Button>
+              )}
+            </div>
+
+            <div className="p-4 rounded-lg border bg-muted/30">
+              <h4 className="font-medium mb-2 text-sm">About Authentication</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Tokens protect your agent from unauthorized access</li>
+                <li>• CLI clients need the token to connect remotely</li>
+                <li>• Web clients store the token in browser storage</li>
+                <li>• Tailscale users are authenticated automatically</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -416,6 +539,12 @@ export function Setup() {
             </p>
           </div>
           <div className="pt-4 space-y-3 text-left max-w-md mx-auto text-sm">
+            {authConfig?.hasToken && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Check className="h-4 w-4 text-green-500" />
+                <span>Auth token configured</span>
+              </div>
+            )}
             {githubToken && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Check className="h-4 w-4 text-green-500" />
@@ -436,7 +565,7 @@ export function Setup() {
                 <span>Tailscale networking enabled</span>
               </div>
             )}
-            {!githubToken && selectedSSHKeys.length === 0 && !tailscaleAuthKey && (
+            {!authConfig?.hasToken && !githubToken && selectedSSHKeys.length === 0 && !tailscaleAuthKey && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <span>No configuration added. You can always configure later in Settings.</span>
               </div>
