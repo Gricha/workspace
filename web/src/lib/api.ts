@@ -212,6 +212,7 @@ type ClientType = {
     auth: {
       get: () => Promise<{ hasToken: boolean; tokenPreview?: string }>;
       generate: () => Promise<{ token: string }>;
+      disable: () => Promise<{ success: boolean }>;
     };
   };
 };
@@ -298,6 +299,7 @@ export const api = {
   updateMcpServers: (data: McpServer[]) => client.config.mcp.update(data),
   getAuthConfig: () => client.config.auth.get(),
   generateAuthToken: () => client.config.auth.generate(),
+  disableAuth: () => client.config.auth.disable(),
 };
 
 export function getTerminalUrl(name: string): string {

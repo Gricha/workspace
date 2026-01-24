@@ -191,3 +191,82 @@ describe('Auth Middleware - No Token Configured', () => {
     expect(result.code).toBe(404);
   });
 });
+
+describe('Auth Token Management', () => {
+  let agent: TestAgent;
+  const INITIAL_TOKEN = 'initial-test-token';
+
+  beforeAll(async () => {
+    agent = await startTestAgent({
+      config: {
+        auth: { token: INITIAL_TOKEN },
+      },
+    });
+  }, 30000);
+
+  afterAll(async () => {
+    if (agent) {
+      await agent.cleanup();
+    }
+  });
+
+  it('can disable authentication', async () => {
+    const disableResponse = await fetch(`${agent.baseUrl}/rpc/config/auth/disable`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${INITIAL_TOKEN}`,
+      },
+      body: JSON.stringify({}),
+    });
+
+    expect(disableResponse.status).toBe(200);
+    const disableResult = await disableResponse.json();
+    expect(disableResult.json.success).toBe(true);
+
+    const infoResponse = await fetch(`${agent.baseUrl}/rpc/info`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+
+    expect(infoResponse.status).toBe(200);
+  });
+
+  it('auth config shows no token after disabling', async () => {
+    const response = await fetch(`${agent.baseUrl}/rpc/config/auth/get`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.json.hasToken).toBe(false);
+    expect(result.json.tokenPreview).toBeUndefined();
+  });
+
+  it('can generate a new token after disabling', async () => {
+    const generateResponse = await fetch(`${agent.baseUrl}/rpc/config/auth/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+
+    expect(generateResponse.status).toBe(200);
+    const result = await generateResponse.json();
+    expect(result.json.token).toBeDefined();
+    expect(result.json.token.length).toBe(24);
+
+    const infoResponse = await fetch(`${agent.baseUrl}/rpc/info`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${result.json.token}`,
+      },
+      body: JSON.stringify({}),
+    });
+
+    expect(infoResponse.status).toBe(200);
+  });
+});

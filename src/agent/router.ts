@@ -680,6 +680,15 @@ export function createRouter(ctx: RouterContext) {
     return { token };
   });
 
+  const disableAuth = os.output(z.object({ success: z.boolean() })).handler(async () => {
+    const currentConfig = ctx.config.get();
+    const { token: _, ...restAuth } = currentConfig.auth || {};
+    const newConfig = { ...currentConfig, auth: restAuth };
+    ctx.config.set(newConfig);
+    await saveAgentConfig(newConfig, ctx.configDir);
+    return { success: true };
+  });
+
   const GitHubRepoSchema = z.object({
     name: z.string(),
     fullName: z.string(),
@@ -1580,6 +1589,7 @@ export function createRouter(ctx: RouterContext) {
       auth: {
         get: getAuthConfig,
         generate: generateAuthToken,
+        disable: disableAuth,
       },
     },
   };
