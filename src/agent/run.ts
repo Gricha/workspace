@@ -269,7 +269,7 @@ async function ensureAuthForNewInstalls(configDir: string): Promise<AgentConfig>
   const config = await loadAgentConfig(configDir);
 
   if (!configExists && !config.auth?.token) {
-    const token = `perry-${crypto.randomBytes(16).toString('hex')}`;
+    const token = crypto.randomBytes(12).toString('hex');
     config.auth = { ...config.auth, token };
     await saveAgentConfig(config, configDir);
 

@@ -11,7 +11,7 @@ export async function authInit(): Promise<void> {
     return;
   }
 
-  const token = `perry-${crypto.randomBytes(16).toString('hex')}`;
+  const token = crypto.randomBytes(12).toString('hex');
   config.auth = { ...config.auth, token };
   await saveAgentConfig(config, configDir);
 

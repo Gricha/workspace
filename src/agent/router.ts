@@ -667,13 +667,13 @@ export function createRouter(ctx: RouterContext) {
     const token = config.auth?.token;
     return {
       hasToken: !!token,
-      tokenPreview: token ? `${token.slice(0, 10)}...${token.slice(-4)}` : undefined,
+      tokenPreview: token ? `${token.slice(0, 4)}...${token.slice(-4)}` : undefined,
     };
   });
 
   const generateAuthToken = os.output(z.object({ token: z.string() })).handler(async () => {
     const currentConfig = ctx.config.get();
-    const token = `perry-${crypto.randomBytes(16).toString('hex')}`;
+    const token = crypto.randomBytes(12).toString('hex');
     const newConfig = { ...currentConfig, auth: { ...currentConfig.auth, token } };
     ctx.config.set(newConfig);
     await saveAgentConfig(newConfig, ctx.configDir);

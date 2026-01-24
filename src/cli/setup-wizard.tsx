@@ -360,7 +360,7 @@ function SetupWizard() {
   };
 
   const generateAuthToken = () => {
-    const token = `perry-${crypto.randomBytes(16).toString('hex')}`;
+    const token = crypto.randomBytes(12).toString('hex');
     setState((s) => ({
       ...s,
       authToken: token,
